@@ -54,6 +54,7 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 - Versions follow [SemVer](https://semver.org/). Pre-releases use `X.Y.Z-alpha.N`, `X.Y.Z-beta.N` and `X.Y.Z-rc.N`. HACS compares versions with AwesomeVersion, which orders these correctly.
 - Each release is developed on a branch named `dev/<version>`, for example `dev/0.1.0-alpha.1`. On that branch, set the same version (without a `v`) in `custom_components/ontario_511/manifest.json` and `pyproject.toml`; `tests/test_manifest.py` checks they match.
 - `main` is the default branch. Never commit directly to it; changes reach it only by merging a reviewed pull request.
+- `main` is protected by the GitHub ruleset "Protect main": changes only through a pull request with resolved conversations, the `checks`, `hassfest` and `hacs` checks passing on an up-to-date branch, and no force pushes or deletion. No approvals are required, because GitHub doesn't let the sole maintainer approve their own pull request. The required checks are matched by job name: if a workflow job is renamed, update the ruleset too, or merges will wait for a check that never reports.
 
 ### Workflow
 
