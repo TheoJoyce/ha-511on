@@ -1,0 +1,36 @@
+{
+  "entity": {
+    "sensor": {
+      "condition": { "default": "mdi:road-variant" },
+      "visibility": { "default": "mdi:eye" },
+      "ferry_status": { "default": "mdi:ferry" },
+      "return_to_service": { "default": "mdi:ferry" },
+      "out_of_service": { "default": "mdi:ferry" },
+      "fuel": { "default": "mdi:gas-station" },
+      "parking_spaces": { "default": "mdi:car-multiple" },
+      "address": { "default": "mdi:train-bus" },
+      "station_location": { "default": "mdi:truck-check" },
+      "roundabout_type": { "default": "mdi:rotate-right" },
+      "hov_road": { "default": "mdi:account-multiple" },
+      "hours": { "default": "mdi:information" },
+      "segment_events": { "default": "mdi:traffic-cone" },
+      "segment_construction": { "default": "mdi:excavator" },
+      "worst_condition": { "default": "mdi:road-variant" },
+      "events": { "default": "mdi:traffic-cone" },
+      "construction": { "default": "mdi:excavator" },
+      "alerts": { "default": "mdi:alert-outline" },
+      "nearest_event": { "default": "mdi:map-marker-alert" }
+    },
+    "binary_sensor": {
+      "drifting": { "default": "mdi:weather-windy" },
+      "restricted": { "default": "mdi:weight" },
+      "full_closure": { "default": "mdi:road-variant", "state": { "on": "mdi:sign-caution" } },
+      "closure": { "default": "mdi:road-variant", "state": { "on": "mdi:sign-caution" } }
+    },
+    "event": {
+      "segment_new_event": { "default": "mdi:bell-alert" },
+      "new_event": { "default": "mdi:bell-alert" },
+      "new_alert": { "default": "mdi:alert-decagram" }
+    }
+  }
+}

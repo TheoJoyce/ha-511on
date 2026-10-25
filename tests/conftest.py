@@ -22,7 +22,8 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
-from custom_components.ontario_511.api import Resource
+from custom_components.ontario_511.api import RateLimiter, Resource
+from custom_components.ontario_511.client import RATE_LIMITER
 from custom_components.ontario_511.const import (
     CONF_EVENT_SLOTS,
     CONF_FEEDS,
@@ -70,6 +71,37 @@ def frozen_time(freezer: FrozenDateTimeFactory) -> Generator[FrozenDateTimeFacto
     """Freeze time so event activity is deterministic."""
     freezer.move_to(FROZEN_NOW)
     yield freezer
+
+
+class SimulatedClock:
+    """A monotonic clock for the rate limiter that moves only when it sleeps.
+
+    Tests freeze time, which would also freeze the limiter's clock, so a test
+    using more than 10 resources would wait forever for the window to slide.
+    This keeps the limit fully enforced while simulating the wait.
+    """
+
+    def __init__(self) -> None:
+        """Start at zero."""
+        self.now = 0.0
+        self.waits: list[float] = []
+
+    def __call__(self) -> float:
+        """Return the simulated time."""
+        return self.now
+
+    async def sleep(self, seconds: float) -> None:
+        """Record the wait and advance simulated time."""
+        self.waits.append(seconds)
+        self.now += seconds
+
+
+@pytest.fixture(autouse=True)
+def limiter_clock(hass: HomeAssistant) -> SimulatedClock:
+    """Install the instance-wide rate limiter with a simulated clock."""
+    clock = SimulatedClock()
+    hass.data[RATE_LIMITER] = RateLimiter(clock=clock, sleep=clock.sleep)
+    return clock
 
 
 @pytest.fixture

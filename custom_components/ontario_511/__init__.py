@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import datetime
 import logging
 from types import MappingProxyType
 from typing import Any
@@ -36,12 +37,18 @@ from .const import (
     VALIDATION_RESOURCE,
 )
 from .coordinator import ResourceCoordinator
+from .feeds import FeedIndex
 from .generation import generate_for_area, generate_for_commute
 from .models import Item, RoadSegment
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = []
+PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
+    Platform.CAMERA,
+    Platform.EVENT,
+    Platform.SENSOR,
+]
 
 
 @dataclass
@@ -51,6 +58,9 @@ class Ontario511Data:
     client: Ontario511Client
     key: str
     coordinators: dict[Resource, ResourceCoordinator]
+    feeds: FeedIndex = field(init=False)
+    # Camera images by URL, with when they were fetched.
+    camera_images: dict[str, tuple[datetime, bytes]] = field(default_factory=dict)
     # Set while generation updates subentries, so those updates don't each
     # trigger a reload.
     generating: bool = field(default=False)
@@ -100,6 +110,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -
         for resource in sorted(resources_in_use(entry))
     }
     entry.runtime_data = Ontario511Data(client, key, coordinators)
+    entry.runtime_data.feeds = FeedIndex(entry)
 
     # Setup waits for one resource, which checks the key and connection; the
     # rest load in the background, because with many resources the rate

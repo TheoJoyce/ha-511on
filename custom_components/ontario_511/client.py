@@ -16,7 +16,7 @@ from .models import Item
 # One limiter for the whole Home Assistant instance. The API documentation
 # doesn't say whether its limit is counted per key or per IP address, so every
 # call from this instance shares one budget, whatever key it uses.
-_RATE_LIMITER: HassKey[RateLimiter] = HassKey("ontario_511_rate_limiter")
+RATE_LIMITER: HassKey[RateLimiter] = HassKey("ontario_511_rate_limiter")
 
 # Parsed responses, kept for the lifetime of Home Assistant so reloading a
 # config entry (after adding an item or commute) doesn't re-fetch everything.
@@ -40,8 +40,8 @@ def key_id(api_key: str) -> str:
 
 def get_rate_limiter(hass: HomeAssistant) -> RateLimiter:
     """Return the instance-wide rate limiter, creating it on first use."""
-    if (limiter := hass.data.get(_RATE_LIMITER)) is None:
-        limiter = hass.data[_RATE_LIMITER] = RateLimiter()
+    if (limiter := hass.data.get(RATE_LIMITER)) is None:
+        limiter = hass.data[RATE_LIMITER] = RateLimiter()
     return limiter
 
 

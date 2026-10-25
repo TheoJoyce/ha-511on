@@ -25,24 +25,34 @@
 
 ## Features
 
-The integration covers the data Ontario 511 publishes through its API. Coverage grows with each release; the release notes list what each version supports.
+Entities for the Ontario 511 data near the places you care about, not the whole province.
 
-- **Live traffic:** events and closures, construction projects, road conditions, alerts and traffic cameras
-- **Travel facilities:** ferry services, rest areas, truck rest areas, service centres, travel information centres, carpool lots and transit hubs
-- **Commercial vehicles and road features:** inspection stations, seasonal load restrictions, HOT/HOV lanes and roundabouts
+- **Areas:** pick a centre and radius (up to 50 km). Items nearest the centre are generated.
+- **Commutes:** pick a start and end, confirm the road segments along the way, and set how wide a corridor counts as on the route. Commute items are generated before anything else.
+- **Every data type:** events and closures, construction, road conditions, alerts, traffic cameras, ferry terminals, rest areas, truck rest areas, service centres, seasonal load restrictions, carpool lots, transit hubs, inspection stations, roundabouts, HOT/HOV lanes and travel information centres.
+- **No temporary entities:** events and construction come and go, so they're counted on the road segment, area or commute they fall in. Event entities fire when something new appears.
+- **On the map:** each item's main entity has a location, and "Nearest event" entities put the closest events on the map.
 
-Use the entities in automations, for example to get a notification about driving conditions on your commute, with a camera preview.
+For example: *when "Hazardous conditions" on your commute turns on, send a notification with the camera preview.*
 
 ## Entities
 
-| Entity | Type | What it shows |
-|---|---|---|
-| Nearby events | Sensor | The number of active events (roadwork, closures, incidents) within your radius of home |
-| Nearby road closure | Binary sensor | On while an active event within your radius closes all lanes |
-| Active alerts | Sensor | The number of province-wide alerts. The `alerts` attribute lists their messages and regions, high importance first |
-| One per nearby event | Geolocation | Each active event within your radius, on the map, with its road, direction, lanes affected and planned end. These appear and disappear with the events, so you can use them with zone triggers |
+Each generated item is a device, grouped under the area or commute that generated it on the integration page.
 
-Events count as active once they've started and until their planned end. Planned future events aren't shown.
+| Device | Entities |
+|---|---|
+| Road segment | Road condition, Visibility, Drifting snow, Hazardous, Events, Construction, Full closure, New event |
+| Traffic camera | One camera per view (images cached for a minute) |
+| Ferry terminal | Status, Estimated return to service, Estimated out of service (disabled by default) |
+| Rest area, truck rest area | Open, with amenities as attributes |
+| Service centre | Fuel, with amenities as attributes |
+| Seasonal load segment | Load restrictions |
+| Carpool lot, transit hub, inspection station, roundabout, HOT/HOV lane, travel information centre | One sensor with the most useful field (for example parking spaces), other details as attributes |
+| Area or commute summary | Worst road condition, Hazardous conditions, Full closure, Events, Construction, Alerts, New event, New alert, Nearest event 1…N |
+
+- **Hazardous** means worse than wet (partly covered or worse), drifting snow, or poor visibility.
+- Events count as active once they've started and until their planned end. Planned future events aren't counted.
+- **Alerts** count when they list the region the area or commute is in.
 
 ## Requirements
 
@@ -85,19 +95,37 @@ Or add it by hand:
 
 1. Go to **Settings** → **Devices & services**.
 2. Select **Add integration** and search for **Ontario 511**.
-3. Enter your Ontario 511 API key.
+3. Enter your Ontario 511 API key. It's checked with one request before you continue.
+4. Set up your first **area**: a name, the centre and radius on the map, the data types to generate, and how many "Nearest event" entities to add.
+5. Optionally add a **commute**: a start and end on the map and a corridor width, then confirm the suggested road segments.
 
-The key is checked against Ontario 511 before the integration is added.
+The data type checkboxes are only used once, to decide what to generate. If you choose more than 10 types, the rest load about a minute later because of Ontario 511's rate limit.
 
-### Options
+### After setup
 
-Select **Configure** on the integration to change the **radius**: how far from your home location an event can be and still count as nearby. The default is 25 km.
+On the integration page:
+
+- **Add area**, **Add commute** or **Add item** to add more. **Add item** adds any single item, chosen from a list sorted by distance from your home.
+- Open an area's or commute's menu (⋮) and select **Reconfigure** to rename it or change which events, construction and alerts it follows.
+- Delete an item's device to remove that item.
+
+### Forcing a refresh
+
+Data refreshes on its own. To get the latest data in an automation, use Home Assistant's **Update entity** action on any of the integration's entities. Data fetched in the last couple of minutes is reused instead of asking Ontario 511 again.
 
 ## Rate limits and updates
 
-Ontario 511 allows 10 calls every 60 seconds. The integration enforces this limit itself, across every entry in your Home Assistant, and it can't be changed.
+Ontario 511 allows 10 requests every 60 seconds. The integration enforces this itself, across every entry in your Home Assistant, and it can't be changed. One request covers a whole data type, so the number of entities doesn't change how many requests are made.
 
-Update intervals are fixed and stay well under the limit. Events and alerts refresh every 5 minutes. Data that rarely changes, such as rest areas and roundabouts, will refresh much less often when it's added.
+| Data | Refreshes every |
+|---|---|
+| Events | 3 minutes |
+| Alerts | 5 minutes |
+| Road conditions, ferry terminals | 10 minutes |
+| Construction | 30 minutes |
+| Rest areas, truck rest areas, service centres | hour |
+| Seasonal load restrictions | 6 hours |
+| Cameras (list), carpool lots, transit hubs, inspection stations, roundabouts, HOT/HOV lanes, travel information centres | day |
 
 ## Removal
 

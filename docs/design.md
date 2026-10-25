@@ -52,11 +52,11 @@ Values that change get their own entities. Details go in attributes; lists in at
 | Service centre | Fuel (the field can include times fuel isn't available) |
 | Seasonal load | Restriction status |
 | Carpool lot, transit hub, inspection station, roundabout, HOV lane, travel info centre | One entity whose state is the most useful field (for example a carpool lot's parking spaces), other fields as attributes |
-| Area or commute summary | Worst road condition, Hazardous conditions (binary), Closure (binary), Events, Construction, New event, Nearest event 1…N. Areas also get Alerts for their region and New alert |
+| Area or commute summary | Worst road condition, Hazardous conditions (binary), Full closure (binary), Events, Construction, New event, Nearest event 1…N, Alerts for their region and New alert |
 
 - **Event entities** fire when something new appears (a new event on a segment, a new alert). They are stable entities whose state is the time of the last event.
 - **Attaching events to segments:** each event or construction project is assigned to the nearest road segment within 2 km of it. Live data puts 95% of events within 150 m of a segment. Anything further away counts only towards the area or commute summary.
-- **Region alerts:** alerts list the regions they affect. An area's region comes from the road segments in it.
+- **Region alerts:** alerts list the regions they affect. An area's or commute's regions come from the road segments in it; alerts listing no region count everywhere.
 
 ### Map
 

@@ -26,7 +26,8 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 - **Throttled responses:** an HTTP 429 raises `Ontario511RateLimitError`. Coordinators turn it into `UpdateFailed` and wait for the next scheduled poll; never retry immediately.
 - **Live calls during development:** anything that calls the real API must go through `RateLimiter` (use `Ontario511Client`). Record fixtures with `uv run python -m scripts.record_fixtures OUT_DIR [RESOURCE ...]`: all 16 resources take about a minute because of the limiter. Don't run it while a development Home Assistant instance uses the same key, because they don't share a limiter.
 - **Fixtures vs the dev cache:** `tests/fixtures/` is the source of truth for tests. It holds the documented sample response for every resource, plus real items where live data differs from the docs (see `tests/fixtures/README.md`). `.dev-cache/api/` is a gitignored local copy of full responses from every resource, for browsing real data during development; it may be stale and tests must never read it. Refresh it with `uv run python -m scripts.record_fixtures .dev-cache/api`.
-- **Testing the limiter:** unit tests inject a fake clock and sleep into `RateLimiter`, so they never wait in real time. Integration tests use `aioclient_mock` with the real client and the real limiter, and assert on `limiter.available` and `call_count`.
+- **Testing the limiter:** tests freeze time, which also freezes `time.monotonic`, so an unpatched limiter would wait forever once more than 10 resources are in use. `tests/conftest.py` installs the instance-wide limiter with a `SimulatedClock` in every test: the limit is still enforced, the wait is simulated and recorded (`limiter_clock.waits`). Unit tests inject their own fake clock. Integration tests use `aioclient_mock` with the real client, and assert on `limiter.available`, `call_count` and the recorded waits.
+- **Coordinators only poll while something listens.** Tests of polling need entities (or a listener) attached.
 
 ## Architecture
 
@@ -43,7 +44,9 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 - `generation.py`: chooses generated items (commute corridor first, then nearest to an area's centre, within per-type caps) and suggests commute road segments. Pure functions; heavy work runs in the executor.
 - `config_flow.py`: initial setup (key, first area, optional commute) and the area, commute and item subentry flows.
 - `client.py` also holds the instance-wide response cache, so reloading an entry (which happens whenever a subentry changes) reuses fetched data.
-- Entity platforms are being rebuilt as described in `docs/design.md`.
+- `feeds.py`: `FeedIndex`, rebuilt only when data changes: active events and construction attached to their road segment, and each area's or commute's scope (events, construction, segments, regions, alerts).
+- `entity.py`: base classes. `ItemEntity` (one item's device) and `SummaryEntity` (an area's or commute's summary device); `extra_coordinators` lets an entity update when any of several resources changes. Every entity is added with its subentry's `config_subentry_id`.
+- Platforms: `sensor.py`, `binary_sensor.py`, `camera.py` (one entity per view, images cached per `policy.CAMERA_IMAGE_CACHE`, views added as the camera list loads) and `event.py` (fires for IDs that weren't there at the previous update; the mixin must come first in the bases).
 
 ## Versioning and releases
 

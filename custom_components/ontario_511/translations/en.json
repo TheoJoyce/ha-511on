@@ -274,5 +274,183 @@
         "informationcenter": "Travel information centres"
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "condition": {
+        "name": "Road condition",
+        "state": {
+          "unknown": "Unknown",
+          "good": "Bare and dry",
+          "wet": "Wet",
+          "partly_covered": "Partly covered",
+          "covered": "Snow covered",
+          "icy": "Icy",
+          "closed": "Closed"
+        },
+        "state_attributes": {
+          "reported": {
+            "name": "Reported"
+          },
+          "last_updated": {
+            "name": "Last updated"
+          }
+        }
+      },
+      "visibility": {
+        "name": "Visibility"
+      },
+      "ferry_status": {
+        "name": "Status",
+        "state": {
+          "in_service": "In service",
+          "in_service_off_schedule": "In service, off schedule",
+          "not_in_service": "Not in service",
+          "unknown": "No status available"
+        }
+      },
+      "return_to_service": {
+        "name": "Estimated return to service"
+      },
+      "out_of_service": {
+        "name": "Estimated out of service"
+      },
+      "fuel": {
+        "name": "Fuel"
+      },
+      "parking_spaces": {
+        "name": "Parking spaces"
+      },
+      "address": {
+        "name": "Address"
+      },
+      "station_location": {
+        "name": "Location"
+      },
+      "roundabout_type": {
+        "name": "Type"
+      },
+      "hov_road": {
+        "name": "Road"
+      },
+      "hours": {
+        "name": "Hours"
+      },
+      "segment_events": {
+        "name": "Events",
+        "state_attributes": {
+          "items": {
+            "name": "Items"
+          }
+        }
+      },
+      "segment_construction": {
+        "name": "Construction",
+        "state_attributes": {
+          "items": {
+            "name": "Items"
+          }
+        }
+      },
+      "worst_condition": {
+        "name": "Worst road condition",
+        "state": {
+          "unknown": "Unknown",
+          "good": "Bare and dry",
+          "wet": "Wet",
+          "partly_covered": "Partly covered",
+          "covered": "Snow covered",
+          "icy": "Icy",
+          "closed": "Closed"
+        }
+      },
+      "events": {
+        "name": "Events",
+        "state_attributes": {
+          "items": {
+            "name": "Items"
+          }
+        }
+      },
+      "construction": {
+        "name": "Construction",
+        "state_attributes": {
+          "items": {
+            "name": "Items"
+          }
+        }
+      },
+      "alerts": {
+        "name": "Alerts",
+        "state_attributes": {
+          "items": {
+            "name": "Items"
+          }
+        }
+      },
+      "nearest_event": {
+        "name": "Nearest event {slot}"
+      }
+    },
+    "binary_sensor": {
+      "drifting": {
+        "name": "Drifting snow"
+      },
+      "hazardous": {
+        "name": "Hazardous"
+      },
+      "open": {
+        "name": "Open"
+      },
+      "restricted": {
+        "name": "Load restrictions"
+      },
+      "full_closure": {
+        "name": "Full closure"
+      },
+      "hazardous_conditions": {
+        "name": "Hazardous conditions"
+      },
+      "closure": {
+        "name": "Full closure"
+      }
+    },
+    "camera": {
+      "view": {
+        "name": "View {view}"
+      }
+    },
+    "event": {
+      "segment_new_event": {
+        "name": "New event",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_event": "New event"
+            }
+          }
+        }
+      },
+      "new_event": {
+        "name": "New event",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_event": "New event"
+            }
+          }
+        }
+      },
+      "new_alert": {
+        "name": "New alert",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_alert": "New alert"
+            }
+          }
+        }
+      }
+    }
   }
 }
