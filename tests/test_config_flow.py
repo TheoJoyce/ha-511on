@@ -9,7 +9,7 @@ from typing import Any
 from homeassistant.config_entries import SOURCE_USER, ConfigSubentryDataWithId
 from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.data_entry_flow import FlowResultType, InvalidData
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
@@ -28,6 +28,7 @@ from custom_components.ontario_511.const import (
     CONF_PENDING,
     CONF_RADIUS_KM,
     CONF_RESOURCE,
+    CONF_ROUTE,
     CONF_SEGMENTS,
     CONF_START,
     CONF_TYPES,
@@ -46,7 +47,8 @@ INVALID_KEY_BODY = "<Error><Message>Invalid Key</Message></Error>"
 HOME_LOCATION = {"latitude": HOME[0], "longitude": HOME[1]}
 AREA_INPUT: dict[str, Any] = {
     CONF_NAME: "Home",
-    CONF_LOCATION: {**HOME_LOCATION, "radius": 20000},
+    CONF_LOCATION: HOME_LOCATION,
+    CONF_RADIUS_KM: 20.5,
     CONF_TYPES: ["event", "alerts", "roadconditions", "cameras"],
     CONF_EVENT_SLOTS: 3,
 }
@@ -106,7 +108,7 @@ async def test_setup_with_area_only(
     (area,) = entry.subentries.values()
     assert area.subentry_type == SUBENTRY_AREA
     assert area.title == "Home"
-    assert area.data[CONF_RADIUS_KM] == 20.0
+    assert area.data[CONF_RADIUS_KM] == 20.5
     assert area.data[CONF_FEEDS] == ["event", "alerts"]
     assert area.data[CONF_PENDING] == ["roadconditions", "cameras"]
     assert area.data[CONF_EVENT_SLOTS] == 3
@@ -118,7 +120,7 @@ async def test_setup_with_area_only(
 async def test_setup_with_commute(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """A commute can be added during setup; suggested segments are confirmed."""
+    """A commute added during setup routes itself; no segments are asked for."""
     _mock_road_conditions(aioclient_mock)
     result = await _start_with_key(hass, aioclient_mock)
     result = await hass.config_entries.flow.async_configure(
@@ -132,13 +134,6 @@ async def test_setup_with_commute(
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], COMMUTE_INPUT
     )
-    assert result["step_id"] == "commute_segments"
-    (segments_key,) = result["data_schema"].schema
-    assert segments_key.default() == [WEST_ID, EAST_ID]
-
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_SEGMENTS: [EAST_ID, WEST_ID]}
-    )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     commute = next(
         s
@@ -147,8 +142,35 @@ async def test_setup_with_commute(
     )
     assert commute.title == "Work"
     assert commute.data[CONF_SEGMENTS] == [WEST_ID, EAST_ID]
+    assert {sid for sid, _ in commute.data[CONF_ROUTE]} == {WEST_ID, EAST_ID}
     assert commute.data[CONF_FEEDS] == ["event"]
     assert commute.data[CONF_PENDING] == ["cameras"]
+
+
+@pytest.mark.usefixtures("mock_setup_entry")
+async def test_local_commute_uses_a_straight_corridor(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """With no sensible highway route, the commute follows the straight line."""
+    aioclient_mock.get(Resource.ROAD_CONDITIONS.url, text=json.dumps([KENORA]))
+    result = await _start_with_key(hass, aioclient_mock)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], AREA_INPUT
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "commute"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], COMMUTE_INPUT
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    commute = next(
+        s
+        for s in result["result"].subentries.values()
+        if s.subentry_type == SUBENTRY_COMMUTE
+    )
+    assert commute.data[CONF_SEGMENTS] == []
+    assert len(commute.data[CONF_ROUTE]) == 1
 
 
 @pytest.mark.usefixtures("mock_setup_entry")
@@ -166,30 +188,27 @@ async def test_many_types_warn_about_slower_import(
     assert result["step_id"] == "add_commute"
 
 
-@pytest.mark.parametrize(
-    ("area_input", "errors"),
-    [
-        pytest.param(
-            {CONF_LOCATION: {**HOME_LOCATION, "radius": 60000}},
-            {CONF_LOCATION: "radius_out_of_range"},
-            id="radius_too_large",
-        ),
-        pytest.param({CONF_TYPES: []}, {CONF_TYPES: "no_types"}, id="no_types"),
-    ],
-)
-async def test_area_validation(
-    hass: HomeAssistant,
-    aioclient_mock: AiohttpClientMocker,
-    area_input: dict[str, Any],
-    errors: dict[str, str],
+async def test_area_requires_a_type(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """The radius is capped at 50 km and at least one type is required."""
+    """At least one data type is required."""
     result = await _start_with_key(hass, aioclient_mock)
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {**AREA_INPUT, **area_input}
+        result["flow_id"], {**AREA_INPUT, CONF_TYPES: []}
     )
     assert result["step_id"] == "area"
-    assert result["errors"] == errors
+    assert result["errors"] == {CONF_TYPES: "no_types"}
+
+
+async def test_radius_is_limited_by_the_form(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """The radius field itself rejects more than 50 km."""
+    result = await _start_with_key(hass, aioclient_mock)
+    with pytest.raises(InvalidData):
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"], {**AREA_INPUT, CONF_RADIUS_KM: 60}
+        )
 
 
 @pytest.mark.parametrize(
@@ -201,18 +220,25 @@ async def test_area_validation(
             {CONF_END: "too_close"},
             id="too_close",
         ),
-        pytest.param({}, [KENORA], {"base": "no_segments"}, id="no_segments"),
+        pytest.param(
+            {}, None, {"base": "cannot_connect"}, id="road_conditions_unavailable"
+        ),
     ],
 )
 async def test_commute_validation(
     hass: HomeAssistant,
     aioclient_mock: AiohttpClientMocker,
     commute_input: dict[str, Any],
-    road_conditions: list[dict[str, Any]],
+    road_conditions: list[dict[str, Any]] | None,
     errors: dict[str, str],
 ) -> None:
     """Commutes need distinct ends and some road segments between them."""
-    aioclient_mock.get(Resource.ROAD_CONDITIONS.url, text=json.dumps(road_conditions))
+    if road_conditions is None:
+        aioclient_mock.get(Resource.ROAD_CONDITIONS.url, status=503)
+    else:
+        aioclient_mock.get(
+            Resource.ROAD_CONDITIONS.url, text=json.dumps(road_conditions)
+        )
     result = await _start_with_key(hass, aioclient_mock)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], AREA_INPUT
@@ -358,16 +384,33 @@ async def test_add_commute(
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], COMMUTE_INPUT
     )
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {CONF_SEGMENTS: [WEST_ID]}
-    )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     commute = next(
         s
         for s in init_integration.subentries.values()
         if s.subentry_type == SUBENTRY_COMMUTE
     )
-    assert commute.data[CONF_SEGMENTS] == [WEST_ID]
+    assert commute.data[CONF_SEGMENTS] == [WEST_ID, EAST_ID]
+
+    result = await init_integration.start_subentry_reconfigure_flow(
+        hass, commute.subentry_id
+    )
+    assert result["step_id"] == "reconfigure_commute"
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            CONF_NAME: "Work",
+            CONF_FEEDS: ["event"],
+            CONF_EVENT_SLOTS: 2,
+            CONF_CORRIDOR_KM: 2.5,
+            CONF_SEGMENTS: [EAST_ID],
+        },
+    )
+    assert result["reason"] == "reconfigure_successful"
+    commute = init_integration.subentries[commute.subentry_id]
+    assert commute.data[CONF_SEGMENTS] == [EAST_ID]
+    assert commute.data[CONF_CORRIDOR_KM] == 2.5
+    assert {sid for sid, _ in commute.data[CONF_ROUTE]} == {EAST_ID}
 
 
 async def test_add_item(

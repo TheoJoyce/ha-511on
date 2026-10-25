@@ -129,7 +129,7 @@ class SegmentNewEvent(_NewItemsMixin, ItemEntity):
 
     def _current(self) -> dict[str, dict[str, Any]]:
         events, _ = self.coordinator.config_entry.runtime_data.feeds.on_segment(
-            self.item_id
+            self.item_id, self.subentry_id
         )
         return {e.id: _event_attributes(e) for e in events}
 

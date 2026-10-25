@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from custom_components.ontario_511.conditions import RoadCondition, classify, worst
+from custom_components.ontario_511.models import FerryStatus
 
 
 @pytest.mark.parametrize(
@@ -47,3 +48,22 @@ def test_worst_and_hazard() -> None:
     assert not RoadCondition.WET.is_hazardous
     assert RoadCondition.PARTLY_COVERED.is_hazardous
     assert not RoadCondition.UNKNOWN.is_hazardous
+
+
+def test_no_report_is_home_assistants_unknown() -> None:
+    """ "No Report" has no value (None), which Home Assistant shows as Unknown.
+
+    Home Assistant skips the enum option check for None, so the options list
+    only holds real conditions and statuses.
+    """
+    assert classify("No Report").option is None
+    assert RoadCondition.options() == [
+        "good",
+        "wet",
+        "partly_covered",
+        "covered",
+        "icy",
+        "closed",
+    ]
+    assert FerryStatus.parse("No Status Available") is None
+    assert FerryStatus.parse("Not In Service") == "not_in_service"

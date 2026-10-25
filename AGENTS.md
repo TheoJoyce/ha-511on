@@ -42,7 +42,8 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 - `conditions.py`: ranks free-text road conditions; unrecognised text is unknown (never assumed safe) and logged once.
 - `geo.py`: polyline decoding and distances. `scope.py`: which items fall in a radius or commute corridor, and attaching events to their nearest road segment (within 2 km).
 - `__init__.py`: works out the resources in use from the subentries, creates their coordinators, waits for one (to check the key and connection) and loads the rest in the background, runs the one-time generation for new areas and commutes, and handles deleting an item's device.
-- `generation.py`: chooses generated items (commute corridor first, then nearest to an area's centre, within per-type caps) and suggests commute road segments. Pure functions; heavy work runs in the executor.
+- `generation.py`: chooses generated items (commute corridor first, then nearest to an area's centre, within per-type caps). Pure functions; heavy work runs in the executor.
+- `routing.py`: routes commutes over the road segment network (segments split where others join them partway; Dijkstra; up to three routes within 30% of the best). `commute.py` plans a commute and reads its stored route: the segments used and the stretches actually driven, so corridors follow the trip rather than whole segments. Trips where local roads beat any highway route use the straight start-to-end line.
 - `config_flow.py`: initial setup (key, first area, optional commute) and the area, commute and item subentry flows.
 - `client.py` also holds the instance-wide response cache, so reloading an entry (which happens whenever a subentry changes) reuses fetched data.
 - `feeds.py`: `FeedIndex`, rebuilt only when data changes: active events and construction attached to their road segment, and each area's or commute's scope (events, construction, segments, regions, alerts).
@@ -80,8 +81,10 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 - Run `uv sync` to set up the virtual environment with all development dependencies. If uv reports that no download was found for the required Python version, uv is outdated; upgrade it and run `uv sync` again.
 - Use `uv run` so the project's virtual environment and Python version are used.
 - After finishing a code session, run `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` and `uv run pytest`. CI also runs hassfest (`hassfest.yml`) and HACS validation (`hacs.yml`) as separate workflows.
+- **Local Home Assistant:** `scripts/develop` runs a dev instance at http://localhost:8123 against a fake Ontario 511 API (`scripts/fake_511.py`) that serves `.dev-cache/api/`, enforces the real rate limit, and accepts data injection. See `docs/development.md`. The integration only talks to the fake API when `ONTARIO_511_API_BASE` is set; normal installs never set it.
 - Run hassfest locally with the same image CI uses: `docker run --rm -v "$PWD"://github/workspace ghcr.io/home-assistant/hassfest`. Its current release rejects the manifest `categories` field, so leave it out until hassfest accepts it; HACS only warns that it's missing.
 - Home Assistant 2026.10 uses `probatio` in place of `voluptuous`; import `probatio` the way Core does.
+- **Follow Home Assistant's conventions for states and naming; check the developer docs (or Home Assistant's source) before choosing.** Where Ontario 511's values don't map onto a Home Assistant convention, use the Home Assistant one. In particular, when the feed has no value (road conditions "No Report", ferries "No Status Available"), return `None`: Home Assistant shows its standard, translated Unknown state and skips the enum option check. Never add an enum option for "no value", and never use `unknown` or `unavailable` as option names. Keep the feed's raw text in an attribute (such as `reported`) instead.
 - Pin GitHub Actions to tags that exist. Some actions (for example `astral-sh/setup-uv`) no longer publish major-only tags such as `v10`; use the full version.
 
 ## Python Syntax Notes

@@ -84,6 +84,7 @@ class ItemEntity(Ontario511Entity):
         """Initialize the entity."""
         super().__init__(coordinator)
         self.item_id = item_id
+        self.subentry_id = subentry_id
         identifier = item_device_identifier(subentry_id, coordinator.resource, item_id)
         self._attr_translation_key = key
         self._attr_unique_id = f"{identifier}:{key}"

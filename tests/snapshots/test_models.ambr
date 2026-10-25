@@ -495,7 +495,7 @@
       'out_of_service': None,
       'region': 'ON-EC',
       'return_to_service': None,
-      'status': 'unknown',
+      'status': None,
       'status_text': 'No Status Available',
       'website': 'http://www.wolfeisland.com/ferry.php#simcoe',
     }),

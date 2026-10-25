@@ -16,6 +16,7 @@ from homeassistant.helpers import device_registry as dr
 
 from .api import Ontario511Client, Resource
 from .client import create_client, key_id
+from .commute import route_lines
 from .const import (
     CONF_CORRIDOR_KM,
     CONF_EVENT_SLOTS,
@@ -39,7 +40,7 @@ from .const import (
 from .coordinator import ResourceCoordinator
 from .feeds import FeedIndex
 from .generation import generate_for_area, generate_for_commute
-from .models import Item, RoadSegment
+from .models import Item
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -210,14 +211,13 @@ def _plan_generation(
                 continue
             exclude = claimed.setdefault(resource, set())
             if subentry.subentry_type == SUBENTRY_COMMUTE:
-                segments = data.get(Resource.ROAD_CONDITIONS, {})
-                route = [
-                    s
-                    for i in subentry.data[CONF_SEGMENTS]
-                    if isinstance(s := segments.get(i), RoadSegment)
-                ]
                 generated = generate_for_commute(
-                    resource, items, route, subentry.data[CONF_CORRIDOR_KM], exclude
+                    resource,
+                    items,
+                    subentry.data[CONF_SEGMENTS],
+                    route_lines(subentry.data),
+                    subentry.data[CONF_CORRIDOR_KM],
+                    exclude,
                 )
             else:
                 location = subentry.data[CONF_LOCATION]

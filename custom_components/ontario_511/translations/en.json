@@ -9,11 +9,8 @@
       "invalid_auth": "Ontario 511 rejected the API key.",
       "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
       "unknown": "Unexpected error.",
-      "radius_out_of_range": "The radius must be more than 0 and at most 50 km.",
       "no_types": "Choose at least one data type.",
-      "too_close": "The start and end must be at least 1 km apart.",
-      "no_segments": "No road segments were found between the start and end.",
-      "no_segments_chosen": "Choose at least one road segment."
+      "too_close": "The start and end must be at least 1 km apart."
     },
     "step": {
       "user": {
@@ -28,13 +25,15 @@
       "area": {
         "data": {
           "name": "Name",
-          "location": "Centre and radius",
+          "location": "Centre",
+          "radius_km": "Radius",
           "types": "Data to generate",
           "event_slots": "Nearest event slots"
         },
         "data_description": {
           "name": "For example Home or Cottage.",
-          "location": "Drag the circle to set the area. The radius can be up to {max_radius} km.",
+          "location": "Drop the pin at the centre of the area.",
+          "radius_km": "How far from the centre counts as inside the area, up to {max_radius} km.",
           "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
           "event_slots": "How many of the nearest events to show on the map."
         },
@@ -64,21 +63,11 @@
           "types": "Used once, to choose what to generate. Commute items are generated before nearby ones.",
           "event_slots": "How many of the nearest events to show on the map."
         },
-        "description": "Choose where the commute starts and ends. Road segments along the way are suggested next.",
+        "description": "Choose where the commute starts and ends. Up to three sensible highway routes between them are worked out and all used. You can adjust the road segments afterwards by reconfiguring the commute.",
         "title": "Commute"
       },
-      "commute_segments": {
-        "data": {
-          "segments": "Road segments"
-        },
-        "data_description": {
-          "segments": "Ticked segments run along the trip. Untick any you don't use and tick others you do."
-        },
-        "description": "Confirm the road segments this commute uses.",
-        "title": "Route"
-      },
       "slow_import": {
-        "description": "You chose more than {fast} data types. Ontario 511 allows 10 requests a minute, so the rest load about a minute later. Their entities appear when the data arrives.",
+        "description": "You chose {count} data types. Ontario 511 allows {fast} requests a minute, so the first {fast} load now and the rest about a minute later. Their entities appear when the data arrives.",
         "title": "Slower first import"
       },
       "reauth_confirm": {
@@ -104,11 +93,8 @@
         "invalid_auth": "Ontario 511 rejected the API key.",
         "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
         "unknown": "Unexpected error.",
-        "radius_out_of_range": "The radius must be more than 0 and at most 50 km.",
         "no_types": "Choose at least one data type.",
-        "too_close": "The start and end must be at least 1 km apart.",
-        "no_segments": "No road segments were found between the start and end.",
-        "no_segments_chosen": "Choose at least one road segment."
+        "too_close": "The start and end must be at least 1 km apart."
       },
       "abort": {
         "reconfigure_successful": "Settings saved."
@@ -117,13 +103,15 @@
         "area": {
           "data": {
             "name": "Name",
-            "location": "Centre and radius",
+            "location": "Centre",
+            "radius_km": "Radius",
             "types": "Data to generate",
             "event_slots": "Nearest event slots"
           },
           "data_description": {
             "name": "For example Home or Cottage.",
-            "location": "Drag the circle to set the area. The radius can be up to {max_radius} km.",
+            "location": "Drop the pin at the centre of the area.",
+            "radius_km": "How far from the centre counts as inside the area, up to {max_radius} km.",
             "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
             "event_slots": "How many of the nearest events to show on the map."
           },
@@ -131,7 +119,7 @@
           "title": "Area"
         },
         "slow_import": {
-          "description": "You chose more than {fast} data types. Ontario 511 allows 10 requests a minute, so the rest load about a minute later. Their entities appear when the data arrives.",
+          "description": "You chose {count} data types. Ontario 511 allows {fast} requests a minute, so the first {fast} load now and the rest about a minute later. Their entities appear when the data arrives.",
           "title": "Slower first import"
         },
         "reconfigure": {
@@ -141,7 +129,7 @@
             "event_slots": "Nearest event slots"
           },
           "data_description": {
-            "feeds": "Events, construction and alerts shown for this area or commute."
+            "feeds": "Events, construction and alerts shown for this area."
           },
           "title": "Settings"
         }
@@ -157,14 +145,12 @@
         "invalid_auth": "Ontario 511 rejected the API key.",
         "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
         "unknown": "Unexpected error.",
-        "radius_out_of_range": "The radius must be more than 0 and at most 50 km.",
         "no_types": "Choose at least one data type.",
-        "too_close": "The start and end must be at least 1 km apart.",
-        "no_segments": "No road segments were found between the start and end.",
-        "no_segments_chosen": "Choose at least one road segment."
+        "too_close": "The start and end must be at least 1 km apart."
       },
       "abort": {
-        "reconfigure_successful": "Settings saved."
+        "reconfigure_successful": "Settings saved.",
+        "cannot_connect": "Failed to connect to Ontario 511."
       },
       "step": {
         "commute": {
@@ -182,31 +168,25 @@
             "types": "Used once, to choose what to generate. Commute items are generated before nearby ones.",
             "event_slots": "How many of the nearest events to show on the map."
           },
-          "description": "Choose where the commute starts and ends. Road segments along the way are suggested next.",
+          "description": "Choose where the commute starts and ends. Up to three sensible highway routes between them are worked out and all used. You can adjust the road segments afterwards by reconfiguring the commute.",
           "title": "Commute"
         },
-        "commute_segments": {
-          "data": {
-            "segments": "Road segments"
-          },
-          "data_description": {
-            "segments": "Ticked segments run along the trip. Untick any you don't use and tick others you do."
-          },
-          "description": "Confirm the road segments this commute uses.",
-          "title": "Route"
-        },
         "slow_import": {
-          "description": "You chose more than {fast} data types. Ontario 511 allows 10 requests a minute, so the rest load about a minute later. Their entities appear when the data arrives.",
+          "description": "You chose {count} data types. Ontario 511 allows {fast} requests a minute, so the first {fast} load now and the rest about a minute later. Their entities appear when the data arrives.",
           "title": "Slower first import"
         },
-        "reconfigure": {
+        "reconfigure_commute": {
           "data": {
             "name": "Name",
             "feeds": "Follow",
-            "event_slots": "Nearest event slots"
+            "event_slots": "Nearest event slots",
+            "corridor_km": "Corridor width",
+            "segments": "Road segments"
           },
           "data_description": {
-            "feeds": "Events, construction and alerts shown for this area or commute."
+            "feeds": "Events, construction and alerts shown for this commute.",
+            "corridor_km": "Anything within this distance of the route counts as on the commute.",
+            "segments": "The road segments the commute uses. Untick any you don't drive, or tick nearby ones you do; added segments count along their full length."
           },
           "title": "Settings"
         }
@@ -280,7 +260,6 @@
       "condition": {
         "name": "Road condition",
         "state": {
-          "unknown": "Unknown",
           "good": "Bare and dry",
           "wet": "Wet",
           "partly_covered": "Partly covered",
@@ -305,8 +284,7 @@
         "state": {
           "in_service": "In service",
           "in_service_off_schedule": "In service, off schedule",
-          "not_in_service": "Not in service",
-          "unknown": "No status available"
+          "not_in_service": "Not in service"
         }
       },
       "return_to_service": {
@@ -355,7 +333,6 @@
       "worst_condition": {
         "name": "Worst road condition",
         "state": {
-          "unknown": "Unknown",
           "good": "Bare and dry",
           "wet": "Wet",
           "partly_covered": "Partly covered",

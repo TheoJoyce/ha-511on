@@ -16,6 +16,7 @@ from typing import Any, Final
 
 import aiohttp
 
+API_BASE: Final = "https://511on.ca"
 REQUEST_TIMEOUT: Final = aiohttp.ClientTimeout(total=30)
 
 # Documented once for the whole API: "Throttling is enabled. Ten calls every
@@ -58,8 +59,8 @@ class Resource(StrEnum):
 
     @property
     def url(self) -> str:
-        """Return the resource URL, without the key."""
-        return f"https://511on.ca{self.url_path}"
+        """Return the resource URL on the real API, without the key."""
+        return f"{API_BASE}{self.url_path}"
 
 
 class Ontario511Error(Exception):
@@ -132,12 +133,18 @@ class Ontario511Client:
         api_key: str,
         limiter: RateLimiter,
         language: str = "en",
+        base_url: str = API_BASE,
     ) -> None:
-        """Initialize the client."""
+        """Initialize the client.
+
+        ``base_url`` is only changed for local development against a fake
+        server; it defaults to the real API.
+        """
         self._session = session
         self._api_key = api_key
         self._limiter = limiter
         self._language = language
+        self._base_url = base_url.rstrip("/")
 
     async def async_get(self, resource: Resource) -> list[dict[str, Any]]:
         """Return the items of ``resource``.
@@ -148,7 +155,9 @@ class Ontario511Client:
         params = {"key": self._api_key, "format": "json", "lang": self._language}
         try:
             async with self._session.get(
-                resource.url, params=params, timeout=REQUEST_TIMEOUT
+                f"{self._base_url}{resource.url_path}",
+                params=params,
+                timeout=REQUEST_TIMEOUT,
             ) as response:
                 body = await response.text()
                 status = response.status

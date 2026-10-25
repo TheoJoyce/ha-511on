@@ -72,9 +72,9 @@ def test_nearest_segment(point: tuple[float, float], expected: str | None) -> No
 
 def test_within_corridor_follows_route_order() -> None:
     """Corridor items are ordered by the route segment they're nearest to."""
-    found = within_corridor(_events(), [EAST, WEST], width_km=5)
+    found = within_corridor(_events(), [*EAST.lines, *WEST.lines], width_km=5)
     nearest = [nearest_segment(e.coordinates, [EAST, WEST], 5) for e, _ in found]
     order = [0 if s is EAST else 1 for s in nearest if s is not None]
     assert order == sorted(order)
     assert all(km <= 5 for _, km in found)
-    assert within_corridor(_events(), [FAR], width_km=5) == []
+    assert within_corridor(_events(), list(FAR.lines), width_km=5) == []

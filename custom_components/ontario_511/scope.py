@@ -40,24 +40,23 @@ def segments_within_radius(
 
 
 def within_corridor[T: Item](
-    items: Iterable[T], route: Sequence[RoadSegment], width_km: float
+    items: Iterable[T], lines: Sequence[Sequence[Point]], width_km: float
 ) -> list[tuple[T, float]]:
-    """Return items within ``width_km`` of any segment of a route.
+    """Return items within ``width_km`` of any of a route's lines.
 
-    Items are paired with their distance from the route, and ordered by the
-    route segment they're nearest to, so they follow the route's order.
+    Items are paired with their distance from the route and ordered by the
+    line they're nearest to, so they follow the route's order.
     """
+    boxes = [BoundingBox(line) for line in lines if line]
     found: list[tuple[int, float, T]] = []
     for item in items:
         if item.coordinates is None:
             continue
         best: tuple[int, float] | None = None
-        for index, segment in enumerate(route):
-            if segment.bbox is None or not segment.bbox.may_be_within(
-                item.coordinates, width_km
-            ):
+        for index, (line, box) in enumerate(zip(lines, boxes, strict=True)):
+            if not box.may_be_within(item.coordinates, width_km):
                 continue
-            km = distance_to_lines_km(item.coordinates, segment.lines)
+            km = distance_to_lines_km(item.coordinates, [line])
             if km <= width_km and (best is None or km < best[1]):
                 best = (index, km)
         if best is not None:
@@ -67,19 +66,21 @@ def within_corridor[T: Item](
 
 
 def segments_within_corridor(
-    segments: Iterable[RoadSegment], route: Sequence[RoadSegment], width_km: float
+    segments: Iterable[RoadSegment],
+    lines: Sequence[Sequence[Point]],
+    width_km: float,
 ) -> list[tuple[RoadSegment, float]]:
-    """Return segments with any part within ``width_km`` of a route.
+    """Return segments with any part within ``width_km`` of a route's lines.
 
     Unlike ``within_corridor``, this looks at each segment's whole line rather
     than one representative point, so long parallel roads aren't missed.
     """
-    route_lines = [line for segment in route for line in segment.lines]
+    route_lines = [line for line in lines if line]
+    boxes = [BoundingBox(line) for line in route_lines]
     found: list[tuple[RoadSegment, float]] = []
     for segment in segments:
         if segment.bbox is None or not any(
-            r.bbox is not None and _boxes_near(segment.bbox, r.bbox, width_km)
-            for r in route
+            _boxes_near(segment.bbox, box, width_km) for box in boxes
         ):
             continue
         km = min(

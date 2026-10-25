@@ -20,6 +20,7 @@ CONF_END: Final = "end"
 CONF_RADIUS_KM: Final = "radius_km"
 CONF_CORRIDOR_KM: Final = "corridor_km"
 CONF_SEGMENTS: Final = "segments"
+CONF_ROUTE: Final = "route"
 CONF_TYPES: Final = "types"
 CONF_FEEDS: Final = "feeds"
 CONF_EVENT_SLOTS: Final = "event_slots"
@@ -30,8 +31,10 @@ CONF_ITEM_ID: Final = "item_id"
 
 DEFAULT_AREA_NAME: Final = "Home"
 DEFAULT_RADIUS_KM: Final = 25.0
+MIN_RADIUS_KM: Final = 0.5
 MAX_RADIUS_KM: Final = 50.0
 DEFAULT_CORRIDOR_KM: Final = 5.0
+MIN_CORRIDOR_KM: Final = 0.5
 MAX_CORRIDOR_KM: Final = 20.0
 DEFAULT_EVENT_SLOTS: Final = 5
 

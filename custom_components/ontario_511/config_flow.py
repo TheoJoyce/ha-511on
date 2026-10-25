@@ -23,7 +23,6 @@ from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.selector import (
     LocationSelector,
-    LocationSelectorConfig,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -46,6 +45,7 @@ from .api import (
     Resource,
 )
 from .client import create_client, key_id
+from .commute import change_segments, plan_commute, route_lines
 from .const import (
     CONF_CORRIDOR_KM,
     CONF_END,
@@ -70,15 +70,17 @@ from .const import (
     ITEM_RESOURCES,
     MAX_CORRIDOR_KM,
     MAX_RADIUS_KM,
+    MIN_CORRIDOR_KM,
+    MIN_RADIUS_KM,
     SUBENTRY_AREA,
     SUBENTRY_COMMUTE,
     SUBENTRY_ITEM,
     VALIDATION_RESOURCE,
 )
 from .coordinator import async_fetch_resource
-from .generation import suggest_route
 from .geo import distance_km
 from .models import RoadSegment
+from .scope import segments_within_corridor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,6 +99,8 @@ DEFAULT_TYPES = [
     )
 ]
 MAX_EVENT_SLOTS = 50
+# Reconfigure offers segments this far beyond the corridor to add to a route.
+NEARBY_SEGMENTS_KM = 10.0
 MAX_ITEM_CHOICES = 200
 
 KEY_SCHEMA = probatio.Schema(
@@ -115,6 +119,18 @@ def _types_selector(options: list[str]) -> SelectSelector:
             multiple=True,
             mode=SelectSelectorMode.LIST,
             translation_key="data_types",
+        )
+    )
+
+
+def _km_selector(minimum: float, maximum: float) -> NumberSelector:
+    return NumberSelector(
+        NumberSelectorConfig(
+            min=minimum,
+            max=maximum,
+            step=0.1,
+            unit_of_measurement="km",
+            mode=NumberSelectorMode.BOX,
         )
     )
 
@@ -168,8 +184,7 @@ class _SetupSteps:
     hass: HomeAssistant
     _draft: dict[str, Any]
     _draft_kind: str
-    _route: list[RoadSegment]
-    _likely: list[str]
+    _type_count: int
 
     async_show_form: Any
 
@@ -186,15 +201,14 @@ class _SetupSteps:
         """Define an area: where, how far, and what to generate."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            location = user_input[CONF_LOCATION]
-            radius_km = round(float(location.get("radius", 0)) / 1000, 1)
-            if not 0 < radius_km <= MAX_RADIUS_KM:
-                errors[CONF_LOCATION] = "radius_out_of_range"
-            elif not user_input[CONF_TYPES]:
+            radius_km = round(float(user_input[CONF_RADIUS_KM]), 1)
+            if not user_input[CONF_TYPES]:
                 errors[CONF_TYPES] = "no_types"
             else:
                 feeds, pending = _split_types(user_input[CONF_TYPES])
+                location = user_input[CONF_LOCATION]
                 self._draft_kind = SUBENTRY_AREA
+                self._type_count = len(user_input[CONF_TYPES])
                 self._draft = {
                     CONF_NAME: user_input[CONF_NAME].strip() or DEFAULT_AREA_NAME,
                     CONF_LOCATION: {
@@ -207,15 +221,11 @@ class _SetupSteps:
                     CONF_ITEMS: {},
                     CONF_EVENT_SLOTS: int(user_input[CONF_EVENT_SLOTS]),
                 }
-                if len(user_input[CONF_TYPES]) > FAST_IMPORT_TYPES:
-                    return await self.async_step_slow_import()
-                return await self._async_finish_draft()
+                return await self._async_next_after_draft()
         defaults = user_input or {
             CONF_NAME: DEFAULT_AREA_NAME,
-            CONF_LOCATION: {
-                **_home(self.hass),
-                "radius": DEFAULT_RADIUS_KM * 1000,
-            },
+            CONF_LOCATION: _home(self.hass),
+            CONF_RADIUS_KM: DEFAULT_RADIUS_KM,
             CONF_TYPES: DEFAULT_TYPES,
             CONF_EVENT_SLOTS: DEFAULT_EVENT_SLOTS,
         }
@@ -224,7 +234,10 @@ class _SetupSteps:
                 probatio.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
                 probatio.Required(
                     CONF_LOCATION, default=defaults[CONF_LOCATION]
-                ): LocationSelector(LocationSelectorConfig(radius=True)),
+                ): LocationSelector(),
+                probatio.Required(
+                    CONF_RADIUS_KM, default=defaults[CONF_RADIUS_KM]
+                ): _km_selector(MIN_RADIUS_KM, MAX_RADIUS_KM),
                 probatio.Required(
                     CONF_TYPES, default=defaults[CONF_TYPES]
                 ): _types_selector(TYPE_OPTIONS),
@@ -241,7 +254,7 @@ class _SetupSteps:
         )
 
     async def async_step_commute(self, user_input: dict[str, Any] | None = None) -> Any:
-        """Define a commute: start, end, corridor, and what to generate."""
+        """Define a commute; its routes are worked out automatically."""
         errors: dict[str, str] = {}
         if user_input is not None:
             start, end = user_input[CONF_START], user_input[CONF_END]
@@ -262,32 +275,27 @@ class _SetupSteps:
                 except Ontario511Error:
                     errors["base"] = "cannot_connect"
                 else:
-                    suggestions = suggest_route(
+                    plan = await self.hass.async_add_executor_job(
+                        plan_commute,
                         [s for s in segments.values() if isinstance(s, RoadSegment)],
                         _point(start),
                         _point(end),
                     )
-                    if not suggestions:
-                        errors["base"] = "no_segments"
-                    else:
-                        feeds, pending = _split_types(user_input[CONF_TYPES])
-                        self._draft_kind = SUBENTRY_COMMUTE
-                        self._draft = {
-                            CONF_NAME: user_input[CONF_NAME].strip(),
-                            CONF_START: {
-                                k: start[k] for k in ("latitude", "longitude")
-                            },
-                            CONF_END: {k: end[k] for k in ("latitude", "longitude")},
-                            CONF_CORRIDOR_KM: float(user_input[CONF_CORRIDOR_KM]),
-                            CONF_FEEDS: feeds,
-                            CONF_PENDING: pending,
-                            CONF_ITEMS: {},
-                            CONF_EVENT_SLOTS: int(user_input[CONF_EVENT_SLOTS]),
-                            CONF_TYPES: user_input[CONF_TYPES],
-                        }
-                        self._route = [s.segment for s in suggestions]
-                        self._likely = [s.segment.id for s in suggestions if s.likely]
-                        return await self.async_step_commute_segments()
+                    feeds, pending = _split_types(user_input[CONF_TYPES])
+                    self._draft_kind = SUBENTRY_COMMUTE
+                    self._type_count = len(user_input[CONF_TYPES])
+                    self._draft = {
+                        CONF_NAME: user_input[CONF_NAME].strip(),
+                        CONF_START: {k: start[k] for k in ("latitude", "longitude")},
+                        CONF_END: {k: end[k] for k in ("latitude", "longitude")},
+                        CONF_CORRIDOR_KM: round(float(user_input[CONF_CORRIDOR_KM]), 1),
+                        CONF_FEEDS: feeds,
+                        CONF_PENDING: pending,
+                        CONF_ITEMS: {},
+                        CONF_EVENT_SLOTS: int(user_input[CONF_EVENT_SLOTS]),
+                        **plan,
+                    }
+                    return await self._async_next_after_draft()
         defaults = user_input or {
             CONF_NAME: "",
             CONF_START: _home(self.hass),
@@ -307,15 +315,7 @@ class _SetupSteps:
                 ): LocationSelector(),
                 probatio.Required(
                     CONF_CORRIDOR_KM, default=defaults[CONF_CORRIDOR_KM]
-                ): NumberSelector(
-                    NumberSelectorConfig(
-                        min=1,
-                        max=MAX_CORRIDOR_KM,
-                        step=1,
-                        unit_of_measurement="km",
-                        mode=NumberSelectorMode.BOX,
-                    )
-                ),
+                ): _km_selector(MIN_CORRIDOR_KM, MAX_CORRIDOR_KM),
                 probatio.Required(
                     CONF_TYPES, default=defaults[CONF_TYPES]
                 ): _types_selector(TYPE_OPTIONS),
@@ -328,40 +328,10 @@ class _SetupSteps:
             step_id="commute", data_schema=schema, errors=errors
         )
 
-    async def async_step_commute_segments(
-        self, user_input: dict[str, Any] | None = None
-    ) -> Any:
-        """Confirm the road segments the commute uses."""
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            chosen = set(user_input[CONF_SEGMENTS])
-            if not chosen:
-                errors[CONF_SEGMENTS] = "no_segments_chosen"
-            else:
-                self._draft[CONF_SEGMENTS] = [
-                    s.id for s in self._route if s.id in chosen
-                ]
-                types = self._draft.pop(CONF_TYPES)
-                if len(types) > FAST_IMPORT_TYPES:
-                    return await self.async_step_slow_import()
-                return await self._async_finish_draft()
-        schema = probatio.Schema(
-            {
-                probatio.Required(CONF_SEGMENTS, default=self._likely): SelectSelector(
-                    SelectSelectorConfig(
-                        options=[
-                            SelectOptionDict(value=s.id, label=s.name)
-                            for s in self._route
-                        ],
-                        multiple=True,
-                        mode=SelectSelectorMode.LIST,
-                    )
-                )
-            }
-        )
-        return self.async_show_form(
-            step_id="commute_segments", data_schema=schema, errors=errors
-        )
+    async def _async_next_after_draft(self) -> Any:
+        if self._type_count > FAST_IMPORT_TYPES:
+            return await self.async_step_slow_import()
+        return await self._async_finish_draft()
 
     async def async_step_slow_import(
         self, user_input: dict[str, Any] | None = None
@@ -372,13 +342,15 @@ class _SetupSteps:
         return self.async_show_form(
             step_id="slow_import",
             data_schema=probatio.Schema({}),
-            description_placeholders={"fast": str(FAST_IMPORT_TYPES)},
+            description_placeholders={
+                "fast": str(FAST_IMPORT_TYPES),
+                "count": str(self._type_count),
+            },
         )
 
     async def _async_finish_draft(self) -> Any:
         data = dict(self._draft)
         title = data.pop(CONF_NAME)
-        data.pop(CONF_TYPES, None)
         if self._draft_kind == SUBENTRY_AREA:
             return await self._async_area_done(data, title)
         return await self._async_commute_done(data, title)
@@ -395,8 +367,7 @@ class Ontario511ConfigFlow(ConfigFlow, _SetupSteps, domain=DOMAIN):
         self._subentries: list[ConfigSubentryData] = []
         self._draft = {}
         self._draft_kind = SUBENTRY_AREA
-        self._route = []
-        self._likely = []
+        self._type_count = 0
 
     def _client_and_key(self) -> tuple[Ontario511Client, str]:
         return create_client(self.hass, self._api_key), key_id(self._api_key)
@@ -504,32 +475,82 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Rename an area or commute, or change what it follows."""
+        """Rename an area or commute, or change what it follows.
+
+        Commutes can also change their corridor and the road segments they use.
+        """
         subentry = self._get_reconfigure_subentry()
+        is_commute = subentry.subentry_type == SUBENTRY_COMMUTE
+        segments: dict[str, RoadSegment] = {}
+        if is_commute:
+            client, key = self._client_and_key()
+            try:
+                data = await async_fetch_resource(
+                    self.hass, client, key, Resource.ROAD_CONDITIONS
+                )
+            except Ontario511Error:
+                return self.async_abort(reason="cannot_connect")
+            segments = {k: v for k, v in data.items() if isinstance(v, RoadSegment)}
         if user_input is not None:
+            new_data = {
+                **subentry.data,
+                CONF_FEEDS: user_input[CONF_FEEDS],
+                CONF_EVENT_SLOTS: int(user_input[CONF_EVENT_SLOTS]),
+            }
+            if is_commute:
+                new_data[CONF_CORRIDOR_KM] = round(
+                    float(user_input[CONF_CORRIDOR_KM]), 1
+                )
+                new_data.update(
+                    change_segments(subentry.data, user_input[CONF_SEGMENTS], segments)
+                )
             return self.async_update_and_abort(
                 self._get_entry(),
                 subentry,
                 title=user_input[CONF_NAME].strip() or subentry.title,
-                data={
-                    **subentry.data,
-                    CONF_FEEDS: user_input[CONF_FEEDS],
-                    CONF_EVENT_SLOTS: int(user_input[CONF_EVENT_SLOTS]),
-                },
+                data=new_data,
             )
-        schema = probatio.Schema(
-            {
-                probatio.Required(CONF_NAME, default=subentry.title): str,
-                probatio.Required(
-                    CONF_FEEDS, default=list(subentry.data.get(CONF_FEEDS, []))
-                ): _types_selector([r.value for r in FEED_RESOURCES]),
-                probatio.Required(
-                    CONF_EVENT_SLOTS,
-                    default=subentry.data.get(CONF_EVENT_SLOTS, DEFAULT_EVENT_SLOTS),
-                ): _slots_selector(),
-            }
+        fields: dict[Any, Any] = {
+            probatio.Required(CONF_NAME, default=subentry.title): str,
+            probatio.Required(
+                CONF_FEEDS, default=list(subentry.data.get(CONF_FEEDS, []))
+            ): _types_selector([r.value for r in FEED_RESOURCES]),
+            probatio.Required(
+                CONF_EVENT_SLOTS,
+                default=subentry.data.get(CONF_EVENT_SLOTS, DEFAULT_EVENT_SLOTS),
+            ): _slots_selector(),
+        }
+        if is_commute:
+            current = list(subentry.data.get(CONF_SEGMENTS, []))
+            corridor = subentry.data[CONF_CORRIDOR_KM]
+            nearby = segments_within_corridor(
+                [s for i, s in segments.items() if i not in current],
+                route_lines(subentry.data),
+                corridor + NEARBY_SEGMENTS_KM,
+            )
+            options = [
+                SelectOptionDict(value=i, label=segments[i].name)
+                for i in current
+                if i in segments
+            ] + [SelectOptionDict(value=s.id, label=s.name) for s, _ in nearby]
+            fields[probatio.Required(CONF_CORRIDOR_KM, default=corridor)] = (
+                _km_selector(MIN_CORRIDOR_KM, MAX_CORRIDOR_KM)
+            )
+            fields[probatio.Optional(CONF_SEGMENTS, default=current)] = SelectSelector(
+                SelectSelectorConfig(
+                    options=options, multiple=True, mode=SelectSelectorMode.LIST
+                )
+            )
+        return self.async_show_form(
+            step_id="reconfigure_commute" if is_commute else "reconfigure",
+            data_schema=probatio.Schema(fields),
         )
-        return self.async_show_form(step_id="reconfigure", data_schema=schema)
+
+    async def async_step_reconfigure_commute(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle the commute version of the reconfigure form."""
+        return await self.async_step_reconfigure(user_input)
 
 
 class AreaSubentryFlow(_EntrySubentryFlow, _SetupSteps):
@@ -539,8 +560,7 @@ class AreaSubentryFlow(_EntrySubentryFlow, _SetupSteps):
         """Initialize the flow."""
         self._draft = {}
         self._draft_kind = SUBENTRY_AREA
-        self._route = []
-        self._likely = []
+        self._type_count = 0
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -561,8 +581,7 @@ class CommuteSubentryFlow(_EntrySubentryFlow, _SetupSteps):
         """Initialize the flow."""
         self._draft = {}
         self._draft_kind = SUBENTRY_COMMUTE
-        self._route = []
-        self._likely = []
+        self._type_count = 0
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None

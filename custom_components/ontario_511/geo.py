@@ -40,6 +40,22 @@ def decode_polyline(encoded: str) -> list[Point]:
     return points
 
 
+def encode_polyline(points: Sequence[Point]) -> str:
+    """Encode points with Google's polyline algorithm (5 decimal places)."""
+    out: list[str] = []
+    prev_lat = prev_lon = 0
+    for lat, lon in points:
+        cur_lat, cur_lon = round(lat * 1e5), round(lon * 1e5)
+        for delta in (cur_lat - prev_lat, cur_lon - prev_lon):
+            value = ~(delta << 1) if delta < 0 else delta << 1
+            while value >= 0x20:
+                out.append(chr((0x20 | (value & 0x1F)) + 63))
+                value >>= 5
+            out.append(chr(value + 63))
+        prev_lat, prev_lon = cur_lat, cur_lon
+    return "".join(out)
+
+
 def distance_km(a: Point, b: Point) -> float:
     """Return the great-circle distance between two points."""
     lat1, lon1, lat2, lon2 = map(math.radians, (*a, *b))

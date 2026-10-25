@@ -339,24 +339,28 @@ class Camera(Item):
 class FerryStatus:
     """Documented ferry statuses, as enum sensor options."""
 
-    OPTIONS = ("in_service", "in_service_off_schedule", "not_in_service", "unknown")
+    OPTIONS = ("in_service", "in_service_off_schedule", "not_in_service")
 
     @staticmethod
-    def parse(value: Any) -> str:
-        """Map the feed's status text (in any casing) to an option."""
+    def parse(value: Any) -> str | None:
+        """Map the feed's status text (in any casing) to an option.
+
+        "No Status Available", or anything else, is None, which Home
+        Assistant shows as its standard Unknown state.
+        """
         text = (_text(value) or "").lower()
         return {
             "in service": "in_service",
             "in service off schedule": "in_service_off_schedule",
             "not in service": "not_in_service",
-        }.get(text, "unknown")
+        }.get(text)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class FerryTerminal(Item):
     """A ferry terminal and its service status."""
 
-    status: str
+    status: str | None
     status_text: str | None
     details: str | None
     operated_by: str | None

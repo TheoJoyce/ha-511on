@@ -41,7 +41,7 @@ PARALLEL_UPDATES = 0
 
 # Long lists in attributes are capped and kept out of the recorder.
 MAX_LISTED = 10
-CONDITION_OPTIONS = [c.option for c in RoadCondition]
+CONDITION_OPTIONS = RoadCondition.options()
 _SCOPE_KEYS = {
     Resource.EVENTS: "events",
     Resource.CONSTRUCTION: "construction",
@@ -326,7 +326,9 @@ class SegmentFeedSensor(ItemEntity, SensorEntity):
 
     def _items(self) -> list[TrafficEvent]:
         events, construction = (
-            self.coordinator.config_entry.runtime_data.feeds.on_segment(self.item_id)
+            self.coordinator.config_entry.runtime_data.feeds.on_segment(
+                self.item_id, self.subentry_id
+            )
         )
         return events if self._feed is Resource.EVENTS else construction
 
@@ -357,8 +359,11 @@ class WorstConditionSensor(SummaryEntity, SensorEntity):
         return self.coordinator.config_entry.runtime_data.feeds.scope(self.subentry_id)
 
     @property
-    def native_value(self) -> str:
-        """Return the worst condition among the scope's road segments."""
+    def native_value(self) -> str | None:
+        """Return the worst condition among the scope's road segments.
+
+        None (Home Assistant's Unknown) when no segment has a report.
+        """
         segments = self._scope().segments
         return max(
             (s.condition for s in segments), default=RoadCondition.UNKNOWN

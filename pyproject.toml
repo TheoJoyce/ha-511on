@@ -14,6 +14,9 @@ dev = [
   "pyturbojpeg>=2.6.1",
   "ruff",
 ]
+run = [
+    "home-assistant-frontend==20260930.5",
+]
 
 [tool.uv]
 package = false

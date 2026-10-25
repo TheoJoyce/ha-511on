@@ -12,7 +12,6 @@ from custom_components.ontario_511.generation import (
     cap_for,
     generate_for_area,
     generate_for_commute,
-    suggest_route,
 )
 from custom_components.ontario_511.models import Item, RoadSegment
 
@@ -64,31 +63,26 @@ def test_commute_route_segments_come_first() -> None:
         road_condition("Parallel", [(43.70, -79.50), (43.71, -79.30)], road="2")
     )
     data: dict[str, Item] = {**SEGMENTS, parallel.id: parallel}
-    generated = generate_for_commute(Resource.ROAD_CONDITIONS, data, [EAST, WEST], 5)
+    lines = [*EAST.lines, *WEST.lines]
+    generated = generate_for_commute(
+        Resource.ROAD_CONDITIONS, data, [EAST.id, WEST.id], lines, 5
+    )
     assert list(generated.items) == [EAST.id, WEST.id, parallel.id]
 
 
 def test_commute_items_follow_the_corridor() -> None:
     """Commute items are those within the corridor, in route order."""
-    generated = generate_for_commute(Resource.EVENTS, _events(), [WEST, EAST], 2)
+    lines = [*WEST.lines, *EAST.lines]
+    generated = generate_for_commute(
+        Resource.EVENTS, _events(), [WEST.id, EAST.id], lines, 2
+    )
     assert {"323209", "322857", "324420"} <= set(generated.items)
     assert "323770" not in generated.items
 
 
-def test_suggest_route() -> None:
-    """Segments along the trip are likely; ones that only touch it aren't."""
-    crossing = RoadSegment.from_api(
-        road_condition(
-            "North-south", [(43.60, -79.42), (43.75, -79.42), (44.20, -79.42)]
-        )
-    )
-    suggestions = suggest_route(
-        [FAR, EAST, crossing, WEST], (43.715, -79.60), (43.77, -79.25)
-    )
-    assert [s.segment.description for s in suggestions] == [
-        "West",
-        "North-south",
-        "East",
-    ]
-    likely = {s.segment.description: s.likely for s in suggestions}
-    assert likely == {"West": True, "North-south": False, "East": True}
+def test_commute_only_counts_the_driven_stretch() -> None:
+    """Items beside the unused part of a long segment aren't generated."""
+    driven = [WEST.lines[0][:2]]  # Only the western part of the segment.
+    generated = generate_for_commute(Resource.EVENTS, _events(), [WEST.id], driven, 2)
+    assert "323209" not in generated.items
+    assert "324420" in generated.items

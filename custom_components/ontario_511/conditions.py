@@ -28,9 +28,18 @@ class RoadCondition(IntEnum):
     CLOSED = 5
 
     @property
-    def option(self) -> str:
-        """Return the enum sensor option for this condition."""
-        return self.name.lower()
+    def option(self) -> str | None:
+        """Return the enum sensor value for this condition.
+
+        UNKNOWN (such as "No Report") is None, which Home Assistant shows as its
+        standard Unknown state; it isn't one of the sensor's options.
+        """
+        return None if self is RoadCondition.UNKNOWN else self.name.lower()
+
+    @classmethod
+    def options(cls) -> list[str]:
+        """Return the enum sensor options: every known condition."""
+        return [c.name.lower() for c in cls if c is not cls.UNKNOWN]
 
     @property
     def is_hazardous(self) -> bool:

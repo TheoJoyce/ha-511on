@@ -1206,6 +1206,9 @@ dev = [
     { name = "pyturbojpeg" },
     { name = "ruff" },
 ]
+run = [
+    { name = "home-assistant-frontend" },
+]
 
 [package.metadata]
 
@@ -1217,6 +1220,7 @@ dev = [
     { name = "pyturbojpeg", specifier = ">=2.6.1" },
     { name = "ruff" },
 ]
+run = [{ name = "home-assistant-frontend", specifier = "==20260930.5" }]
 
 [[package]]
 name = "habluetooth"
@@ -1306,6 +1310,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/bc/6f/914fd8086f502748907751766e26e3f7fe5204347a679703ee9954e55e4d/home_assistant_bluetooth-2.0.0.tar.gz", hash = "sha256:3febd16b194812b156024d9bc8ce8ec7622cdd8d159047cac504cc77ca034ea1", size = 7604, upload-time = "2025-07-09T18:01:47.541Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/15/3e/2ed9e59da8fc26c43cbd9d6abbd27217138a31c608b1d334cc5e680e4069/home_assistant_bluetooth-2.0.0-py3-none-any.whl", hash = "sha256:8d7c2ac48c303adacad73cb6cdfe7710f2fccd2a367d4c3106acf301b0d22b91", size = 7907, upload-time = "2025-07-09T18:01:46.506Z" },
+]
+
+[[package]]
+name = "home-assistant-frontend"
+version = "20260930.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c1/0d/e8bf54c2ef163a668b9dbcf1cfff9d4aba4a07c576b12f89b5f43ec9c7c1/home_assistant_frontend-20260930.5.tar.gz", hash = "sha256:e336712f66687f5b3e0643fdd31bdf4b946b47f08f7f94d9f9e599a40df29473", size = 109917155, upload-time = "2026-10-23T13:24:22.127Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/d1/e02a835dd5840c5219c4934db265e395a661a7882e0b68c96c1589d3c2d2/home_assistant_frontend-20260930.5-py3-none-any.whl", hash = "sha256:9cc03b3d2a43e93c6e57cc20b322c98cce61be7a35d7c1df1021e279d22d1f9b", size = 110686791, upload-time = "2026-10-23T13:24:17.338Z" },
 ]
 
 [[package]]

@@ -5,13 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 import hashlib
+import os
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.hass_dict import HassKey
 
-from .api import Ontario511Client, RateLimiter, Resource
+from .api import API_BASE, Ontario511Client, RateLimiter, Resource
 from .models import Item
+
+DEV_API_BASE_ENV = "ONTARIO_511_API_BASE"
 
 # One limiter for the whole Home Assistant instance. The API documentation
 # doesn't say whether its limit is counted per key or per IP address, so every
@@ -51,8 +54,16 @@ def response_cache(hass: HomeAssistant) -> dict[tuple[str, Resource], CachedResp
 
 
 def create_client(hass: HomeAssistant, api_key: str) -> Ontario511Client:
-    """Create a client that uses the shared session and rate limiter."""
+    """Create a client that uses the shared session and rate limiter.
+
+    Setting ONTARIO_511_API_BASE points it at a local fake server for
+    development (see scripts/fake_511.py). Normal installs never set it.
+    """
     language = "fr" if hass.config.language.startswith("fr") else "en"
     return Ontario511Client(
-        async_get_clientsession(hass), api_key, get_rate_limiter(hass), language
+        async_get_clientsession(hass),
+        api_key,
+        get_rate_limiter(hass),
+        language,
+        os.environ.get(DEV_API_BASE_ENV, API_BASE),
     )

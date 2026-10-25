@@ -197,7 +197,9 @@ class SegmentClosureSensor(ItemEntity, BinarySensorEntity):
     def is_on(self) -> bool:
         """Return whether anything on the segment closes all lanes."""
         events, construction = (
-            self.coordinator.config_entry.runtime_data.feeds.on_segment(self.item_id)
+            self.coordinator.config_entry.runtime_data.feeds.on_segment(
+                self.item_id, self.subentry_id
+            )
         )
         return any(e.is_full_closure for e in (*events, *construction))
 

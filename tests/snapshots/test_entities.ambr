@@ -1504,7 +1504,6 @@
     'area_id': None,
     'capabilities': dict({
       <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'unknown',
         'good',
         'wet',
         'partly_covered',
@@ -1550,7 +1549,6 @@
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home Worst road condition',
       <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'unknown',
         'good',
         'wet',
         'partly_covered',
@@ -1694,7 +1692,6 @@
     'area_id': None,
     'capabilities': dict({
       <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'unknown',
         'good',
         'wet',
         'partly_covered',
@@ -1743,7 +1740,6 @@
       'latitude': 43.745,
       'longitude': -79.4,
       <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'unknown',
         'good',
         'wet',
         'partly_covered',
@@ -1945,7 +1941,6 @@
     'area_id': None,
     'capabilities': dict({
       <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'unknown',
         'good',
         'wet',
         'partly_covered',
@@ -1994,7 +1989,6 @@
       'latitude': 43.725,
       'longitude': -79.5,
       <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'unknown',
         'good',
         'wet',
         'partly_covered',
@@ -2353,7 +2347,6 @@
         'in_service',
         'in_service_off_schedule',
         'not_in_service',
-        'unknown',
       ]),
     }),
     'config_entry_id': <ANY>,
@@ -2400,7 +2393,6 @@
         'in_service',
         'in_service_off_schedule',
         'not_in_service',
-        'unknown',
       ]),
       'website': 'http://www.mto.gov.on.ca/english/ontario-511/ferries.shtml',
     }),
