@@ -10,7 +10,7 @@
       'event': dict({
         'item_count': 9,
         'last_update_success': True,
-        'update_interval_seconds': 300.0,
+        'update_interval_seconds': 180.0,
       }),
     }),
     'entry': dict({

@@ -1,14 +1,16 @@
-"""Data update coordinators for Ontario 511."""
+"""Cached, rate-limited polling of Ontario 511 resources."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from datetime import datetime
 import logging
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import (
     Ontario511AuthError,
@@ -17,24 +19,40 @@ from .api import (
     Ontario511RateLimitError,
     Resource,
 )
-from .const import DOMAIN, UPDATE_INTERVALS
-from .models import Alert, Event
+from .const import DOMAIN
+from .models import PARSERS, Item
+from .policy import RESOURCE_POLICIES
 
 if TYPE_CHECKING:
     from . import Ontario511ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
-
-class Identified(Protocol):
-    """An item keyed by its id."""
-
-    @property
-    def id(self) -> str: ...
+# Forced refreshes arriving within this many seconds are merged into one.
+REQUEST_REFRESH_COOLDOWN = 10.0
 
 
-class Ontario511Coordinator[T: Identified](DataUpdateCoordinator[dict[str, T]]):
-    """Poll one Ontario 511 resource on its fixed schedule."""
+def parse_items(resource: Resource, items: list[dict[str, Any]]) -> dict[str, Item]:
+    """Parse API items into models keyed by ID, skipping malformed ones."""
+    parse = PARSERS[resource]
+    parsed: dict[str, Item] = {}
+    for item in items:
+        try:
+            value = parse(item)
+        except KeyError, TypeError, ValueError:
+            _LOGGER.debug("Skipping malformed %s item", resource.value)
+            continue
+        parsed[value.id] = value
+    return parsed
+
+
+class ResourceCoordinator(DataUpdateCoordinator[dict[str, Item]]):
+    """Poll one resource on its policy's schedule and cache the whole response.
+
+    Every entity of the resource reads from this cache. A forced refresh (the
+    "Update entity" action) only calls the API when the cached response is
+    older than the resource's freshness window.
+    """
 
     config_entry: Ontario511ConfigEntry
 
@@ -44,21 +62,40 @@ class Ontario511Coordinator[T: Identified](DataUpdateCoordinator[dict[str, T]]):
         config_entry: Ontario511ConfigEntry,
         client: Ontario511Client,
         resource: Resource,
-        parse: Callable[[dict[str, Any]], T],
     ) -> None:
         """Initialize the coordinator."""
+        self.policy = RESOURCE_POLICIES[resource]
         super().__init__(
             hass,
             _LOGGER,
             config_entry=config_entry,
             name=f"{DOMAIN} {resource.value}",
-            update_interval=UPDATE_INTERVALS[resource],
+            update_interval=self.policy.refresh,
+            request_refresh_debouncer=Debouncer(
+                hass, _LOGGER, cooldown=REQUEST_REFRESH_COOLDOWN, immediate=True
+            ),
         )
         self.client = client
         self.resource = resource
-        self._parse = parse
+        self.last_fetched: datetime | None = None
 
-    async def _async_update_data(self) -> dict[str, T]:
+    @property
+    def is_fresh(self) -> bool:
+        """Return whether the cached response is within its freshness window."""
+        return (
+            self.last_update_success
+            and self.last_fetched is not None
+            and dt_util.utcnow() - self.last_fetched < self.policy.freshness
+        )
+
+    async def async_request_refresh(self) -> None:
+        """Refresh on request, reusing the cache while it's fresh."""
+        if self.is_fresh:
+            self.async_update_listeners()
+            return
+        await super().async_request_refresh()
+
+    async def _async_update_data(self) -> dict[str, Item]:
         try:
             items = await self.client.async_get(self.resource)
         except Ontario511AuthError as err:
@@ -75,16 +112,9 @@ class Ontario511Coordinator[T: Identified](DataUpdateCoordinator[dict[str, T]]):
                 translation_key="cannot_connect",
                 translation_placeholders={"error": str(err)},
             ) from err
-        parsed: dict[str, T] = {}
-        for item in items:
-            try:
-                value = self._parse(item)
-            except KeyError, TypeError:
-                _LOGGER.debug("Skipping malformed %s item", self.resource.value)
-                continue
-            parsed[value.id] = value
+        # Decoding road polylines takes a noticeable time on small hardware.
+        parsed = await self.hass.async_add_executor_job(
+            parse_items, self.resource, items
+        )
+        self.last_fetched = dt_util.utcnow()
         return parsed
-
-
-type EventsCoordinator = Ontario511Coordinator[Event]
-type AlertsCoordinator = Ontario511Coordinator[Alert]

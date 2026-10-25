@@ -30,11 +30,16 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 
 ## Architecture
 
+See `docs/design.md` for the data model (areas, commutes, items, devices and entities).
+
 - `api.py`: the API client, `Resource` enum, errors and `RateLimiter`. No Home Assistant imports. Every resource is under `/api/v2/get/` except `roadconditions`, which is under `/api/v3/get/`. Error messages never contain the request URL, because it carries the key.
 - `client.py`: Home Assistant glue: the instance-wide limiter and client creation (shared aiohttp session; `lang=fr` when Home Assistant's language is French).
-- `models.py`: frozen dataclasses parsed from API items. The feed sometimes publishes a flipped longitude sign; coordinates outside Ontario's bounding box are treated as missing rather than corrected. Several resources (rest areas, roundabouts, seasonal loads, road conditions) have no `Id` field and need a derived unique ID.
-- `coordinator.py`: one `DataUpdateCoordinator` per polled resource.
-- Entities: `sensor.py`, `binary_sensor.py`, and `geo_location.py`, whose entities come and go with nearby events and are kept out of the entity registry.
+- `policy.py`: **the single reference for data freshness.** One `ResourcePolicy` per resource: category, background refresh interval, and freshness window. Don't hardcode intervals anywhere else.
+- `coordinator.py`: `ResourceCoordinator`, one per resource in use. It caches the whole parsed response; every entity of that resource reads from it. A forced refresh ("Update entity") reuses the cache inside the freshness window and is debounced. Parsing runs in the executor, because decoding road polylines is slow on small hardware.
+- `models.py`: frozen dataclasses for all 16 resources, all sharing `id`, `name`, `coordinates` and `region`. Resources without an `Id` field get a derived ID from stable fields. Coordinates outside Ontario's bounding box are treated as missing. Road segment polylines are thinned to about one point per 250 m to save memory.
+- `conditions.py`: ranks free-text road conditions; unrecognised text is unknown (never assumed safe) and logged once.
+- `geo.py`: polyline decoding and distances. `scope.py`: which items fall in a radius or commute corridor, and attaching events to their nearest road segment (within 2 km).
+- Entities: `sensor.py`, `binary_sensor.py` and `geo_location.py` are the first-pass entities, to be replaced as described in `docs/design.md`.
 
 ## Versioning and releases
 

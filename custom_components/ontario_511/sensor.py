@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import Ontario511ConfigEntry
 from .entity import Ontario511Entity, nearby_active_events
-from .models import Alert, Event
+from .models import Alert
 
 PARALLEL_UPDATES = 0
 
@@ -32,7 +32,7 @@ async def async_setup_entry(
     )
 
 
-class NearbyEventsSensor(Ontario511Entity[Event], SensorEntity):
+class NearbyEventsSensor(Ontario511Entity, SensorEntity):
     """Number of active events within the configured radius of home."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -43,7 +43,7 @@ class NearbyEventsSensor(Ontario511Entity[Event], SensorEntity):
         return len(nearby_active_events(self.hass, self.coordinator.config_entry))
 
 
-class ActiveAlertsSensor(Ontario511Entity[Alert], SensorEntity):
+class ActiveAlertsSensor(Ontario511Entity, SensorEntity):
     """Number of province-wide alerts currently published."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -58,7 +58,8 @@ class ActiveAlertsSensor(Ontario511Entity[Alert], SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the alert messages, high importance first."""
         alerts = sorted(
-            self.coordinator.data.values(), key=lambda alert: not alert.high_importance
+            (a for a in self.coordinator.data.values() if isinstance(a, Alert)),
+            key=lambda alert: not alert.high_importance,
         )
         return {
             "alerts": [

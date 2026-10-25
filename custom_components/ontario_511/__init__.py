@@ -10,8 +10,7 @@ from homeassistant.core import HomeAssistant
 
 from .api import Resource
 from .client import create_client
-from .coordinator import AlertsCoordinator, EventsCoordinator, Ontario511Coordinator
-from .models import Alert, Event
+from .coordinator import ResourceCoordinator
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
@@ -24,8 +23,8 @@ PLATFORMS: list[Platform] = [
 class Ontario511Data:
     """Runtime data for a config entry."""
 
-    events: EventsCoordinator
-    alerts: AlertsCoordinator
+    events: ResourceCoordinator
+    alerts: ResourceCoordinator
 
 
 type Ontario511ConfigEntry = ConfigEntry[Ontario511Data]
@@ -34,8 +33,8 @@ type Ontario511ConfigEntry = ConfigEntry[Ontario511Data]
 async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -> bool:
     """Set up Ontario 511 from a config entry."""
     client = create_client(hass, entry.data[CONF_API_KEY])
-    events = Ontario511Coordinator(hass, entry, client, Resource.EVENTS, Event.from_api)
-    alerts = Ontario511Coordinator(hass, entry, client, Resource.ALERTS, Alert.from_api)
+    events = ResourceCoordinator(hass, entry, client, Resource.EVENTS)
+    alerts = ResourceCoordinator(hass, entry, client, Resource.ALERTS)
     await events.async_config_entry_first_refresh()
     await alerts.async_config_entry_first_refresh()
     entry.runtime_data = Ontario511Data(events=events, alerts=alerts)

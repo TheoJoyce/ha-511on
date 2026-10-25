@@ -10,17 +10,17 @@ from homeassistant.util.location import distance
 
 from . import Ontario511ConfigEntry
 from .const import ATTRIBUTION, CONF_RADIUS, DEFAULT_RADIUS_KM, DOMAIN, SOURCE_URL
-from .coordinator import Identified, Ontario511Coordinator
-from .models import Event
+from .coordinator import ResourceCoordinator
+from .models import TrafficEvent
 
 
-class Ontario511Entity[T: Identified](CoordinatorEntity[Ontario511Coordinator[T]]):
+class Ontario511Entity(CoordinatorEntity[ResourceCoordinator]):
     """An entity backed by an Ontario 511 coordinator."""
 
     _attr_attribution = ATTRIBUTION
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: Ontario511Coordinator[T], key: str) -> None:
+    def __init__(self, coordinator: ResourceCoordinator, key: str) -> None:
         """Initialize the entity."""
         super().__init__(coordinator)
         entry = coordinator.config_entry
@@ -36,7 +36,7 @@ class Ontario511Entity[T: Identified](CoordinatorEntity[Ontario511Coordinator[T]
 
 def nearby_active_events(
     hass: HomeAssistant, entry: Ontario511ConfigEntry
-) -> list[tuple[Event, float]]:
+) -> list[tuple[TrafficEvent, float]]:
     """Return active events within the entry's radius of home, nearest first.
 
     Each item is paired with its distance from home in kilometres.
@@ -44,9 +44,13 @@ def nearby_active_events(
     radius = entry.options.get(CONF_RADIUS, DEFAULT_RADIUS_KM)
     now = dt_util.utcnow()
     home = (hass.config.latitude, hass.config.longitude)
-    found: list[tuple[Event, float]] = []
+    found: list[tuple[TrafficEvent, float]] = []
     for event in entry.runtime_data.events.data.values():
-        if event.coordinates is None or not event.is_active(now):
+        if (
+            not isinstance(event, TrafficEvent)
+            or event.coordinates is None
+            or not event.is_active(now)
+        ):
             continue
         metres = distance(*home, *event.coordinates)
         if metres is not None and (km := metres / 1000) <= radius:

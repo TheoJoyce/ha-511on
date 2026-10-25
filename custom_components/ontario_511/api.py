@@ -16,7 +16,6 @@ from typing import Any, Final
 
 import aiohttp
 
-API_ROOT: Final = "https://511on.ca/api"
 REQUEST_TIMEOUT: Final = aiohttp.ClientTimeout(total=30)
 
 # Documented once for the whole API: "Throttling is enabled. Ten calls every
@@ -53,9 +52,14 @@ class Resource(StrEnum):
         return 3 if self is Resource.ROAD_CONDITIONS else 2
 
     @property
+    def url_path(self) -> str:
+        """Return the resource's URL path."""
+        return f"/api/v{self.api_version}/get/{self.value}"
+
+    @property
     def url(self) -> str:
         """Return the resource URL, without the key."""
-        return f"{API_ROOT}/v{self.api_version}/get/{self.value}"
+        return f"https://511on.ca{self.url_path}"
 
 
 class Ontario511Error(Exception):

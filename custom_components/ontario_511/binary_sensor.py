@@ -11,7 +11,6 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import Ontario511ConfigEntry
 from .entity import Ontario511Entity, nearby_active_events
-from .models import Event
 
 PARALLEL_UPDATES = 0
 
@@ -27,7 +26,7 @@ async def async_setup_entry(
     )
 
 
-class NearbyClosureSensor(Ontario511Entity[Event], BinarySensorEntity):
+class NearbyClosureSensor(Ontario511Entity, BinarySensorEntity):
     """On while an active full road closure is within the configured radius."""
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM

@@ -12,9 +12,9 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import Ontario511ConfigEntry
 from .const import ATTRIBUTION, DOMAIN
-from .coordinator import EventsCoordinator
+from .coordinator import ResourceCoordinator
 from .entity import nearby_active_events
-from .models import Event
+from .models import TrafficEvent
 
 PARALLEL_UPDATES = 0
 
@@ -48,7 +48,7 @@ async def async_setup_entry(
     entry.async_on_unload(coordinator.async_add_listener(_sync))
 
 
-class EventLocation(CoordinatorEntity[EventsCoordinator], GeolocationEvent):
+class EventLocation(CoordinatorEntity[ResourceCoordinator], GeolocationEvent):
     """A nearby traffic event on the map.
 
     These entities come and go with the events, so they have no unique ID and
@@ -60,16 +60,19 @@ class EventLocation(CoordinatorEntity[EventsCoordinator], GeolocationEvent):
     _attr_source = DOMAIN
     _attr_unit_of_measurement = UnitOfLength.KILOMETERS
 
-    def __init__(self, coordinator: EventsCoordinator, event_id: str) -> None:
+    def __init__(self, coordinator: ResourceCoordinator, event_id: str) -> None:
         """Initialize the entity."""
         super().__init__(coordinator)
         self.event_id = event_id
         self.distance_km: float | None = None
-        self._attr_name = _event_name(coordinator.data[event_id])
+        event = coordinator.data[event_id]
+        assert isinstance(event, TrafficEvent)
+        self._attr_name = _event_name(event)
 
     @property
-    def _event(self) -> Event | None:
-        return self.coordinator.data.get(self.event_id)
+    def _event(self) -> TrafficEvent | None:
+        event = self.coordinator.data.get(self.event_id)
+        return event if isinstance(event, TrafficEvent) else None
 
     @property
     def available(self) -> bool:
@@ -113,7 +116,7 @@ class EventLocation(CoordinatorEntity[EventsCoordinator], GeolocationEvent):
         }
 
 
-def _event_name(event: Event) -> str:
+def _event_name(event: TrafficEvent) -> str:
     parts = [event.road, event.direction, _EVENT_TYPE_NAMES.get(event.event_type or "")]
     return " ".join(part for part in parts if part) or f"Event {event.id}"
 
