@@ -9,8 +9,7 @@
       "invalid_auth": "Ontario 511 rejected the API key.",
       "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
       "unknown": "Unexpected error.",
-      "no_types": "Choose at least one data type.",
-      "too_close": "The start and end must be at least 1 km apart."
+      "no_types": "Choose at least one data type."
     },
     "step": {
       "user": {
@@ -25,15 +24,13 @@
       "area": {
         "data": {
           "name": "Name",
-          "location": "Centre",
-          "radius_km": "Radius",
+          "location": "Centre and radius",
           "types": "Data to generate",
           "event_slots": "Nearest event slots"
         },
         "data_description": {
-          "name": "For example Home or Cottage.",
-          "location": "Drop the pin at the centre of the area.",
-          "radius_km": "How far from the centre counts as inside the area, up to {max_radius} km.",
+          "name": "For example Home, Work or Cottage.",
+          "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
           "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
           "event_slots": "How many of the nearest events to show on the map."
         },
@@ -41,9 +38,9 @@
         "title": "Area"
       },
       "add_commute": {
-        "description": "You can also add a commute now, or later from the integration page.",
+        "description": "A commute runs from this area to another one, such as Work. You can also add one later from the integration page.",
         "menu_options": {
-          "commute": "Add a commute",
+          "destination": "Add a commute (adds a second area)",
           "finish": "Finish"
         },
         "title": "Commute"
@@ -51,19 +48,16 @@
       "commute": {
         "data": {
           "name": "Name",
-          "start": "Start",
-          "end": "End",
           "corridor_km": "Corridor width",
           "types": "Data to generate",
           "event_slots": "Nearest event slots"
         },
         "data_description": {
-          "name": "For example Work.",
           "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
-          "types": "Used once, to choose what to generate. Commute items are generated before nearby ones.",
+          "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones.",
           "event_slots": "How many of the nearest events to show on the map."
         },
-        "description": "Choose where the commute starts and ends. Up to three sensible highway routes between them are worked out and all used. You can adjust the road segments afterwards by reconfiguring the commute.",
+        "description": "A commute from {from} to {to}. Up to three sensible highway routes between them are worked out and all used. Its summaries cover both areas and the route between them.",
         "title": "Commute"
       },
       "slow_import": {
@@ -79,6 +73,16 @@
         },
         "description": "Ontario 511 rejected the saved API key. Enter a valid key.",
         "title": "Re-authenticate Ontario 511"
+      },
+      "area_radius": {
+        "data": {
+          "radius_km": "Radius"
+        },
+        "data_description": {
+          "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
+        },
+        "description": "Confirm the radius of {name}.",
+        "title": "Radius"
       }
     }
   },
@@ -93,8 +97,7 @@
         "invalid_auth": "Ontario 511 rejected the API key.",
         "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
         "unknown": "Unexpected error.",
-        "no_types": "Choose at least one data type.",
-        "too_close": "The start and end must be at least 1 km apart."
+        "no_types": "Choose at least one data type."
       },
       "abort": {
         "reconfigure_successful": "Settings saved."
@@ -103,20 +106,28 @@
         "area": {
           "data": {
             "name": "Name",
-            "location": "Centre",
-            "radius_km": "Radius",
+            "location": "Centre and radius",
             "types": "Data to generate",
             "event_slots": "Nearest event slots"
           },
           "data_description": {
-            "name": "For example Home or Cottage.",
-            "location": "Drop the pin at the centre of the area.",
-            "radius_km": "How far from the centre counts as inside the area, up to {max_radius} km.",
+            "name": "For example Home, Work or Cottage.",
+            "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
             "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
             "event_slots": "How many of the nearest events to show on the map."
           },
           "description": "Choose an area to watch. Items nearest the centre are generated first.",
           "title": "Area"
+        },
+        "area_radius": {
+          "data": {
+            "radius_km": "Radius"
+          },
+          "data_description": {
+            "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
+          },
+          "description": "Confirm the radius of {name}.",
+          "title": "Radius"
         },
         "slow_import": {
           "description": "You chose {count} data types. Ontario 511 allows {fast} requests a minute, so the first {fast} load now and the rest about a minute later. Their entities appear when the data arrives.",
@@ -146,29 +157,75 @@
         "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
         "unknown": "Unexpected error.",
         "no_types": "Choose at least one data type.",
-        "too_close": "The start and end must be at least 1 km apart."
+        "same_area": "Choose two different areas."
       },
       "abort": {
         "reconfigure_successful": "Settings saved.",
-        "cannot_connect": "Failed to connect to Ontario 511."
+        "cannot_connect": "Failed to connect to Ontario 511.",
+        "no_areas": "Add an area first."
       },
       "step": {
+        "user": {
+          "description": "A commute runs between two areas.",
+          "menu_options": {
+            "existing_areas": "Between two areas I already have",
+            "new_area": "To a new area"
+          },
+          "title": "Add commute"
+        },
+        "existing_areas": {
+          "data": {
+            "from_area": "From",
+            "to_area": "To"
+          },
+          "title": "Add commute"
+        },
+        "new_area": {
+          "data": {
+            "from_area": "From"
+          },
+          "description": "Choose where the commute starts. You'll add the area it goes to next.",
+          "title": "Add commute"
+        },
+        "area": {
+          "data": {
+            "name": "Name",
+            "location": "Centre and radius",
+            "types": "Data to generate",
+            "event_slots": "Nearest event slots"
+          },
+          "data_description": {
+            "name": "For example Home, Work or Cottage.",
+            "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
+            "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
+            "event_slots": "How many of the nearest events to show on the map."
+          },
+          "description": "Choose an area to watch. Items nearest the centre are generated first.",
+          "title": "Area"
+        },
+        "area_radius": {
+          "data": {
+            "radius_km": "Radius"
+          },
+          "data_description": {
+            "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
+          },
+          "description": "Confirm the radius of {name}.",
+          "title": "Radius"
+        },
         "commute": {
           "data": {
             "name": "Name",
-            "start": "Start",
-            "end": "End",
             "corridor_km": "Corridor width",
             "types": "Data to generate",
             "event_slots": "Nearest event slots"
           },
           "data_description": {
-            "name": "For example Work.",
             "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
-            "types": "Used once, to choose what to generate. Commute items are generated before nearby ones.",
+            "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones.",
             "event_slots": "How many of the nearest events to show on the map."
           },
-          "description": "Choose where the commute starts and ends. Up to three sensible highway routes between them are worked out and all used. You can adjust the road segments afterwards by reconfiguring the commute.",
+          "description": "A commute from {from} to {to}. Up to three sensible highway routes between them are worked out and all used. Its summaries cover both areas and the route between them.",
           "title": "Commute"
         },
         "slow_import": {

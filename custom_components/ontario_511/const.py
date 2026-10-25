@@ -21,6 +21,8 @@ CONF_RADIUS_KM: Final = "radius_km"
 CONF_CORRIDOR_KM: Final = "corridor_km"
 CONF_SEGMENTS: Final = "segments"
 CONF_ROUTE: Final = "route"
+CONF_FROM_AREA: Final = "from_area"
+CONF_TO_AREA: Final = "to_area"
 CONF_TYPES: Final = "types"
 CONF_FEEDS: Final = "feeds"
 CONF_EVENT_SLOTS: Final = "event_slots"
@@ -30,6 +32,8 @@ CONF_RESOURCE: Final = "resource"
 CONF_ITEM_ID: Final = "item_id"
 
 DEFAULT_AREA_NAME: Final = "Home"
+DEFAULT_DESTINATION_NAME: Final = "Work"
+DEFAULT_NEW_AREA_NAME: Final = "Area"
 DEFAULT_RADIUS_KM: Final = 25.0
 MIN_RADIUS_KM: Final = 0.5
 MAX_RADIUS_KM: Final = 50.0

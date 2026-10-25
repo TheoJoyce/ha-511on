@@ -15,12 +15,13 @@ from homeassistant.config_entries import ConfigSubentry
 from homeassistant.util import dt as dt_util
 
 from .api import Resource
-from .commute import route_lines
+from .commute import linked_areas, route_lines
 from .const import (
     CONF_CORRIDOR_KM,
     CONF_LOCATION,
     CONF_RADIUS_KM,
     CONF_SEGMENTS,
+    SUBENTRY_AREA,
     SUBENTRY_COMMUTE,
 )
 from .geo import Point
@@ -34,6 +35,50 @@ from .scope import (
 
 if TYPE_CHECKING:
     from . import Ontario511ConfigEntry
+
+
+def _door_to_door(corridor: Scope, areas: list[Scope], alerts: list[Alert]) -> Scope:
+    """Combine a commute's corridor with the areas it links.
+
+    Order is the starting area, the corridor (in route order), then the
+    destination; anything in more than one is counted once.
+    """
+    ordered = [areas[0], corridor, *areas[1:]] if areas else [corridor]
+
+    def merge(
+        parts: list[list[tuple[TrafficEvent, float]]],
+    ) -> list[tuple[TrafficEvent, float]]:
+        seen: set[str] = set()
+        merged: list[tuple[TrafficEvent, float]] = []
+        for part in parts:
+            for event, km in part:
+                if event.id not in seen:
+                    seen.add(event.id)
+                    merged.append((event, km))
+        return merged
+
+    segments: dict[str, RoadSegment] = {}
+    for scope in ordered:
+        for segment in scope.segments:
+            segments.setdefault(segment.id, segment)
+    scope = Scope(
+        centre=None,
+        events=merge([s.events for s in ordered]),
+        construction=merge([s.construction for s in ordered]),
+        segments=list(segments.values()),
+    )
+    scope.regions = {normalize_region(s.region) for s in scope.segments if s.region}
+    scope.alerts = _alerts_for(scope.regions, alerts)
+    return scope
+
+
+def _alerts_for(regions: set[str], alerts: list[Alert]) -> list[Alert]:
+    """Return alerts listing any of the regions (or no region at all)."""
+    return [
+        a
+        for a in alerts
+        if not a.regions or regions & {normalize_region(r) for r in a.regions}
+    ]
 
 
 def normalize_region(region: str) -> str:
@@ -115,13 +160,26 @@ class FeedIndex:
             for seg_id in events_by.keys() | construction_by.keys()
         }
         by_id = {s.id: s for s in segments}
+        subentries = list(self._entry.subentries.values())
+        # Areas first: commutes build on the areas they link.
         self._scopes = {
-            subentry.subentry_id: self._build_scope(
-                subentry, events, construction, segments, by_id, alerts
+            sub.subentry_id: self._build_scope(
+                sub, events, construction, segments, by_id, alerts
             )
-            for subentry in self._entry.subentries.values()
-            if subentry.subentry_type != "item"
+            for sub in subentries
+            if sub.subentry_type == SUBENTRY_AREA
         }
+        for sub in subentries:
+            if sub.subentry_type == SUBENTRY_COMMUTE:
+                corridor = self._build_scope(
+                    sub, events, construction, segments, by_id, alerts
+                )
+                areas = [
+                    self._scopes[a.subentry_id]
+                    for a in linked_areas(self._entry, sub)
+                    if a.subentry_id in self._scopes
+                ]
+                self._scopes[sub.subentry_id] = _door_to_door(corridor, areas, alerts)
 
     @staticmethod
     def _build_scope(

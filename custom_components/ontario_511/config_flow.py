@@ -9,12 +9,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import logging
+from types import MappingProxyType
 from typing import Any
 
 from homeassistant.config_entries import (
     ConfigEntryState,
     ConfigFlow,
     ConfigFlowResult,
+    ConfigSubentry,
     ConfigSubentryData,
     ConfigSubentryFlow,
     SubentryFlowResult,
@@ -23,6 +25,7 @@ from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.selector import (
     LocationSelector,
+    LocationSelectorConfig,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -45,12 +48,19 @@ from .api import (
     Resource,
 )
 from .client import create_client, key_id
-from .commute import change_segments, plan_commute, route_lines
+from .commute import (
+    area_key,
+    change_segments,
+    new_area_key,
+    plan_commute,
+    route_lines,
+)
 from .const import (
     CONF_CORRIDOR_KM,
     CONF_END,
     CONF_EVENT_SLOTS,
     CONF_FEEDS,
+    CONF_FROM_AREA,
     CONF_ITEM_ID,
     CONF_ITEMS,
     CONF_LOCATION,
@@ -59,10 +69,13 @@ from .const import (
     CONF_RESOURCE,
     CONF_SEGMENTS,
     CONF_START,
+    CONF_TO_AREA,
     CONF_TYPES,
     DEFAULT_AREA_NAME,
     DEFAULT_CORRIDOR_KM,
+    DEFAULT_DESTINATION_NAME,
     DEFAULT_EVENT_SLOTS,
+    DEFAULT_NEW_AREA_NAME,
     DEFAULT_RADIUS_KM,
     DOMAIN,
     FAST_IMPORT_TYPES,
@@ -135,6 +148,10 @@ def _km_selector(minimum: float, maximum: float) -> NumberSelector:
     )
 
 
+def _clamp_km(value: float, minimum: float, maximum: float) -> float:
+    return round(min(maximum, max(minimum, value)), 1)
+
+
 def _slots_selector() -> NumberSelector:
     return NumberSelector(
         NumberSelectorConfig(
@@ -177,55 +194,63 @@ async def _async_validate_key(hass: HomeAssistant, api_key: str) -> dict[str, st
 class _SetupSteps:
     """Area and commute steps shared by initial setup and subentry flows.
 
-    Subclasses provide the API client and decide what happens once an area or
-    commute is complete.
+    An area is two steps: a map with a draggable pin and radius circle, then
+    the radius in kilometres, prefilled from the circle. A commute runs from
+    one area to another (``_from`` and ``_to``); its routes are worked out
+    between their centres. Subclasses provide the API client and decide what
+    happens once an area or commute is complete.
     """
 
     hass: HomeAssistant
     _draft: dict[str, Any]
-    _draft_kind: str
     _type_count: int
+    _area_name_default: str
+    _from: dict[str, Any] | None
+    _to: dict[str, Any] | None
 
     async_show_form: Any
 
     def _client_and_key(self) -> tuple[Ontario511Client, str]:
         raise NotImplementedError
 
-    async def _async_area_done(self, data: dict[str, Any], title: str) -> Any:
+    async def _async_area_done(
+        self, data: dict[str, Any], title: str, unique_id: str
+    ) -> Any:
         raise NotImplementedError
 
     async def _async_commute_done(self, data: dict[str, Any], title: str) -> Any:
         raise NotImplementedError
 
     async def async_step_area(self, user_input: dict[str, Any] | None = None) -> Any:
-        """Define an area: where, how far, and what to generate."""
+        """Define an area on a map, and what to generate."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            radius_km = round(float(user_input[CONF_RADIUS_KM]), 1)
             if not user_input[CONF_TYPES]:
                 errors[CONF_TYPES] = "no_types"
             else:
-                feeds, pending = _split_types(user_input[CONF_TYPES])
                 location = user_input[CONF_LOCATION]
-                self._draft_kind = SUBENTRY_AREA
+                feeds, pending = _split_types(user_input[CONF_TYPES])
                 self._type_count = len(user_input[CONF_TYPES])
                 self._draft = {
-                    CONF_NAME: user_input[CONF_NAME].strip() or DEFAULT_AREA_NAME,
+                    CONF_NAME: user_input[CONF_NAME].strip() or self._area_name_default,
                     CONF_LOCATION: {
                         "latitude": location["latitude"],
                         "longitude": location["longitude"],
                     },
-                    CONF_RADIUS_KM: radius_km,
+                    CONF_RADIUS_KM: _clamp_km(
+                        float(location.get("radius", DEFAULT_RADIUS_KM * 1000)) / 1000,
+                        MIN_RADIUS_KM,
+                        MAX_RADIUS_KM,
+                    ),
                     CONF_FEEDS: feeds,
                     CONF_PENDING: pending,
                     CONF_ITEMS: {},
                     CONF_EVENT_SLOTS: int(user_input[CONF_EVENT_SLOTS]),
                 }
-                return await self._async_next_after_draft()
+                return await self.async_step_area_radius()
         defaults = user_input or {
-            CONF_NAME: DEFAULT_AREA_NAME,
-            CONF_LOCATION: _home(self.hass),
-            CONF_RADIUS_KM: DEFAULT_RADIUS_KM,
+            CONF_NAME: self._area_name_default,
+            CONF_LOCATION: {**_home(self.hass), "radius": DEFAULT_RADIUS_KM * 1000},
             CONF_TYPES: DEFAULT_TYPES,
             CONF_EVENT_SLOTS: DEFAULT_EVENT_SLOTS,
         }
@@ -234,10 +259,7 @@ class _SetupSteps:
                 probatio.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
                 probatio.Required(
                     CONF_LOCATION, default=defaults[CONF_LOCATION]
-                ): LocationSelector(),
-                probatio.Required(
-                    CONF_RADIUS_KM, default=defaults[CONF_RADIUS_KM]
-                ): _km_selector(MIN_RADIUS_KM, MAX_RADIUS_KM),
+                ): LocationSelector(LocationSelectorConfig(radius=True)),
                 probatio.Required(
                     CONF_TYPES, default=defaults[CONF_TYPES]
                 ): _types_selector(TYPE_OPTIONS),
@@ -246,21 +268,39 @@ class _SetupSteps:
                 ): _slots_selector(),
             }
         )
+        return self.async_show_form(step_id="area", data_schema=schema, errors=errors)
+
+    async def async_step_area_radius(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
+        """Confirm or fine-tune the radius in kilometres."""
+        if user_input is not None:
+            self._draft[CONF_RADIUS_KM] = round(float(user_input[CONF_RADIUS_KM]), 1)
+            self._draft_kind = SUBENTRY_AREA
+            return await self._async_next_after_draft()
+        schema = probatio.Schema(
+            {
+                probatio.Required(
+                    CONF_RADIUS_KM, default=self._draft[CONF_RADIUS_KM]
+                ): _km_selector(MIN_RADIUS_KM, MAX_RADIUS_KM),
+            }
+        )
         return self.async_show_form(
-            step_id="area",
+            step_id="area_radius",
             data_schema=schema,
-            errors=errors,
-            description_placeholders={"max_radius": str(int(MAX_RADIUS_KM))},
+            description_placeholders={
+                "name": self._draft[CONF_NAME],
+                "max_radius": str(int(MAX_RADIUS_KM)),
+            },
         )
 
     async def async_step_commute(self, user_input: dict[str, Any] | None = None) -> Any:
-        """Define a commute; its routes are worked out automatically."""
+        """Settings for a commute between two areas; routes are worked out."""
+        assert self._from is not None and self._to is not None
         errors: dict[str, str] = {}
+        start, end = self._from["centre"], self._to["centre"]
         if user_input is not None:
-            start, end = user_input[CONF_START], user_input[CONF_END]
-            if distance_km(_point(start), _point(end)) < 1:
-                errors[CONF_END] = "too_close"
-            elif not user_input[CONF_TYPES]:
+            if not user_input[CONF_TYPES]:
                 errors[CONF_TYPES] = "no_types"
             else:
                 client, key = self._client_and_key()
@@ -278,16 +318,19 @@ class _SetupSteps:
                     plan = await self.hass.async_add_executor_job(
                         plan_commute,
                         [s for s in segments.values() if isinstance(s, RoadSegment)],
-                        _point(start),
-                        _point(end),
+                        start,
+                        end,
                     )
                     feeds, pending = _split_types(user_input[CONF_TYPES])
-                    self._draft_kind = SUBENTRY_COMMUTE
                     self._type_count = len(user_input[CONF_TYPES])
+                    self._draft_kind = SUBENTRY_COMMUTE
                     self._draft = {
-                        CONF_NAME: user_input[CONF_NAME].strip(),
-                        CONF_START: {k: start[k] for k in ("latitude", "longitude")},
-                        CONF_END: {k: end[k] for k in ("latitude", "longitude")},
+                        CONF_NAME: user_input[CONF_NAME].strip()
+                        or self._commute_name(),
+                        CONF_FROM_AREA: self._from["key"],
+                        CONF_TO_AREA: self._to["key"],
+                        CONF_START: {"latitude": start[0], "longitude": start[1]},
+                        CONF_END: {"latitude": end[0], "longitude": end[1]},
                         CONF_CORRIDOR_KM: round(float(user_input[CONF_CORRIDOR_KM]), 1),
                         CONF_FEEDS: feeds,
                         CONF_PENDING: pending,
@@ -297,9 +340,7 @@ class _SetupSteps:
                     }
                     return await self._async_next_after_draft()
         defaults = user_input or {
-            CONF_NAME: "",
-            CONF_START: _home(self.hass),
-            CONF_END: _home(self.hass),
+            CONF_NAME: self._commute_name(),
             CONF_CORRIDOR_KM: DEFAULT_CORRIDOR_KM,
             CONF_TYPES: DEFAULT_TYPES,
             CONF_EVENT_SLOTS: DEFAULT_EVENT_SLOTS,
@@ -307,12 +348,6 @@ class _SetupSteps:
         schema = probatio.Schema(
             {
                 probatio.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
-                probatio.Required(
-                    CONF_START, default=defaults[CONF_START]
-                ): LocationSelector(),
-                probatio.Required(
-                    CONF_END, default=defaults[CONF_END]
-                ): LocationSelector(),
                 probatio.Required(
                     CONF_CORRIDOR_KM, default=defaults[CONF_CORRIDOR_KM]
                 ): _km_selector(MIN_CORRIDOR_KM, MAX_CORRIDOR_KM),
@@ -325,8 +360,18 @@ class _SetupSteps:
             }
         )
         return self.async_show_form(
-            step_id="commute", data_schema=schema, errors=errors
+            step_id="commute",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "from": self._from["title"],
+                "to": self._to["title"],
+            },
         )
+
+    def _commute_name(self) -> str:
+        assert self._from is not None and self._to is not None
+        return f"{self._from['title']} to {self._to['title']}"
 
     async def _async_next_after_draft(self) -> Any:
         if self._type_count > FAST_IMPORT_TYPES:
@@ -352,8 +397,20 @@ class _SetupSteps:
         data = dict(self._draft)
         title = data.pop(CONF_NAME)
         if self._draft_kind == SUBENTRY_AREA:
-            return await self._async_area_done(data, title)
+            unique_id = new_area_key()
+            area = {
+                "key": unique_id,
+                "title": title,
+                "centre": _point(data[CONF_LOCATION]),
+            }
+            if self._from is None:
+                self._from = area
+            else:
+                self._to = area
+            return await self._async_area_done(data, title, unique_id)
         return await self._async_commute_done(data, title)
+
+    _draft_kind: str
 
 
 class Ontario511ConfigFlow(ConfigFlow, _SetupSteps, domain=DOMAIN):
@@ -368,6 +425,9 @@ class Ontario511ConfigFlow(ConfigFlow, _SetupSteps, domain=DOMAIN):
         self._draft = {}
         self._draft_kind = SUBENTRY_AREA
         self._type_count = 0
+        self._area_name_default = DEFAULT_AREA_NAME
+        self._from = None
+        self._to = None
 
     def _client_and_key(self) -> tuple[Ontario511Client, str]:
         return create_client(self.hass, self._api_key), key_id(self._api_key)
@@ -389,22 +449,31 @@ class Ontario511ConfigFlow(ConfigFlow, _SetupSteps, domain=DOMAIN):
         )
 
     async def _async_area_done(
-        self, data: dict[str, Any], title: str
+        self, data: dict[str, Any], title: str, unique_id: str
     ) -> ConfigFlowResult:
         self._subentries.append(
             ConfigSubentryData(
-                data=data, subentry_type=SUBENTRY_AREA, title=title, unique_id=None
+                data=data, subentry_type=SUBENTRY_AREA, title=title, unique_id=unique_id
             )
         )
-        return await self.async_step_add_commute()
+        if self._to is None:
+            return await self.async_step_add_commute()
+        return await self.async_step_commute()  # type: ignore[no-any-return]
 
     async def async_step_add_commute(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Offer to add a commute now or finish."""
+        """Offer to add a commute (to a second area) now, or finish."""
         return self.async_show_menu(
-            step_id="add_commute", menu_options=["commute", "finish"]
+            step_id="add_commute", menu_options=["destination", "finish"]
         )
+
+    async def async_step_destination(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Add the area the commute goes to, such as Work."""
+        self._area_name_default = DEFAULT_DESTINATION_NAME
+        return await self.async_step_area()  # type: ignore[no-any-return]
 
     async def _async_commute_done(
         self, data: dict[str, Any], title: str
@@ -554,13 +623,16 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
 
 
 class AreaSubentryFlow(_EntrySubentryFlow, _SetupSteps):
-    """Add or change an area."""
+    """Add an area."""
 
     def __init__(self) -> None:
         """Initialize the flow."""
         self._draft = {}
         self._draft_kind = SUBENTRY_AREA
         self._type_count = 0
+        self._area_name_default = DEFAULT_NEW_AREA_NAME
+        self._from = None
+        self._to = None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -569,25 +641,105 @@ class AreaSubentryFlow(_EntrySubentryFlow, _SetupSteps):
         return await self.async_step_area(user_input)  # type: ignore[no-any-return]
 
     async def _async_area_done(
-        self, data: dict[str, Any], title: str
+        self, data: dict[str, Any], title: str, unique_id: str
     ) -> SubentryFlowResult:
-        return self.async_create_entry(title=title, data=data)
+        return self.async_create_entry(title=title, data=data, unique_id=unique_id)
 
 
 class CommuteSubentryFlow(_EntrySubentryFlow, _SetupSteps):
-    """Add or change a commute."""
+    """Add a commute between two areas, optionally adding the second area."""
 
     def __init__(self) -> None:
         """Initialize the flow."""
         self._draft = {}
         self._draft_kind = SUBENTRY_COMMUTE
         self._type_count = 0
+        self._area_name_default = DEFAULT_DESTINATION_NAME
+        self._from = None
+        self._to = None
+
+    def _areas(self) -> dict[str, dict[str, Any]]:
+        """Return the entry's areas by link key."""
+        return {
+            area_key(s): {
+                "key": area_key(s),
+                "title": s.title,
+                "centre": _point(s.data[CONF_LOCATION]),
+            }
+            for s in self._get_entry().subentries.values()
+            if s.subentry_type == SUBENTRY_AREA
+        }
+
+    def _area_selector(self) -> SelectSelector:
+        return SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=key, label=area["title"])
+                    for key, area in self._areas().items()
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        )
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Add a commute."""
-        return await self.async_step_commute(user_input)  # type: ignore[no-any-return]
+        """Choose whether the commute goes to an existing area or a new one."""
+        if not self._areas():
+            return self.async_abort(reason="no_areas")
+        return self.async_show_menu(
+            step_id="user", menu_options=["existing_areas", "new_area"]
+        )
+
+    async def async_step_existing_areas(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Choose the two areas the commute runs between."""
+        errors: dict[str, str] = {}
+        areas = self._areas()
+        if user_input is not None:
+            if user_input[CONF_FROM_AREA] == user_input[CONF_TO_AREA]:
+                errors[CONF_TO_AREA] = "same_area"
+            else:
+                self._from = areas[user_input[CONF_FROM_AREA]]
+                self._to = areas[user_input[CONF_TO_AREA]]
+                return await self.async_step_commute()  # type: ignore[no-any-return]
+        schema = probatio.Schema(
+            {
+                probatio.Required(CONF_FROM_AREA): self._area_selector(),
+                probatio.Required(CONF_TO_AREA): self._area_selector(),
+            }
+        )
+        return self.async_show_form(
+            step_id="existing_areas", data_schema=schema, errors=errors
+        )
+
+    async def async_step_new_area(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Choose where the commute starts; the destination is added next."""
+        if user_input is not None:
+            self._from = self._areas()[user_input[CONF_FROM_AREA]]
+            return await self.async_step_area()  # type: ignore[no-any-return]
+        schema = probatio.Schema(
+            {probatio.Required(CONF_FROM_AREA): self._area_selector()}
+        )
+        return self.async_show_form(step_id="new_area", data_schema=schema)
+
+    async def _async_area_done(
+        self, data: dict[str, Any], title: str, unique_id: str
+    ) -> SubentryFlowResult:
+        """Add the new destination area, then continue with the commute."""
+        self.hass.config_entries.async_add_subentry(
+            self._get_entry(),
+            ConfigSubentry(
+                data=MappingProxyType(data),
+                subentry_type=SUBENTRY_AREA,
+                title=title,
+                unique_id=unique_id,
+            ),
+        )
+        return await self.async_step_commute()  # type: ignore[no-any-return]
 
     async def _async_commute_done(
         self, data: dict[str, Any], title: str

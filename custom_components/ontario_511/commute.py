@@ -11,8 +11,19 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from typing import Any
+import uuid
 
-from .const import CONF_END, CONF_ROUTE, CONF_SEGMENTS, CONF_START
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
+
+from .const import (
+    CONF_END,
+    CONF_FROM_AREA,
+    CONF_ROUTE,
+    CONF_SEGMENTS,
+    CONF_START,
+    CONF_TO_AREA,
+    SUBENTRY_AREA,
+)
 from .geo import Point, decode_polyline, encode_polyline
 from .models import RoadSegment
 from .routing import RoadNetwork
@@ -71,3 +82,29 @@ def change_segments(
         ):
             pieces.extend([segment_id, encode_polyline(line)] for line in segment.lines)
     return {CONF_SEGMENTS: list(keep), CONF_ROUTE: pieces}
+
+
+def new_area_key() -> str:
+    """Return a new link key for an area, stored as its subentry unique ID.
+
+    Commutes reference areas by this key. Initial setup creates areas and a
+    commute together, before Home Assistant assigns subentry IDs, so the key
+    is chosen here.
+    """
+    return f"area_{uuid.uuid4().hex}"
+
+
+def area_key(subentry: ConfigSubentry) -> str:
+    """Return an area's link key (its subentry ID for areas without one)."""
+    return subentry.unique_id or subentry.subentry_id
+
+
+def linked_areas(entry: ConfigEntry, commute: ConfigSubentry) -> list[ConfigSubentry]:
+    """Return the areas a commute runs between that still exist, from then to."""
+    areas = {
+        area_key(s): s
+        for s in entry.subentries.values()
+        if s.subentry_type == SUBENTRY_AREA
+    }
+    keys = (commute.data.get(CONF_FROM_AREA), commute.data.get(CONF_TO_AREA))
+    return [areas[k] for k in keys if k in areas]

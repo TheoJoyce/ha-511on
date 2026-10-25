@@ -27,8 +27,8 @@
 
 Entities for the Ontario 511 data near the places you care about, not the whole province.
 
-- **Areas:** pick a centre on the map and a radius in kilometres (up to 50). Items nearest the centre are generated.
-- **Commutes:** pick a start and end. Up to three sensible highway routes between them are worked out and all used, and a corridor (default 5 km) around the stretches actually driven counts as on the commute. Commute items are generated before anything else.
+- **Areas:** drag a pin and a radius circle on the map, then fine-tune the radius in kilometres (up to 50). Items nearest the centre are generated.
+- **Commutes:** a commute runs from one area to another (for example Home to Work). Up to three sensible highway routes between them are worked out and all used, and a corridor (default 5 km) around the stretches actually driven counts as on the commute. Its summaries are door to door: both areas plus the route. Commute items are generated before anything else.
 - **Every data type:** events and closures, construction, road conditions, alerts, traffic cameras, ferry terminals, rest areas, truck rest areas, service centres, seasonal load restrictions, carpool lots, transit hubs, inspection stations, roundabouts, HOT/HOV lanes and travel information centres.
 - **No temporary entities:** events and construction come and go, so they're counted on the road segment, area or commute they fall in. Event entities fire when something new appears.
 - **On the map:** each item's main entity has a location, and "Nearest event" entities put the closest events on the map.
@@ -98,8 +98,8 @@ Or add it by hand:
 1. Go to **Settings** → **Devices & services**.
 2. Select **Add integration** and search for **Ontario 511**.
 3. Enter your Ontario 511 API key. It's checked with one request before you continue.
-4. Set up your first **area**: a name, the centre on the map, the radius in kilometres, the data types to generate, and how many "Nearest event" entities to add.
-5. Optionally add a **commute**: a start and end on the map and a corridor width. Its routes are worked out automatically; trips that stay on local roads use a corridor around the straight line between the two points.
+4. Set up your first **area**: a name, the pin and radius circle on the map, the data types to generate, and how many "Nearest event" entities to add. Then confirm the radius in kilometres.
+5. Optionally add a **commute**. It starts by adding the second area it goes to (for example Work), then asks for the corridor width and what to generate. Its routes are worked out automatically; trips that stay on local roads use a corridor around the straight line between the two areas.
 
 The data type checkboxes are only used once, to decide what to generate. If you choose more than 10 types, the rest load about a minute later because of Ontario 511's rate limit.
 
@@ -107,7 +107,7 @@ The data type checkboxes are only used once, to decide what to generate. If you 
 
 On the integration page:
 
-- **Add area**, **Add commute** or **Add item** to add more. **Add item** adds any single item, chosen from a list sorted by distance from your home.
+- **Add area**, **Add commute** or **Add item** to add more. **Add commute** links two areas you already have, or adds a new area to go to. **Add item** adds any single item, chosen from a list sorted by distance from your home.
 - Open an area's or commute's menu (⋮) and select **Reconfigure** to rename it or change which events, construction and alerts it follows. For a commute you can also change the corridor width and which road segments it uses.
 - Delete an item's device to remove that item.
 

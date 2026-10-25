@@ -16,11 +16,13 @@ One **config entry** per API key. It holds three kinds of **config subentries**,
 
 | Subentry | What the user sets | What it generates |
 |---|---|---|
-| **Area** | Name, centre (map picker, defaults to home), radius (max 50 km) | Items of the chosen data types, nearest to the centre first, and a summary device |
-| **Commute** | Name, start and end (map pickers), the road segments along the route (suggested, then confirmed), corridor width (default 5 km, max 20 km) | Items of the chosen data types within the corridor, and a summary device |
+| **Area** | Name, centre and radius (drag a pin and circle on the map, then confirm the radius in km; max 50 km) | Items of the chosen data types, nearest to the centre first, and a summary device |
+| **Commute** | The two areas it runs between (an existing one, or a new area added in the same flow), corridor width (default 5 km, max 20 km). Routes between the areas' centres are worked out automatically; the segments can be adjusted by reconfiguring | Items of the chosen data types within the corridor, and a summary device covering both areas and the route (door to door) |
 | **Item** | A data type, then one item from a list sorted by distance | That one item. No cap applies |
 
-Setup chains: API key, then a first area ("Home", 25 km), then an optional commute.
+Setup chains: API key, then a first area ("Home", 25 km), then optionally a commute, which first adds the area it goes to ("Work").
+
+Areas carry a link key as their subentry unique ID; commutes reference their two areas by it. If a linked area is deleted, the commute keeps its corridor.
 
 ### One-time data type selection
 
