@@ -1195,7 +1195,7 @@ wheels = [
 
 [[package]]
 name = "ha-511on"
-version = "0.0.1"
+version = "0.1.0a1"
 source = { virtual = "." }
 
 [package.dev-dependencies]
@@ -1203,7 +1203,11 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-homeassistant-custom-component" },
+    { name = "pyturbojpeg" },
     { name = "ruff" },
+]
+run = [
+    { name = "home-assistant-frontend" },
 ]
 
 [package.metadata]
@@ -1213,8 +1217,10 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-homeassistant-custom-component" },
+    { name = "pyturbojpeg", specifier = ">=2.6.1" },
     { name = "ruff" },
 ]
+run = [{ name = "home-assistant-frontend", specifier = "==20260930.5" }]
 
 [[package]]
 name = "habluetooth"
@@ -1304,6 +1310,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/bc/6f/914fd8086f502748907751766e26e3f7fe5204347a679703ee9954e55e4d/home_assistant_bluetooth-2.0.0.tar.gz", hash = "sha256:3febd16b194812b156024d9bc8ce8ec7622cdd8d159047cac504cc77ca034ea1", size = 7604, upload-time = "2025-07-09T18:01:47.541Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/15/3e/2ed9e59da8fc26c43cbd9d6abbd27217138a31c608b1d334cc5e680e4069/home_assistant_bluetooth-2.0.0-py3-none-any.whl", hash = "sha256:8d7c2ac48c303adacad73cb6cdfe7710f2fccd2a367d4c3106acf301b0d22b91", size = 7907, upload-time = "2025-07-09T18:01:46.506Z" },
+]
+
+[[package]]
+name = "home-assistant-frontend"
+version = "20260930.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c1/0d/e8bf54c2ef163a668b9dbcf1cfff9d4aba4a07c576b12f89b5f43ec9c7c1/home_assistant_frontend-20260930.5.tar.gz", hash = "sha256:e336712f66687f5b3e0643fdd31bdf4b946b47f08f7f94d9f9e599a40df29473", size = 109917155, upload-time = "2026-10-23T13:24:22.127Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/d1/e02a835dd5840c5219c4934db265e395a661a7882e0b68c96c1589d3c2d2/home_assistant_frontend-20260930.5-py3-none-any.whl", hash = "sha256:9cc03b3d2a43e93c6e57cc20b322c98cce61be7a35d7c1df1021e279d22d1f9b", size = 110686791, upload-time = "2026-10-23T13:24:17.338Z" },
 ]
 
 [[package]]
@@ -2779,6 +2794,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ad/df/32c87abe18f7d0560e2154ffbe23dfca6edad5d0d2d6c4636c99f4fb8b02/python_slugify-9.1.2.tar.gz", hash = "sha256:bd36ca98e5ebb1cd2b9dfa2f27b948ce87402fb083b762cbd9d0fa3aed489a92", size = 64822, upload-time = "2026-09-27T15:56:24.075Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b1/e3/90a873d90440e59470a44261b3da3c175710e77677e1b37b2a79ad0cf9cc/python_slugify-9.1.2-py3-none-any.whl", hash = "sha256:a470dafd2ad79672606cc0d1a5fcaf7a2ccf8f358073ff29b5b93c2bd7e288d6", size = 15950, upload-time = "2026-09-27T15:56:23.158Z" },
+]
+
+[[package]]
+name = "pyturbojpeg"
+version = "2.6.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/62/f4/0893b94338bec41743d9ec22a49f256db8ae123b920a223169101da506e2/pyturbojpeg-2.6.1.tar.gz", hash = "sha256:94c2c81a1d46534df8eeb49b0c760982683d0707eb09c7b02bdf61ad7e048d99", size = 112363, upload-time = "2026-10-24T05:25:42.11Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/06/9e/a19c44e18f999dacba7d309a06f2e89687569330051b82d42327a5fab714/pyturbojpeg-2.6.1-py3-none-any.whl", hash = "sha256:2e3b992b708c2ccb316853f1b0ab43a89218fec10af0a2fbbda266a7a72b36d1", size = 37374, upload-time = "2026-10-24T05:25:40.623Z" },
 ]
 
 [[package]]

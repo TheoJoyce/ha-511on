@@ -1,0 +1,38 @@
+[
+  {
+    "Name": "Ontario/Manitoba Border",
+    "Roadway": "Highway 17",
+    "Direction": "Eastbound",
+    "Location": "5.3 km west of Jct. Hwy 673",
+    "Type": "Rest Area",
+    "Status": "Open",
+    "Open": "May 15 to November 15",
+    "TruckParking": "Y",
+    "Lavatory": "Y",
+    "Accessible": "Y",
+    "FoodServices": "Not Available",
+    "Fuel": "N",
+    "Region": "Northwestern",
+    "Comments": "Heated Washroom",
+    "Latitude": 49.739607,
+    "Longitude": -95.136839
+  },
+  {
+    "Name": "Load Check East of Terrace Bay",
+    "Roadway": "Highway 17",
+    "Direction": "Eastbound",
+    "Location": "35 km east of Terrace Bay",
+    "Type": "Rest Area",
+    "Status": "Open",
+    "Open": "May 15 to October 25",
+    "TruckParking": "Y",
+    "Lavatory": "Y",
+    "Accessible": "N",
+    "FoodServices": "Not Available",
+    "Fuel": "N",
+    "Region": "Northwestern",
+    "Comments": "",
+    "Latitude": 48.801389,
+    "Longitude": -86.783889
+  }
+]

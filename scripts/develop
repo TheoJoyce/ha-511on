@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Run a local Home Assistant for developing the integration.
+#
+#   scripts/develop          fake Ontario 511 API (scripts/fake_511.py)
+#   scripts/develop --live   the real API, with the key you enter in the UI
+#
+# Home Assistant runs at http://127.0.0.1:8123 with config in config/
+# (gitignored). Code changes need a restart: stop with Ctrl+C and run again.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+mkdir -p config
+[ -f config/configuration.yaml ] || cp scripts/dev_config/configuration.yaml config/
+[ -f config/automations.yaml ] || echo "[]" > config/automations.yaml
+[ -f config/scenes.yaml ] || echo "[]" > config/scenes.yaml
+[ -f config/scripts.yaml ] || echo "{}" > config/scripts.yaml
+ln -sfn ../custom_components config/custom_components
+
+uv sync --group run --quiet
+
+# Home Assistant exits with code 100 when it wants to be restarted (for example
+# from Settings > System > Restart); start it again like a normal install would.
+run_hass() {
+  while true; do
+    code=0
+    "$@" || code=$?
+    [ "$code" -eq 100 ] || return "$code"
+    echo "Restarting Home Assistant..."
+  done
+}
+
+if [ "${1:-}" = "--live" ]; then
+  echo "Using the real Ontario 511 API."
+  run_hass uv run hass -c config
+  exit
+fi
+
+uv run python -m scripts.fake_511 &
+fake=$!
+trap 'kill "$fake" 2>/dev/null' EXIT
+echo "Fake Ontario 511 API on http://127.0.0.1:8511 (any key works except \"invalid\")."
+run_hass env ONTARIO_511_API_BASE=http://127.0.0.1:8511 \
+  ONTARIO_511_GEOCODING_BASE=http://127.0.0.1:8511/_geo uv run hass -c config

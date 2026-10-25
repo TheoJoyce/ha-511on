@@ -1,0 +1,44 @@
+# serializer version: 1
+# name: test_diagnostics
+  dict({
+    'coordinators': dict({
+      'alerts': dict({
+        'item_count': 2,
+        'last_update_success': True,
+        'update_interval_seconds': 300.0,
+      }),
+      'event': dict({
+        'item_count': 9,
+        'last_update_success': True,
+        'update_interval_seconds': 180.0,
+      }),
+      'roadconditions': dict({
+        'item_count': 4,
+        'last_update_success': True,
+        'update_interval_seconds': 600.0,
+      }),
+    }),
+    'entry': dict({
+      'data': dict({
+        'api_key': '**REDACTED**',
+      }),
+    }),
+    'rate_limit': dict({
+      'calls': 10,
+      'period_seconds': 61.0,
+    }),
+    'subentries': list([
+      dict({
+        'feeds': list([
+          'alerts',
+          'event',
+        ]),
+        'item_counts': dict({
+        }),
+        'pending': list([
+        ]),
+        'type': 'area',
+      }),
+    ]),
+  })
+# ---

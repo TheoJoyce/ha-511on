@@ -1,0 +1,2406 @@
+# serializer version: 1
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hearst_open-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.hearst_open',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Open',
+    'options': dict({
+    }),
+    'original_device_class': <BinarySensorDeviceClass.OPENING: 'opening'>,
+    'original_icon': None,
+    'original_name': 'Open',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'open',
+    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:open',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hearst_open-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'accessible': False,
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'comments': 'Sanitizer and/or soap and water available',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'opening',
+      'direction': 'Eastbound',
+      'food_services': 'Not Available',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hearst Open',
+      'fuel': False,
+      'latitude': 49.692209,
+      'lavatory': False,
+      'location': '1.8 km east of Vandette Rd',
+      'longitude': -83.692753,
+      'road': 'Highway 11',
+      'season': 'May 15 to November 15',
+      'truck_parking': True,
+      'type': 'Truck Inspection Station',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.hearst_open',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'on',
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.highway_589_load_restrictions-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.highway_589_load_restrictions',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Load restrictions',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Load restrictions',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'restricted',
+    'unique_id': '01JTEST0NTAR10511AREA00001:seasonalloadapi:32684e4006c2f754:restricted',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.highway_589_load_restrictions-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'date': '2020-03-20',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Highway 589 Load restrictions',
+      'latitude': 48.650284,
+      'longitude': -89.325647,
+      'route': '9.6 km north of Jct. Hwy 591, north to end of Hwy 589',
+      'status': 'Restrictions in effect',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.highway_589_load_restrictions',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'on',
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.home_full_closure-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.home_full_closure',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Full closure',
+    'options': dict({
+    }),
+    'original_device_class': <BinarySensorDeviceClass.PROBLEM: 'problem'>,
+    'original_icon': None,
+    'original_name': 'Full closure',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'closure',
+    'unique_id': '01JTEST0NTAR10511AREA00001:closure',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.home_full_closure-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home Full closure',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.home_full_closure',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'on',
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.home_hazardous_conditions-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.home_hazardous_conditions',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Hazardous conditions',
+    'options': dict({
+    }),
+    'original_device_class': <BinarySensorDeviceClass.SAFETY: 'safety'>,
+    'original_icon': None,
+    'original_name': 'Hazardous conditions',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hazardous_conditions',
+    'unique_id': '01JTEST0NTAR10511AREA00001:hazardous_conditions',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.home_hazardous_conditions-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'safety',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home Hazardous conditions',
+      'segments': list([
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.home_hazardous_conditions',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_east_drifting_snow-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.hwy_401_east_drifting_snow',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Drifting snow',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Drifting snow',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'drifting',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:drifting',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_east_drifting_snow-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: East Drifting snow',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.hwy_401_east_drifting_snow',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_east_full_closure-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.hwy_401_east_full_closure',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Full closure',
+    'options': dict({
+    }),
+    'original_device_class': <BinarySensorDeviceClass.PROBLEM: 'problem'>,
+    'original_icon': None,
+    'original_name': 'Full closure',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'full_closure',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:full_closure',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_east_full_closure-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: East Full closure',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.hwy_401_east_full_closure',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'on',
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_east_hazardous-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.hwy_401_east_hazardous',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Hazardous',
+    'options': dict({
+    }),
+    'original_device_class': <BinarySensorDeviceClass.SAFETY: 'safety'>,
+    'original_icon': None,
+    'original_name': 'Hazardous',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hazardous',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:hazardous',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_east_hazardous-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'safety',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: East Hazardous',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.hwy_401_east_hazardous',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_west_drifting_snow-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.hwy_401_west_drifting_snow',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Drifting snow',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Drifting snow',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'drifting',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:drifting',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_west_drifting_snow-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: West Drifting snow',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.hwy_401_west_drifting_snow',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_west_full_closure-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.hwy_401_west_full_closure',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Full closure',
+    'options': dict({
+    }),
+    'original_device_class': <BinarySensorDeviceClass.PROBLEM: 'problem'>,
+    'original_icon': None,
+    'original_name': 'Full closure',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'full_closure',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:full_closure',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_west_full_closure-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: West Full closure',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.hwy_401_west_full_closure',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'on',
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_west_hazardous-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.hwy_401_west_hazardous',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Hazardous',
+    'options': dict({
+    }),
+    'original_device_class': <BinarySensorDeviceClass.SAFETY: 'safety'>,
+    'original_icon': None,
+    'original_name': 'Hazardous',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hazardous',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:hazardous',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.hwy_401_west_hazardous-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'safety',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: West Hazardous',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.hwy_401_west_hazardous',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.ontario_manitoba_border_open-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.ontario_manitoba_border_open',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Open',
+    'options': dict({
+    }),
+    'original_device_class': <BinarySensorDeviceClass.OPENING: 'opening'>,
+    'original_icon': None,
+    'original_name': 'Open',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'open',
+    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:open',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor-subentries0][binary_sensor.ontario_manitoba_border_open-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'accessible': True,
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'comments': 'Heated Washroom',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'opening',
+      'direction': 'Eastbound',
+      'food_services': 'Not Available',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Ontario/Manitoba Border Open',
+      'fuel': False,
+      'latitude': 49.739607,
+      'lavatory': True,
+      'location': '5.3 km west of Jct. Hwy 673',
+      'longitude': -95.136839,
+      'road': 'Highway 17',
+      'season': 'May 15 to November 15',
+      'truck_parking': True,
+      'type': 'Rest Area',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.ontario_manitoba_border_open',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'on',
+  })
+# ---
+# name: test_entities[camera-subentries0][camera.highway_407_east_of_bethesda_view_1-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'camera',
+    'entity_category': None,
+    'entity_id': 'camera.highway_407_east_of_bethesda_view_1',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'View 1',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'View 1',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'view',
+    'unique_id': '01JTEST0NTAR10511AREA00001:cameras:455:view_1',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[camera-subentries0][camera.highway_407_east_of_bethesda_view_1-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <CameraEntityStateAttribute.ACCESS_TOKEN: 'access_token'>: '75bcd15',
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'description': None,
+      'direction': 'Unknown',
+      <EntityStateAttribute.ENTITY_PICTURE: 'entity_picture'>: '/api/camera_proxy/camera.highway_407_east_of_bethesda_view_1?token=75bcd15',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Highway 407 East of Bethesda View 1',
+      'latitude': 43.992,
+      'longitude': -78.6864,
+      'road': 'Highway 407',
+      <EntityStateAttribute.SUPPORTED_FEATURES: 'supported_features'>: <CameraEntityFeature: 0>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'camera.highway_407_east_of_bethesda_view_1',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'idle',
+  })
+# ---
+# name: test_entities[event-subentries0][event.home_new_alert-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
+        'new_alert',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'event',
+    'entity_category': None,
+    'entity_id': 'event.home_new_alert',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'New alert',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'New alert',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'new_alert',
+    'unique_id': '01JTEST0NTAR10511AREA00001:new_alert',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[event-subentries0][event.home_new_alert-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EventEntityStateAttribute.EVENT_TYPE: 'event_type'>: None,
+      <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
+        'new_alert',
+      ]),
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home New alert',
+    }),
+    'context': <ANY>,
+    'entity_id': 'event.home_new_alert',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
+# name: test_entities[event-subentries0][event.home_new_event-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
+        'new_event',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'event',
+    'entity_category': None,
+    'entity_id': 'event.home_new_event',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'New event',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'New event',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'new_event',
+    'unique_id': '01JTEST0NTAR10511AREA00001:new_event',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[event-subentries0][event.home_new_event-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EventEntityStateAttribute.EVENT_TYPE: 'event_type'>: None,
+      <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
+        'new_event',
+      ]),
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home New event',
+    }),
+    'context': <ANY>,
+    'entity_id': 'event.home_new_event',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
+# name: test_entities[event-subentries0][event.hwy_401_east_new_event-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
+        'new_event',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'event',
+    'entity_category': None,
+    'entity_id': 'event.hwy_401_east_new_event',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'New event',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'New event',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'segment_new_event',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:segment_new_event',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[event-subentries0][event.hwy_401_east_new_event-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EventEntityStateAttribute.EVENT_TYPE: 'event_type'>: None,
+      <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
+        'new_event',
+      ]),
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: East New event',
+    }),
+    'context': <ANY>,
+    'entity_id': 'event.hwy_401_east_new_event',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
+# name: test_entities[event-subentries0][event.hwy_401_west_new_event-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
+        'new_event',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'event',
+    'entity_category': None,
+    'entity_id': 'event.hwy_401_west_new_event',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'New event',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'New event',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'segment_new_event',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:segment_new_event',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[event-subentries0][event.hwy_401_west_new_event-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EventEntityStateAttribute.EVENT_TYPE: 'event_type'>: None,
+      <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
+        'new_event',
+      ]),
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: West New event',
+    }),
+    'context': <ANY>,
+    'entity_id': 'event.hwy_401_west_new_event',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.407_etr_n_location-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.407_etr_n_location',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Location',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Location',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'station_location',
+    'unique_id': '01JTEST0NTAR10511AREA00001:inspectionstations:482:station_location',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.407_etr_n_location-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'contact': 'Tel: 905-465-1721 Fax: 905-564-0736',
+      'direction': 'Westbound',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: '407 ETR N Location',
+      'highway': 'Highway 407',
+      'latitude': 43.42532,
+      'longitude': -79.808123,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.407_etr_n_location',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0.5 km east of Tremain Rd',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.bainsville_hours-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.bainsville_hours',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Hours',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Hours',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hours',
+    'unique_id': '01JTEST0NTAR10511AREA00001:informationcenter:593596478:hours',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.bainsville_hours-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'address': '22064 North Service Road',
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'email': 'OntarioTravel.Bainsville@ontario.ca',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bainsville Hours',
+      'latitude': 45.180778,
+      'longitude': -74.397759,
+      'phone': '613-347-3498',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.bainsville_hours',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'Year-round',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.bronte_go_address-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.bronte_go_address',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Address',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Address',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'address',
+    'unique_id': '01JTEST0NTAR10511AREA00001:transithub:1848677822:address',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.bronte_go_address-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bronte GO Address',
+      'latitude': 43.4171,
+      'longitude': -79.7219,
+      'website': 'http://www.gotransit.com/publicroot/en/travelling/stations.aspx?station=BTGO',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.bronte_go_address',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '2104 Wyecroft Rd., Oakville, ON',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.highway_403_eastbound_hov_road-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.highway_403_eastbound_hov_road',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Road',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Road',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hov_road',
+    'unique_id': '01JTEST0NTAR10511AREA00001:hovlanes:149499285:hov_road',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.highway_403_eastbound_hov_road-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Highway 403 Eastbound HOV Road',
+      'latitude': 43.57767,
+      'longitude': -79.66878,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.highway_403_eastbound_hov_road',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'Highway 403',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_alerts-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.home_alerts',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Alerts',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Alerts',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'alerts',
+    'unique_id': '01JTEST0NTAR10511AREA00001:alerts',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_alerts-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home Alerts',
+      'items': list([
+        dict({
+          'high_importance': True,
+          'message': 'HWY 6 Northbound - Argyle Street between 6th Line and Braemar Avenue remains closed. ONLY Southbound traffic turning ONTO Argyle Street from Highway 6 will be permitted.',
+          'regions': list([
+            'Central',
+            'Eastern',
+            'Northwest',
+          ]),
+        }),
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.home_alerts',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_construction-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.home_construction',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Construction',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Construction',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'construction',
+    'unique_id': '01JTEST0NTAR10511AREA00001:construction',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_construction-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home Construction',
+      'items': list([
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.home_construction',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_events-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.home_events',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Events',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Events',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'events',
+    'unique_id': '01JTEST0NTAR10511AREA00001:events',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_events-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home Events',
+      'items': list([
+        dict({
+          'description': 'Nightly Maintenance on HWY 401 Westbound On-ramp at ALLEN ROAD, Toronto. ALL LANES CLOSED.',
+          'direction': 'Westbound',
+          'distance_km': 10.0,
+          'full_closure': True,
+          'planned_end': '2026-10-30T09:00:00+00:00',
+          'road': 'HWY 401',
+          'type': 'roadwork',
+        }),
+        dict({
+          'description': 'Nightly Construction on HWY 401 Eastbound Collector between AVENUE ROAD and DON MILLS ROAD, Toronto. ALL LANES CLOSED.',
+          'direction': 'Eastbound',
+          'distance_km': 10.4,
+          'full_closure': True,
+          'planned_end': '2026-10-28T09:30:00+00:00',
+          'road': 'HWY 401',
+          'type': 'roadwork',
+        }),
+        dict({
+          'description': 'Collision on HWY 401 Eastbound EXPRESS at WESTON ROAD, Toronto. 1 right lane and right shoulder closed.',
+          'direction': 'Eastbound',
+          'distance_km': 14.0,
+          'full_closure': False,
+          'planned_end': None,
+          'road': 'HWY 401',
+          'type': 'accidentsAndIncidents',
+        }),
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.home_events',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '3',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_nearest_event_1-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.home_nearest_event_1',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Nearest event 1',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Nearest event 1',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'nearest_event',
+    'unique_id': '01JTEST0NTAR10511AREA00001:nearest_event_1',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_nearest_event_1-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'description': 'Nightly Maintenance on HWY 401 Westbound On-ramp at ALLEN ROAD, Toronto. ALL LANES CLOSED.',
+      'direction': 'Westbound',
+      'distance_km': 10.0,
+      'event_id': '323209',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home Nearest event 1',
+      'full_closure': True,
+      'lanes_affected': 'ALL LANES CLOSED',
+      'latitude': 43.729862,
+      'longitude': -79.44891,
+      'planned_end': '2026-10-30T09:00:00+00:00',
+      'road': 'HWY 401',
+      'type': 'roadwork',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.home_nearest_event_1',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'Nightly Maintenance on HWY 401 Westbound On-ramp at ALLEN ROAD, Toronto. ALL LANES CLOSED.',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_nearest_event_2-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.home_nearest_event_2',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Nearest event 2',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Nearest event 2',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'nearest_event',
+    'unique_id': '01JTEST0NTAR10511AREA00001:nearest_event_2',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_nearest_event_2-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'description': 'Nightly Construction on HWY 401 Eastbound Collector between AVENUE ROAD and DON MILLS ROAD, Toronto. ALL LANES CLOSED.',
+      'direction': 'Eastbound',
+      'distance_km': 10.4,
+      'event_id': '322857',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home Nearest event 2',
+      'full_closure': True,
+      'lanes_affected': 'ALL LANES CLOSED',
+      'latitude': 43.7425,
+      'longitude': -79.42304,
+      'planned_end': '2026-10-28T09:30:00+00:00',
+      'road': 'HWY 401',
+      'type': 'roadwork',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.home_nearest_event_2',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'Nightly Construction on HWY 401 Eastbound Collector between AVENUE ROAD and DON MILLS ROAD, Toronto. ALL LANES CLOSED.',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_nearest_event_3-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.home_nearest_event_3',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Nearest event 3',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Nearest event 3',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'nearest_event',
+    'unique_id': '01JTEST0NTAR10511AREA00001:nearest_event_3',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_nearest_event_3-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'description': 'Collision on HWY 401 Eastbound EXPRESS at WESTON ROAD, Toronto. 1 right lane and right shoulder closed.',
+      'direction': 'Eastbound',
+      'distance_km': 14.0,
+      'event_id': '324420',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home Nearest event 3',
+      'full_closure': False,
+      'lanes_affected': '1 right lane and right shoulder closed',
+      'latitude': 43.71325981,
+      'longitude': -79.53596808,
+      'planned_end': None,
+      'road': 'HWY 401',
+      'type': 'accidentsAndIncidents',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.home_nearest_event_3',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'Collision on HWY 401 Eastbound EXPRESS at WESTON ROAD, Toronto. 1 right lane and right shoulder closed.',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_worst_road_condition-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'good',
+        'wet',
+        'partly_covered',
+        'covered',
+        'icy',
+        'closed',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.home_worst_road_condition',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Worst road condition',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'Worst road condition',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'worst_condition',
+    'unique_id': '01JTEST0NTAR10511AREA00001:worst_condition',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.home_worst_road_condition-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Home Worst road condition',
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'good',
+        'wet',
+        'partly_covered',
+        'covered',
+        'icy',
+        'closed',
+      ]),
+      'segment_count': 2,
+      'segments': list([
+        'Hwy 401: East',
+        'Hwy 401: West',
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.home_worst_road_condition',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'good',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_east_construction-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.hwy_401_east_construction',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Construction',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Construction',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'segment_construction',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:segment_construction',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_east_construction-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: East Construction',
+      'items': list([
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.hwy_401_east_construction',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_east_events-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.hwy_401_east_events',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Events',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Events',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'segment_events',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:segment_events',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_east_events-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: East Events',
+      'items': list([
+        dict({
+          'description': 'Nightly Construction on HWY 401 Eastbound Collector between AVENUE ROAD and DON MILLS ROAD, Toronto. ALL LANES CLOSED.',
+          'direction': 'Eastbound',
+          'full_closure': True,
+          'planned_end': '2026-10-28T09:30:00+00:00',
+          'road': 'HWY 401',
+          'type': 'roadwork',
+        }),
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.hwy_401_east_events',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_east_road_condition-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'good',
+        'wet',
+        'partly_covered',
+        'covered',
+        'icy',
+        'closed',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.hwy_401_east_road_condition',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Road condition',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'Road condition',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'condition',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:condition',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_east_road_condition-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: East Road condition',
+      'last_updated': '2026-10-27T11:20:00+00:00',
+      'latitude': 43.745,
+      'longitude': -79.4,
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'good',
+        'wet',
+        'partly_covered',
+        'covered',
+        'icy',
+        'closed',
+      ]),
+      'region': 'Central',
+      'reported': list([
+        'Bare and dry road',
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.hwy_401_east_road_condition',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'good',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_east_visibility-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.hwy_401_east_visibility',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Visibility',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Visibility',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'visibility',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:visibility',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_east_visibility-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: East Visibility',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.hwy_401_east_visibility',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'Good',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_west_construction-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.hwy_401_west_construction',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Construction',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Construction',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'segment_construction',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:segment_construction',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_west_construction-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: West Construction',
+      'items': list([
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.hwy_401_west_construction',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_west_events-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.hwy_401_west_events',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Events',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Events',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'segment_events',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:segment_events',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_west_events-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: West Events',
+      'items': list([
+        dict({
+          'description': 'Nightly Maintenance on HWY 401 Westbound On-ramp at ALLEN ROAD, Toronto. ALL LANES CLOSED.',
+          'direction': 'Westbound',
+          'full_closure': True,
+          'planned_end': '2026-10-30T09:00:00+00:00',
+          'road': 'HWY 401',
+          'type': 'roadwork',
+        }),
+        dict({
+          'description': 'Collision on HWY 401 Eastbound EXPRESS at WESTON ROAD, Toronto. 1 right lane and right shoulder closed.',
+          'direction': 'Eastbound',
+          'full_closure': False,
+          'planned_end': None,
+          'road': 'HWY 401',
+          'type': 'accidentsAndIncidents',
+        }),
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.hwy_401_west_events',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '2',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_west_road_condition-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'good',
+        'wet',
+        'partly_covered',
+        'covered',
+        'icy',
+        'closed',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.hwy_401_west_road_condition',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Road condition',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'Road condition',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'condition',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:condition',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_west_road_condition-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: West Road condition',
+      'last_updated': '2026-10-27T11:20:00+00:00',
+      'latitude': 43.725,
+      'longitude': -79.5,
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'good',
+        'wet',
+        'partly_covered',
+        'covered',
+        'icy',
+        'closed',
+      ]),
+      'region': 'Central',
+      'reported': list([
+        'Bare and dry road',
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.hwy_401_west_road_condition',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'good',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_west_visibility-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.hwy_401_west_visibility',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Visibility',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Visibility',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'visibility',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:visibility',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_401_west_visibility-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 401: West Visibility',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.hwy_401_west_visibility',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'Good',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_407_at_trafalgar_rd_parking_spaces-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.hwy_407_at_trafalgar_rd_parking_spaces',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Parking spaces',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Parking spaces',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'parking_spaces',
+    'unique_id': '01JTEST0NTAR10511AREA00001:carpoollots:1361264909:parking_spaces',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.hwy_407_at_trafalgar_rd_parking_spaces-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'accessible_spaces': 0,
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'bike_rack': False,
+      'enter_from': 'Trafalgar Rd or Hwy 407 westbound off-ramp',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Hwy 407 at Trafalgar Rd Parking spaces',
+      'interchange': '21',
+      'latitude': 43.509831,
+      'lights': False,
+      'longitude': -79.749711,
+      'transit': True,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.hwy_407_at_trafalgar_rd_parking_spaces',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '106',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.mattawa_type-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.mattawa_type',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Type',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Type',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'roundabout_type',
+    'unique_id': '01JTEST0NTAR10511AREA00001:roundabouts:719effbf5b940464:roundabout_type',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.mattawa_type-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Mattawa Type',
+      'latitude': 46.317359,
+      'location': 'Hwy 17 and Hwy 533',
+      'longitude': -78.702211,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.mattawa_type',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'Single-lane',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.morrisburg_fuel-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.morrisburg_fuel',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Fuel',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Fuel',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'fuel',
+    'unique_id': '01JTEST0NTAR10511AREA00001:servicecentres:-1597185408:fuel',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.morrisburg_fuel-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'access_via': 'Hwy 401 Eastbound Between Exit # 750 and # 758',
+      'amenities': 'Pet area, seasonal picnics, parking, CIBC ATM, free WiFi',
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'commercial_parking': 130,
+      'food_services': 'Tim Hortons, Burger King, M Market, Canadian Tire Convenience Store',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Morrisburg Fuel',
+      'latitude': 44.945601,
+      'longitude': -75.124654,
+      'road': 'Highway 401',
+      'website': 'http://onroute.ca/location/morrisburg/',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.morrisburg_fuel',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'Canadian Tire Gas +',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.wolfe_island_ferry_kingston_marysville_estimated_out_of_service-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.wolfe_island_ferry_kingston_marysville_estimated_out_of_service',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Estimated out of service',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.TIMESTAMP: 'timestamp'>,
+    'original_icon': None,
+    'original_name': 'Estimated out of service',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'out_of_service',
+    'unique_id': '01JTEST0NTAR10511AREA00001:ferryterminals:82:out_of_service',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.wolfe_island_ferry_kingston_marysville_estimated_out_of_service-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'timestamp',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Wolfe Island Ferry (Kingston - Marysville) Estimated out of service',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.wolfe_island_ferry_kingston_marysville_estimated_out_of_service',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '2026-03-10T15:23:00+00:00',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.wolfe_island_ferry_kingston_marysville_estimated_return_to_service-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.wolfe_island_ferry_kingston_marysville_estimated_return_to_service',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Estimated return to service',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.TIMESTAMP: 'timestamp'>,
+    'original_icon': None,
+    'original_name': 'Estimated return to service',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'return_to_service',
+    'unique_id': '01JTEST0NTAR10511AREA00001:ferryterminals:82:return_to_service',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.wolfe_island_ferry_kingston_marysville_estimated_return_to_service-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'timestamp',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Wolfe Island Ferry (Kingston - Marysville) Estimated return to service',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.wolfe_island_ferry_kingston_marysville_estimated_return_to_service',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '2026-03-19T13:00:00+00:00',
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.wolfe_island_ferry_kingston_marysville_status-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'in_service',
+        'in_service_off_schedule',
+        'not_in_service',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.wolfe_island_ferry_kingston_marysville_status',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Status',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'Status',
+    'platform': 'ontario_511',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'ferry_status',
+    'unique_id': '01JTEST0NTAR10511AREA00001:ferryterminals:82:ferry_status',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor-subentries0][sensor.wolfe_island_ferry_kingston_marysville_status-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.ATTRIBUTION: 'attribution'>: 'Contains information licensed under the Open Government Licence - Ontario.',
+      'details': 'The ferry has returned to regular service',
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Wolfe Island Ferry (Kingston - Marysville) Status',
+      'latitude': 44.21106738,
+      'longitude': -76.45967606,
+      'operated_by': 'Ministry of Transportation',
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'in_service',
+        'in_service_off_schedule',
+        'not_in_service',
+      ]),
+      'website': 'http://www.mto.gov.on.ca/english/ontario-511/ferries.shtml',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.wolfe_island_ferry_kingston_marysville_status',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'in_service',
+  })
+# ---

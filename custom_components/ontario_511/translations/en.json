@@ -1,0 +1,508 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "This API key is already configured.",
+      "reauth_successful": "Re-authentication was successful."
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Ontario 511.",
+      "invalid_auth": "Ontario 511 rejected the API key.",
+      "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
+      "unknown": "Unexpected error.",
+      "no_types": "Choose at least one data type.",
+      "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
+      "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
+      "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
+      "outside_ontario": "That address isn't in Ontario."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "Your own Ontario 511 developer API key. Request one at 511on.ca/developers/doc while logged in."
+        },
+        "description": "Community-maintained integration, not affiliated with or endorsed by Ontario 511 or the Government of Ontario."
+      },
+      "area": {
+        "data": {
+          "name": "Name",
+          "location": "Centre and radius",
+          "types": "Data to generate",
+          "event_slots": "Nearest event slots",
+          "address": "Address (optional)"
+        },
+        "data_description": {
+          "name": "For example Home, Work or Cottage.",
+          "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
+          "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
+          "event_slots": "How many of the nearest events to show on the map.",
+          "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
+        },
+        "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
+        "title": "Area"
+      },
+      "add_commute": {
+        "description": "A commute runs from this area to another one, such as Work. You can also add one later from the integration page.",
+        "menu_options": {
+          "destination": "Add a commute (adds a second area)",
+          "finish": "Finish"
+        },
+        "title": "Commute"
+      },
+      "commute": {
+        "data": {
+          "name": "Name",
+          "corridor_km": "Corridor width",
+          "types": "Data to generate",
+          "event_slots": "Nearest event slots"
+        },
+        "data_description": {
+          "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
+          "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones.",
+          "event_slots": "How many of the nearest events to show on the map."
+        },
+        "description": "A commute from {from} to {to}. Up to three sensible highway routes between them are worked out and all used. Its summaries cover both areas and the route between them.",
+        "title": "Commute"
+      },
+      "slow_import": {
+        "description": "You chose {count} data types. Ontario 511 allows {fast} requests a minute, so the first {fast} load now and the rest about a minute later. Their entities appear when the data arrives.",
+        "title": "Slower first import"
+      },
+      "reauth_confirm": {
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "A new Ontario 511 developer API key."
+        },
+        "description": "Ontario 511 rejected the saved API key. Enter a valid key.",
+        "title": "Re-authenticate Ontario 511"
+      },
+      "area_radius": {
+        "data": {
+          "radius_km": "Radius"
+        },
+        "data_description": {
+          "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
+        },
+        "description": "Confirm the radius of {name}.",
+        "title": "Radius"
+      }
+    }
+  },
+  "config_subentries": {
+    "area": {
+      "entry_type": "Area",
+      "initiate_flow": {
+        "user": "Add area"
+      },
+      "error": {
+        "cannot_connect": "Failed to connect to Ontario 511.",
+        "invalid_auth": "Ontario 511 rejected the API key.",
+        "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
+        "unknown": "Unexpected error.",
+        "no_types": "Choose at least one data type.",
+        "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
+        "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
+        "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
+        "outside_ontario": "That address isn't in Ontario."
+      },
+      "abort": {
+        "reconfigure_successful": "Settings saved."
+      },
+      "step": {
+        "area": {
+          "data": {
+            "name": "Name",
+            "location": "Centre and radius",
+            "types": "Data to generate",
+            "event_slots": "Nearest event slots",
+            "address": "Address (optional)"
+          },
+          "data_description": {
+            "name": "For example Home, Work or Cottage.",
+            "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
+            "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
+            "event_slots": "How many of the nearest events to show on the map.",
+            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
+          },
+          "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
+          "title": "Area"
+        },
+        "area_radius": {
+          "data": {
+            "radius_km": "Radius"
+          },
+          "data_description": {
+            "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
+          },
+          "description": "Confirm the radius of {name}.",
+          "title": "Radius"
+        },
+        "slow_import": {
+          "description": "You chose {count} data types. Ontario 511 allows {fast} requests a minute, so the first {fast} load now and the rest about a minute later. Their entities appear when the data arrives.",
+          "title": "Slower first import"
+        },
+        "reconfigure": {
+          "data": {
+            "name": "Name",
+            "feeds": "Follow",
+            "event_slots": "Nearest event slots"
+          },
+          "data_description": {
+            "feeds": "Events, construction and alerts shown for this area."
+          },
+          "title": "Settings"
+        }
+      }
+    },
+    "commute": {
+      "entry_type": "Commute",
+      "initiate_flow": {
+        "user": "Add commute"
+      },
+      "error": {
+        "cannot_connect": "Failed to connect to Ontario 511.",
+        "invalid_auth": "Ontario 511 rejected the API key.",
+        "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
+        "unknown": "Unexpected error.",
+        "no_types": "Choose at least one data type.",
+        "same_area": "Choose two different areas.",
+        "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
+        "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
+        "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
+        "outside_ontario": "That address isn't in Ontario."
+      },
+      "abort": {
+        "reconfigure_successful": "Settings saved.",
+        "cannot_connect": "Failed to connect to Ontario 511.",
+        "no_areas": "Add an area first."
+      },
+      "step": {
+        "user": {
+          "description": "A commute runs between two areas.",
+          "menu_options": {
+            "existing_areas": "Between two areas I already have",
+            "new_area": "To a new area"
+          },
+          "title": "Add commute"
+        },
+        "existing_areas": {
+          "data": {
+            "from_area": "From",
+            "to_area": "To"
+          },
+          "title": "Add commute"
+        },
+        "new_area": {
+          "data": {
+            "from_area": "From"
+          },
+          "description": "Choose where the commute starts. You'll add the area it goes to next.",
+          "title": "Add commute"
+        },
+        "area": {
+          "data": {
+            "name": "Name",
+            "location": "Centre and radius",
+            "types": "Data to generate",
+            "event_slots": "Nearest event slots",
+            "address": "Address (optional)"
+          },
+          "data_description": {
+            "name": "For example Home, Work or Cottage.",
+            "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
+            "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
+            "event_slots": "How many of the nearest events to show on the map.",
+            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
+          },
+          "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
+          "title": "Area"
+        },
+        "area_radius": {
+          "data": {
+            "radius_km": "Radius"
+          },
+          "data_description": {
+            "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
+          },
+          "description": "Confirm the radius of {name}.",
+          "title": "Radius"
+        },
+        "commute": {
+          "data": {
+            "name": "Name",
+            "corridor_km": "Corridor width",
+            "types": "Data to generate",
+            "event_slots": "Nearest event slots"
+          },
+          "data_description": {
+            "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
+            "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones.",
+            "event_slots": "How many of the nearest events to show on the map."
+          },
+          "description": "A commute from {from} to {to}. Up to three sensible highway routes between them are worked out and all used. Its summaries cover both areas and the route between them.",
+          "title": "Commute"
+        },
+        "slow_import": {
+          "description": "You chose {count} data types. Ontario 511 allows {fast} requests a minute, so the first {fast} load now and the rest about a minute later. Their entities appear when the data arrives.",
+          "title": "Slower first import"
+        },
+        "reconfigure_commute": {
+          "data": {
+            "name": "Name",
+            "feeds": "Follow",
+            "event_slots": "Nearest event slots",
+            "corridor_km": "Corridor width",
+            "segments": "Road segments"
+          },
+          "data_description": {
+            "feeds": "Events, construction and alerts shown for this commute.",
+            "corridor_km": "Anything within this distance of the route counts as on the commute.",
+            "segments": "The road segments the commute uses. Untick any you don't drive, or tick nearby ones you do; added segments count along their full length."
+          },
+          "title": "Settings"
+        }
+      }
+    },
+    "item": {
+      "entry_type": "Item",
+      "initiate_flow": {
+        "user": "Add item"
+      },
+      "abort": {
+        "already_configured": "This item has already been added.",
+        "cannot_connect": "Failed to connect to Ontario 511.",
+        "invalid_auth": "Ontario 511 rejected the API key.",
+        "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
+        "no_items": "Ontario 511 has no items of this type with a location."
+      },
+      "step": {
+        "user": {
+          "data": {
+            "resource": "Type"
+          },
+          "description": "Choose the type of item to add.",
+          "title": "Add item"
+        },
+        "pick": {
+          "data": {
+            "item_id": "Item"
+          },
+          "description": "Choose the item. The nearest to your home are listed first.",
+          "title": "Add item"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Failed to fetch data from Ontario 511: {error}"
+    },
+    "invalid_auth": {
+      "message": "Ontario 511 rejected the API key."
+    },
+    "rate_limited": {
+      "message": "Ontario 511 is limiting requests; the next update will try again."
+    }
+  },
+  "selector": {
+    "data_types": {
+      "options": {
+        "event": "Events and closures",
+        "constructionprojects": "Construction projects",
+        "alerts": "Alerts",
+        "roadconditions": "Road conditions",
+        "cameras": "Traffic cameras",
+        "ferryterminals": "Ferry terminals",
+        "allrestareas": "Rest areas",
+        "truckrestareas": "Truck rest areas",
+        "servicecentres": "Service centres",
+        "seasonalloadapi": "Seasonal load restrictions",
+        "carpoollots": "Carpool lots",
+        "transithub": "Transit hubs",
+        "inspectionstations": "Inspection stations",
+        "roundabouts": "Roundabouts",
+        "hovlanes": "HOT/HOV lanes",
+        "informationcenter": "Travel information centres"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "condition": {
+        "name": "Road condition",
+        "state": {
+          "good": "Bare and dry",
+          "wet": "Wet",
+          "partly_covered": "Partly covered",
+          "covered": "Snow covered",
+          "icy": "Icy",
+          "closed": "Closed"
+        },
+        "state_attributes": {
+          "reported": {
+            "name": "Reported"
+          },
+          "last_updated": {
+            "name": "Last updated"
+          }
+        }
+      },
+      "visibility": {
+        "name": "Visibility"
+      },
+      "ferry_status": {
+        "name": "Status",
+        "state": {
+          "in_service": "In service",
+          "in_service_off_schedule": "In service, off schedule",
+          "not_in_service": "Not in service"
+        }
+      },
+      "return_to_service": {
+        "name": "Estimated return to service"
+      },
+      "out_of_service": {
+        "name": "Estimated out of service"
+      },
+      "fuel": {
+        "name": "Fuel"
+      },
+      "parking_spaces": {
+        "name": "Parking spaces"
+      },
+      "address": {
+        "name": "Address"
+      },
+      "station_location": {
+        "name": "Location"
+      },
+      "roundabout_type": {
+        "name": "Type"
+      },
+      "hov_road": {
+        "name": "Road"
+      },
+      "hours": {
+        "name": "Hours"
+      },
+      "segment_events": {
+        "name": "Events",
+        "state_attributes": {
+          "items": {
+            "name": "Items"
+          }
+        }
+      },
+      "segment_construction": {
+        "name": "Construction",
+        "state_attributes": {
+          "items": {
+            "name": "Items"
+          }
+        }
+      },
+      "worst_condition": {
+        "name": "Worst road condition",
+        "state": {
+          "good": "Bare and dry",
+          "wet": "Wet",
+          "partly_covered": "Partly covered",
+          "covered": "Snow covered",
+          "icy": "Icy",
+          "closed": "Closed"
+        }
+      },
+      "events": {
+        "name": "Events",
+        "state_attributes": {
+          "items": {
+            "name": "Items"
+          }
+        }
+      },
+      "construction": {
+        "name": "Construction",
+        "state_attributes": {
+          "items": {
+            "name": "Items"
+          }
+        }
+      },
+      "alerts": {
+        "name": "Alerts",
+        "state_attributes": {
+          "items": {
+            "name": "Items"
+          }
+        }
+      },
+      "nearest_event": {
+        "name": "Nearest event {slot}"
+      }
+    },
+    "binary_sensor": {
+      "drifting": {
+        "name": "Drifting snow"
+      },
+      "hazardous": {
+        "name": "Hazardous"
+      },
+      "open": {
+        "name": "Open"
+      },
+      "restricted": {
+        "name": "Load restrictions"
+      },
+      "full_closure": {
+        "name": "Full closure"
+      },
+      "hazardous_conditions": {
+        "name": "Hazardous conditions"
+      },
+      "closure": {
+        "name": "Full closure"
+      }
+    },
+    "camera": {
+      "view": {
+        "name": "View {view}"
+      }
+    },
+    "event": {
+      "segment_new_event": {
+        "name": "New event",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_event": "New event"
+            }
+          }
+        }
+      },
+      "new_event": {
+        "name": "New event",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_event": "New event"
+            }
+          }
+        }
+      },
+      "new_alert": {
+        "name": "New alert",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_alert": "New alert"
+            }
+          }
+        }
+      }
+    }
+  }
+}

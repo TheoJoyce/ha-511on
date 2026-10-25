@@ -1,0 +1,40 @@
+[
+  {
+    "Name": "Hearst",
+    "Roadway": "Highway 11",
+    "Direction": "Eastbound",
+    "Location": "1.8 km east of Vandette Rd",
+    "Type": "Truck Inspection Station",
+    "Status": "Open",
+    "Open": "May 15 to November 15",
+    "TruckParking": "Y",
+    "Lavatory": "N",
+    "Accessible": "N",
+    "FoodServices": "Not Available",
+    "Fuel": "N",
+    "Mode": "Trucker",
+    "Region": "Northeastern",
+    "Comments": "Sanitizer and/or soap and water available",
+    "Latitude": 49.692209,
+    "Longitude": -83.692753
+  },
+  {
+    "Name": "Heyden",
+    "Roadway": "Highway 17",
+    "Direction": "Southbound",
+    "Location": "1.9 km north of Hwy 556",
+    "Type": "Truck Inspection Station",
+    "Status": "Open",
+    "Open": "May 15 - November 15",
+    "TruckParking": "Y",
+    "Lavatory": "Y",
+    "Accessible": "N",
+    "FoodServices": "Not Available",
+    "Fuel": "N",
+    "Mode": "Trucker",
+    "Region": "Northeastern",
+    "Comments": "No sanitizer and/or soap and water available",
+    "Latitude": 46.656741,
+    "Longitude": -84.322458
+  }
+]

@@ -1,0 +1,90 @@
+{
+  "entity": {
+    "sensor": {
+      "condition": {
+        "default": "mdi:road-variant",
+        "state": {
+          "good": "mdi:road",
+          "wet": "mdi:weather-pouring",
+          "partly_covered": "mdi:weather-snowy",
+          "covered": "mdi:snowflake",
+          "icy": "mdi:snowflake-alert",
+          "closed": "mdi:sign-caution"
+        }
+      },
+      "worst_condition": {
+        "default": "mdi:road-variant",
+        "state": {
+          "good": "mdi:road",
+          "wet": "mdi:weather-pouring",
+          "partly_covered": "mdi:weather-snowy",
+          "covered": "mdi:snowflake",
+          "icy": "mdi:snowflake-alert",
+          "closed": "mdi:sign-caution"
+        }
+      },
+      "visibility": { "default": "mdi:eye-outline" },
+      "ferry_status": {
+        "default": "mdi:ferry",
+        "state": {
+          "in_service": "mdi:ferry",
+          "in_service_off_schedule": "mdi:clock-alert-outline",
+          "not_in_service": "mdi:cancel"
+        }
+      },
+      "return_to_service": { "default": "mdi:calendar-check" },
+      "out_of_service": { "default": "mdi:calendar-remove" },
+      "fuel": { "default": "mdi:gas-station" },
+      "parking_spaces": { "default": "mdi:parking" },
+      "address": { "default": "mdi:train-bus" },
+      "station_location": { "default": "mdi:truck-check-outline" },
+      "roundabout_type": { "default": "mdi:rotate-right" },
+      "hov_road": { "default": "mdi:car-multiple" },
+      "hours": { "default": "mdi:information-outline" },
+      "segment_events": { "default": "mdi:car-emergency" },
+      "segment_construction": { "default": "mdi:excavator" },
+      "events": { "default": "mdi:car-emergency" },
+      "construction": { "default": "mdi:excavator" },
+      "alerts": { "default": "mdi:alert-decagram-outline" },
+      "nearest_event": { "default": "mdi:map-marker-alert" }
+    },
+    "binary_sensor": {
+      "drifting": {
+        "default": "mdi:weather-windy",
+        "state": { "off": "mdi:weather-windy-variant" }
+      },
+      "hazardous": {
+        "default": "mdi:shield-check-outline",
+        "state": { "on": "mdi:alert" }
+      },
+      "hazardous_conditions": {
+        "default": "mdi:shield-check-outline",
+        "state": { "on": "mdi:alert" }
+      },
+      "open": {
+        "default": "mdi:table-picnic",
+        "state": { "off": "mdi:close-circle-outline" }
+      },
+      "restricted": {
+        "default": "mdi:truck-check",
+        "state": { "on": "mdi:weight" }
+      },
+      "full_closure": {
+        "default": "mdi:road-variant",
+        "state": { "on": "mdi:sign-caution" }
+      },
+      "closure": {
+        "default": "mdi:road-variant",
+        "state": { "on": "mdi:sign-caution" }
+      }
+    },
+    "camera": {
+      "view": { "default": "mdi:cctv" }
+    },
+    "event": {
+      "segment_new_event": { "default": "mdi:bell-alert-outline" },
+      "new_event": { "default": "mdi:bell-ring-outline" },
+      "new_alert": { "default": "mdi:alert-decagram" }
+    }
+  }
+}

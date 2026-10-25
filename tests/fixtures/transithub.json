@@ -1,0 +1,20 @@
+[
+  {
+    "Id": 1848677822,
+    "Latitude": 43.4171,
+    "Longitude": -79.7219,
+    "Name": "Bronte GO",
+    "Address": "2104 Wyecroft Rd., Oakville, ON",
+    "Website": "http://www.gotransit.com/publicroot/en/travelling/stations.aspx?station=BTGO",
+    "Region": "Central"
+  },
+  {
+    "Id": 1359168930,
+    "Latitude": 43.5556,
+    "Longitude": -79.5875,
+    "Name": "Port Credit GO Station",
+    "Address": "30 Queen St. E., Mississauga, ON",
+    "Website": "http://www.gotransit.com/publicroot/en/travelling/stations.aspx?station=PCGO",
+    "Region": "Central"
+  }
+]

@@ -25,13 +25,36 @@
 
 ## Features
 
-The integration covers the data Ontario 511 publishes through its API. Coverage grows with each release; the release notes list what each version supports.
+Entities for the Ontario 511 data near the places you care about, not the whole province.
 
-- **Live traffic:** events and closures, construction projects, road conditions, alerts and traffic cameras
-- **Travel facilities:** ferry services, rest areas, truck rest areas, service centres, travel information centres, carpool lots and transit hubs
-- **Commercial vehicles and road features:** inspection stations, seasonal load restrictions, HOT/HOV lanes and roundabouts
+- **Areas:** drag a pin and a radius circle on the map, then fine-tune the radius in kilometres (up to 50). Items nearest the centre are generated.
+- **Commutes:** a commute runs from one area to another (for example Home to Work). Up to three sensible highway routes between them are worked out and all used, and a corridor (default 5 km) around the stretches actually driven counts as on the commute. Its summaries are door to door: both areas plus the route. Commute items are generated before anything else.
+- **Every data type:** events and closures, construction, road conditions, alerts, traffic cameras, ferry terminals, rest areas, truck rest areas, service centres, seasonal load restrictions, carpool lots, transit hubs, inspection stations, roundabouts, HOT/HOV lanes and travel information centres.
+- **No temporary entities:** events and construction come and go, so they're counted on the road segment, area or commute they fall in. Event entities fire when something new appears.
+- **On the map:** each item's main entity has a location, and "Nearest event" entities put the closest events on the map.
 
-Use the entities in automations, for example to get a notification about driving conditions on your commute, with a camera preview.
+For example: *when "Hazardous conditions" on your commute turns on, send a notification with the camera preview.*
+
+## Entities
+
+Each generated item is a device, grouped under the area or commute that generated it on the integration page.
+
+| Device | Entities |
+|---|---|
+| Road segment | Road condition, Visibility, Drifting snow, Hazardous, Events, Construction, Full closure, New event |
+| Traffic camera | One camera per view (images cached for a minute) |
+| Ferry terminal | Status, Estimated return to service, Estimated out of service (disabled by default) |
+| Rest area, truck rest area | Open, with amenities as attributes |
+| Service centre | Fuel, with amenities as attributes |
+| Seasonal load segment | Load restrictions |
+| Carpool lot, transit hub, inspection station, roundabout, HOT/HOV lane, travel information centre | One sensor with the most useful field (for example parking spaces), other details as attributes |
+| Area or commute summary | Worst road condition, Hazardous conditions, Full closure, Events, Construction, Alerts, New event, New alert, Nearest event 1…N |
+
+- **Hazardous** means worse than wet (partly covered or worse), drifting snow, or poor visibility.
+- A road condition or ferry status shows **Unknown** when Ontario 511 has no report for it; the feed's own text is in the `reported` attribute for roads.
+- A segment's events, construction and full closure only count what's inside the area or commute corridor it belongs to.
+- Events count as active once they've started and until their planned end. Planned future events aren't counted.
+- **Alerts** count when they list the region the area or commute is in.
 
 ## Requirements
 
@@ -74,15 +97,45 @@ Or add it by hand:
 
 1. Go to **Settings** → **Devices & services**.
 2. Select **Add integration** and search for **Ontario 511**.
-3. Enter your Ontario 511 API key.
+3. Enter your Ontario 511 API key. It's checked with one request before you continue.
+4. Set up your first **area**: a name, the pin and radius circle on the map, the data types to generate, and how many "Nearest event" entities to add. Then confirm the radius in kilometres. Instead of dragging the pin you can type an address (see [Address search](#address-search)).
+5. Optionally add a **commute**. It starts by adding the second area it goes to (for example Work), then asks for the corridor width and what to generate. Its routes are worked out automatically; trips that stay on local roads use a corridor around the straight line between the two areas.
 
-The key is checked against Ontario 511 before the integration is added.
+The data type checkboxes are only used once, to decide what to generate. If you choose more than 10 types, the rest load about a minute later because of Ontario 511's rate limit.
+
+### After setup
+
+On the integration page:
+
+- **Add area**, **Add commute** or **Add item** to add more. **Add commute** links two areas you already have, or adds a new area to go to. **Add item** adds any single item, chosen from a list sorted by distance from your home.
+- Open an area's or commute's menu (⋮) and select **Reconfigure** to rename it or change which events, construction and alerts it follows. For a commute you can also change the corridor width and which road segments it uses.
+- Delete an item's device to remove that item.
+
+### Forcing a refresh
+
+Data refreshes on its own. To get the latest data in an automation, use Home Assistant's **Update entity** action on any of the integration's entities. Data fetched in the last couple of minutes is reused instead of asking Ontario 511 again.
+
+### Address search
+
+When setting up an area you can type an address instead of dragging the pin. It's looked up with [OpenStreetMap Nominatim](https://nominatim.org/), and the map is shown again with the pin on the place found so you can check it.
+
+- **The address you type is sent to OpenStreetMap.** Nothing is sent unless you type an address and submit the form. Map data © OpenStreetMap contributors.
+- The integration follows the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/): one lookup per submit, at most one per second, repeated addresses answered from a cache, and requests identify the integration.
+- Address search can be switched off for everyone without an update, through [`geocoding.json`](geocoding.json) in this repository (checked at most once an hour). If it's off, or can't be checked, you can still place the pin on the map.
 
 ## Rate limits and updates
 
-Ontario 511 allows 10 calls every 60 seconds per key. The integration enforces this limit itself, across every entry that uses the same key, and it can't be changed.
+Ontario 511 allows 10 requests every 60 seconds. The integration enforces this itself, across every entry in your Home Assistant, and it can't be changed. One request covers a whole data type, so the number of entities doesn't change how many requests are made.
 
-Update intervals are fixed and stay well under the limit. Live data, such as events and road conditions, refreshes every few minutes. Data that rarely changes, such as rest areas and roundabouts, refreshes much less often.
+| Data | Refreshes every |
+|---|---|
+| Events | 3 minutes |
+| Alerts | 5 minutes |
+| Road conditions, ferry terminals | 10 minutes |
+| Construction | 30 minutes |
+| Rest areas, truck rest areas, service centres | hour |
+| Seasonal load restrictions | 6 hours |
+| Cameras (list), carpool lots, transit hubs, inspection stations, roundabouts, HOT/HOV lanes, travel information centres | day |
 
 ## Removal
 

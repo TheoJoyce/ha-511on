@@ -1,0 +1,34 @@
+# Local development instance. scripts/develop copies this to config/ (which
+# is gitignored) the first time; edit config/configuration.yaml freely.
+homeassistant:
+  name: Ontario 511 dev
+  # Downtown Toronto: lots of events, cameras and road segments nearby.
+  latitude: 43.6532
+  longitude: -79.3832
+  elevation: 76
+  unit_system: metric
+  time_zone: America/Toronto
+  country: CA
+  currency: CAD
+  language: en
+
+# A small set of core integrations instead of default_config, so no extra
+# packages are needed.
+frontend:
+config:
+api:
+person:
+zone:
+recorder:
+  purge_keep_days: 2
+history:
+logbook:
+diagnostics:
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+logger:
+  default: warning
+  logs:
+    custom_components.ontario_511: debug
