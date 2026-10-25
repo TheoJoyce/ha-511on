@@ -15,6 +15,7 @@ SUBENTRY_ITEM: Final = "item"
 
 # Subentry data keys.
 CONF_LOCATION: Final = "location"
+CONF_ADDRESS: Final = "address"
 CONF_START: Final = "start"
 CONF_END: Final = "end"
 CONF_RADIUS_KM: Final = "radius_km"

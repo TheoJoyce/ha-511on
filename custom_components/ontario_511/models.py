@@ -57,6 +57,13 @@ def _flag(value: Any) -> bool | None:
     return None
 
 
+def in_ontario(lat: float, lon: float) -> bool:
+    """Return whether a point is inside Ontario's rough bounding box."""
+    return (
+        _LAT_RANGE[0] <= lat <= _LAT_RANGE[1] and _LON_RANGE[0] <= lon <= _LON_RANGE[1]
+    )
+
+
 def _in_ontario(lat: Any, lon: Any) -> Point | None:
     if (
         isinstance(lat, int | float)

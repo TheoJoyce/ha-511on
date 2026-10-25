@@ -98,7 +98,7 @@ Or add it by hand:
 1. Go to **Settings** → **Devices & services**.
 2. Select **Add integration** and search for **Ontario 511**.
 3. Enter your Ontario 511 API key. It's checked with one request before you continue.
-4. Set up your first **area**: a name, the pin and radius circle on the map, the data types to generate, and how many "Nearest event" entities to add. Then confirm the radius in kilometres.
+4. Set up your first **area**: a name, the pin and radius circle on the map, the data types to generate, and how many "Nearest event" entities to add. Then confirm the radius in kilometres. Instead of dragging the pin you can type an address (see [Address search](#address-search)).
 5. Optionally add a **commute**. It starts by adding the second area it goes to (for example Work), then asks for the corridor width and what to generate. Its routes are worked out automatically; trips that stay on local roads use a corridor around the straight line between the two areas.
 
 The data type checkboxes are only used once, to decide what to generate. If you choose more than 10 types, the rest load about a minute later because of Ontario 511's rate limit.
@@ -114,6 +114,14 @@ On the integration page:
 ### Forcing a refresh
 
 Data refreshes on its own. To get the latest data in an automation, use Home Assistant's **Update entity** action on any of the integration's entities. Data fetched in the last couple of minutes is reused instead of asking Ontario 511 again.
+
+### Address search
+
+When setting up an area you can type an address instead of dragging the pin. It's looked up with [OpenStreetMap Nominatim](https://nominatim.org/), and the map is shown again with the pin on the place found so you can check it.
+
+- **The address you type is sent to OpenStreetMap.** Nothing is sent unless you type an address and submit the form. Map data © OpenStreetMap contributors.
+- The integration follows the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/): one lookup per submit, at most one per second, repeated addresses answered from a cache, and requests identify the integration.
+- Address search can be switched off for everyone without an update, through [`geocoding.json`](geocoding.json) in this repository (checked at most once an hour). If it's off, or can't be checked, you can still place the pin on the map.
 
 ## Rate limits and updates
 

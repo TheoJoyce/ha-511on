@@ -17,6 +17,16 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 - **Disclaimer:** keep the "as is" data disclaimer in the README.
 - **Tests:** tests never call the live API. Use recorded JSON fixtures.
 
+## Address search (OpenStreetMap Nominatim)
+
+`geocode.py` looks up addresses typed in the area form. The [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) applies to the integration as a whole, so these rules are not negotiable:
+
+- Never add autocomplete, periodic, background or bulk lookups. Only a user submitting a form may trigger one.
+- Keep the one-request-per-second spacing, the result cache, and the integration's own User-Agent.
+- Keep the remote switch: `geocoding.json` on `main` must stay in the repository. Lookups must stay refused when it says off or can't be read. To switch address search off for everyone (for example if OpenStreetMap asks), set `"enabled": false` there.
+- Keep the attribution and the note that the address is sent to OpenStreetMap on the form, and in the README.
+- In development, `scripts/develop` points lookups at the fake API (`ONTARIO_511_GEOCODING_BASE`), so test addresses never reach OpenStreetMap. Tests mock both URLs.
+
 ## Rate limits
 
 - **What the docs say:** the [API documentation](https://511on.ca/developers/doc) states one limit for the whole API: "Throttling is enabled. Ten calls every 60 seconds." None of the 16 endpoint pages documents a different limit (checked October 2026). Re-check the docs when adding a resource.

@@ -105,6 +105,17 @@ Camera images come from Ontario 511's web map (`511on.ca/map/Cctv/<id>`), not fr
 
 Measured October 2026: the image server sends `Cache-Control: max-age=20`, and images changed about every 1 to 2 minutes (some cameras less often). Each view's image is cached for 60 seconds, so a dashboard showing a camera fetches it at most once a minute and the image is rarely more than a minute behind.
 
+## Address search
+
+Areas can be placed by typing an address, looked up with OpenStreetMap Nominatim (`geocode.py`). Its [usage policy](https://operations.osmfoundation.org/policies/nominatim/) sets the rules:
+
+- Only a user submitting the area form triggers a lookup; no autocomplete and nothing periodic. Limits apply to the integration as a whole, across every install.
+- At most one request per second per Home Assistant instance; identical addresses are answered from a cache.
+- Requests send the integration's own User-Agent (`ha-511on/<version> (+repository URL)`).
+- OpenStreetMap must be able to switch the service off without a software update: before a lookup, `geocoding.json` on the repository's `main` branch is checked (cached for an hour). If it isn't `{"enabled": true}`, or can't be read, lookups are refused.
+- The form shows OpenStreetMap attribution and says the address is sent to OpenStreetMap.
+- Results outside Ontario are rejected.
+
 ## Data quirks
 
 - 27% of road segments report "No Report"; that is treated as unknown, not as a good condition.

@@ -59,6 +59,11 @@ curl -s -X POST localhost:8511/_dev/fail -H 'Content-Type: application/json' \
 # What's loaded, and any failures still queued
 curl -s localhost:8511/_dev/state
 
+# Address search: known place names (toronto, barrie, sarnia, london, hamilton,
+# ottawa, kingston, sudbury) are found, "vancouver" is outside Ontario, anything
+# else isn't found. Switch it off to test the remote switch:
+curl -s -X POST localhost:8511/_dev/geocoding -H 'Content-Type: application/json' -d '{"enabled": false}'
+
 # Back to the saved responses
 curl -s -X POST localhost:8511/_dev/reset
 ```

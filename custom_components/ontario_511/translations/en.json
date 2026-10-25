@@ -9,7 +9,11 @@
       "invalid_auth": "Ontario 511 rejected the API key.",
       "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
       "unknown": "Unexpected error.",
-      "no_types": "Choose at least one data type."
+      "no_types": "Choose at least one data type.",
+      "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
+      "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
+      "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
+      "outside_ontario": "That address isn't in Ontario."
     },
     "step": {
       "user": {
@@ -26,15 +30,17 @@
           "name": "Name",
           "location": "Centre and radius",
           "types": "Data to generate",
-          "event_slots": "Nearest event slots"
+          "event_slots": "Nearest event slots",
+          "address": "Address (optional)"
         },
         "data_description": {
           "name": "For example Home, Work or Cottage.",
           "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
           "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-          "event_slots": "How many of the nearest events to show on the map."
+          "event_slots": "How many of the nearest events to show on the map.",
+          "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
         },
-        "description": "Choose an area to watch. Items nearest the centre are generated first.",
+        "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
         "title": "Area"
       },
       "add_commute": {
@@ -97,7 +103,11 @@
         "invalid_auth": "Ontario 511 rejected the API key.",
         "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
         "unknown": "Unexpected error.",
-        "no_types": "Choose at least one data type."
+        "no_types": "Choose at least one data type.",
+        "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
+        "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
+        "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
+        "outside_ontario": "That address isn't in Ontario."
       },
       "abort": {
         "reconfigure_successful": "Settings saved."
@@ -108,15 +118,17 @@
             "name": "Name",
             "location": "Centre and radius",
             "types": "Data to generate",
-            "event_slots": "Nearest event slots"
+            "event_slots": "Nearest event slots",
+            "address": "Address (optional)"
           },
           "data_description": {
             "name": "For example Home, Work or Cottage.",
             "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
             "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-            "event_slots": "How many of the nearest events to show on the map."
+            "event_slots": "How many of the nearest events to show on the map.",
+            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
           },
-          "description": "Choose an area to watch. Items nearest the centre are generated first.",
+          "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
           "title": "Area"
         },
         "area_radius": {
@@ -157,7 +169,11 @@
         "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
         "unknown": "Unexpected error.",
         "no_types": "Choose at least one data type.",
-        "same_area": "Choose two different areas."
+        "same_area": "Choose two different areas.",
+        "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
+        "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
+        "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
+        "outside_ontario": "That address isn't in Ontario."
       },
       "abort": {
         "reconfigure_successful": "Settings saved.",
@@ -192,15 +208,17 @@
             "name": "Name",
             "location": "Centre and radius",
             "types": "Data to generate",
-            "event_slots": "Nearest event slots"
+            "event_slots": "Nearest event slots",
+            "address": "Address (optional)"
           },
           "data_description": {
             "name": "For example Home, Work or Cottage.",
             "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
             "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-            "event_slots": "How many of the nearest events to show on the map."
+            "event_slots": "How many of the nearest events to show on the map.",
+            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
           },
-          "description": "Choose an area to watch. Items nearest the centre are generated first.",
+          "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
           "title": "Area"
         },
         "area_radius": {

@@ -37,6 +37,7 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
     TextSelectorType,
 )
+from homeassistant.loader import async_get_integration
 import probatio
 
 from . import Ontario511ConfigEntry
@@ -56,6 +57,7 @@ from .commute import (
     route_lines,
 )
 from .const import (
+    CONF_ADDRESS,
     CONF_CORRIDOR_KM,
     CONF_END,
     CONF_EVENT_SLOTS,
@@ -92,6 +94,14 @@ from .const import (
 )
 from .coordinator import async_fetch_resource
 from .geo import distance_km
+from .geocode import (
+    AddressNotFound,
+    Geocoder,
+    GeocodingFailed,
+    GeocodingUnavailable,
+    OutsideOntario,
+    get_geocoder,
+)
 from .models import RoadSegment
 from .scope import segments_within_corridor
 
@@ -222,10 +232,48 @@ class _SetupSteps:
         raise NotImplementedError
 
     async def async_step_area(self, user_input: dict[str, Any] | None = None) -> Any:
-        """Define an area on a map, and what to generate."""
+        """Define an area on a map, and what to generate.
+
+        Typing an address looks it up (OpenStreetMap Nominatim) and shows the
+        form again with the pin moved there, so the result can be checked.
+        """
         errors: dict[str, str] = {}
+        found = ""
+        defaults = user_input or {
+            CONF_NAME: self._area_name_default,
+            CONF_ADDRESS: "",
+            CONF_LOCATION: {**_home(self.hass), "radius": DEFAULT_RADIUS_KM * 1000},
+            CONF_TYPES: DEFAULT_TYPES,
+            CONF_EVENT_SLOTS: DEFAULT_EVENT_SLOTS,
+        }
         if user_input is not None:
-            if not user_input[CONF_TYPES]:
+            address = (user_input.get(CONF_ADDRESS) or "").strip()
+            if address:
+                try:
+                    place = await (await self._async_geocoder()).async_lookup(address)
+                except GeocodingUnavailable:
+                    errors[CONF_ADDRESS] = "geocoding_unavailable"
+                except GeocodingFailed:
+                    errors[CONF_ADDRESS] = "geocoding_failed"
+                except AddressNotFound:
+                    errors[CONF_ADDRESS] = "address_not_found"
+                except OutsideOntario:
+                    errors[CONF_ADDRESS] = "outside_ontario"
+                else:
+                    radius = user_input[CONF_LOCATION].get(
+                        "radius", DEFAULT_RADIUS_KM * 1000
+                    )
+                    defaults = {
+                        **user_input,
+                        CONF_ADDRESS: "",
+                        CONF_LOCATION: {
+                            "latitude": place.latitude,
+                            "longitude": place.longitude,
+                            "radius": radius,
+                        },
+                    }
+                    found = f"📍 {place.name}"
+            elif not user_input[CONF_TYPES]:
                 errors[CONF_TYPES] = "no_types"
             else:
                 location = user_input[CONF_LOCATION]
@@ -248,15 +296,12 @@ class _SetupSteps:
                     CONF_EVENT_SLOTS: int(user_input[CONF_EVENT_SLOTS]),
                 }
                 return await self.async_step_area_radius()
-        defaults = user_input or {
-            CONF_NAME: self._area_name_default,
-            CONF_LOCATION: {**_home(self.hass), "radius": DEFAULT_RADIUS_KM * 1000},
-            CONF_TYPES: DEFAULT_TYPES,
-            CONF_EVENT_SLOTS: DEFAULT_EVENT_SLOTS,
-        }
         schema = probatio.Schema(
             {
                 probatio.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
+                probatio.Optional(
+                    CONF_ADDRESS, default=defaults.get(CONF_ADDRESS, "")
+                ): TextSelector(),
                 probatio.Required(
                     CONF_LOCATION, default=defaults[CONF_LOCATION]
                 ): LocationSelector(LocationSelectorConfig(radius=True)),
@@ -268,7 +313,16 @@ class _SetupSteps:
                 ): _slots_selector(),
             }
         )
-        return self.async_show_form(step_id="area", data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="area",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={"found": found},
+        )
+
+    async def _async_geocoder(self) -> Geocoder:
+        integration = await async_get_integration(self.hass, DOMAIN)
+        return get_geocoder(self.hass, str(integration.version))
 
     async def async_step_area_radius(
         self, user_input: dict[str, Any] | None = None

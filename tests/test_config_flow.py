@@ -23,6 +23,7 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 from custom_components.ontario_511.api import Resource
 from custom_components.ontario_511.client import get_rate_limiter
 from custom_components.ontario_511.const import (
+    CONF_ADDRESS,
     CONF_CORRIDOR_KM,
     CONF_EVENT_SLOTS,
     CONF_FEEDS,
@@ -42,6 +43,7 @@ from custom_components.ontario_511.const import (
     SUBENTRY_ITEM,
     VALIDATION_RESOURCE,
 )
+from custom_components.ontario_511.geocode import SEARCH_URL, SWITCH_URL
 from custom_components.ontario_511.models import RoadSegment
 
 from .common import EAST_401, KENORA, WEST_401
@@ -549,3 +551,67 @@ async def test_reconfigure_area(
     assert area.title == "House"
     assert area.data[CONF_FEEDS] == ["constructionprojects"]
     assert area.data[CONF_EVENT_SLOTS] == 0
+
+
+@pytest.mark.usefixtures("mock_setup_entry")
+async def test_address_moves_the_pin(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """An address is looked up and the map is shown again at the place found."""
+    aioclient_mock.get(SWITCH_URL, json={"enabled": True})
+    aioclient_mock.get(
+        SEARCH_URL,
+        json=[{"lat": "44.3894", "lon": "-79.6903", "display_name": "Barrie, Ontario"}],
+    )
+    result = await _start_with_key(hass, aioclient_mock)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**HOME_INPUT, CONF_ADDRESS: "Barrie"}
+    )
+    assert result["step_id"] == "area"
+    assert result["errors"] == {}
+    assert result["description_placeholders"] == {"found": "📍 Barrie, Ontario"}
+    schema = {key.schema: key for key in result["data_schema"].schema}
+    assert schema[CONF_LOCATION].default() == {
+        "latitude": 44.3894,
+        "longitude": -79.6903,
+        "radius": 12345,
+    }
+    assert schema[CONF_ADDRESS].default() == ""
+
+    # Submitting the moved pin (no address) continues to the radius.
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {**HOME_INPUT, CONF_LOCATION: schema[CONF_LOCATION].default()},
+    )
+    assert result["step_id"] == "area_radius"
+
+
+@pytest.mark.parametrize(
+    ("switch", "search", "error"),
+    [
+        pytest.param({"enabled": False}, [], "geocoding_unavailable", id="off"),
+        pytest.param({"enabled": True}, [], "address_not_found", id="not_found"),
+        pytest.param(
+            {"enabled": True},
+            [{"lat": "49.28", "lon": "-123.12", "display_name": "Vancouver"}],
+            "outside_ontario",
+            id="outside",
+        ),
+    ],
+)
+async def test_address_errors(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    switch: dict[str, Any],
+    search: list[dict[str, Any]],
+    error: str,
+) -> None:
+    """Address problems are shown on the address field."""
+    aioclient_mock.get(SWITCH_URL, json=switch)
+    aioclient_mock.get(SEARCH_URL, json=search)
+    result = await _start_with_key(hass, aioclient_mock)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**HOME_INPUT, CONF_ADDRESS: "Somewhere"}
+    )
+    assert result["step_id"] == "area"
+    assert result["errors"] == {CONF_ADDRESS: error}

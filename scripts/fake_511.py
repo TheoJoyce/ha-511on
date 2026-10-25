@@ -19,6 +19,13 @@ entity can be seen with data. All take and return JSON:
   POST   /_dev/ferries/{id}              change a ferry terminal's fields
   POST   /_dev/fail                      fail the next N calls of a resource
   POST   /_dev/reset                     reload everything from the data folder
+  POST   /_dev/geocoding                 turn address search on or off
+
+It also stands in for address search (OpenStreetMap Nominatim) at
+/_geo/switch.json and /_geo/search, so test addresses never reach
+OpenStreetMap: queries containing a known place name (see PLACES) return it,
+"vancouver" returns a place outside Ontario, and anything else finds nothing.
+Point the integration at it with ONTARIO_511_GEOCODING_BASE.
 """
 
 from __future__ import annotations
@@ -36,6 +43,17 @@ from aiohttp import web
 _LOGGER = logging.getLogger("fake_511")
 INVALID_KEY = "<Error><Message>Invalid Key</Message></Error>"
 RATE_CALLS, RATE_PERIOD = 10, 60.0
+PLACES = {
+    "toronto": (43.6532, -79.3832, "Toronto City Hall, Toronto, Ontario"),
+    "barrie": (44.3894, -79.6903, "Barrie, Simcoe County, Ontario"),
+    "sarnia": (42.9745, -82.4066, "Sarnia, Lambton County, Ontario"),
+    "london": (42.9849, -81.2453, "London, Middlesex County, Ontario"),
+    "hamilton": (43.2557, -79.8711, "Hamilton, Ontario"),
+    "ottawa": (45.4215, -75.6972, "Ottawa, Ontario"),
+    "kingston": (44.2312, -76.4860, "Kingston, Frontenac County, Ontario"),
+    "sudbury": (46.4917, -80.9930, "Greater Sudbury, Ontario"),
+    "vancouver": (49.2827, -123.1207, "Vancouver, British Columbia"),
+}
 
 
 class FakeApi:
@@ -48,6 +66,7 @@ class FakeApi:
         self.failures: dict[str, deque[int]] = defaultdict(deque)
         self.calls: dict[str, deque[float]] = defaultdict(deque)
         self.next_id = 900_000_000
+        self.geocoding_enabled = True
         self.reset()
 
     def reset(self) -> None:
@@ -230,6 +249,27 @@ async def _fail(request: web.Request) -> web.Response:
     return web.json_response({"queued": len(api.failures[body["resource"]])})
 
 
+async def _geo_switch(request: web.Request) -> web.Response:
+    return web.json_response({"enabled": request.app["api"].geocoding_enabled})
+
+
+async def _geo_search(request: web.Request) -> web.Response:
+    query = request.query.get("q", "").lower()
+    for name, (lat, lon, label) in PLACES.items():
+        if name in query:
+            return web.json_response(
+                [{"lat": str(lat), "lon": str(lon), "display_name": label}]
+            )
+    return web.json_response([])
+
+
+async def _set_geocoding(request: web.Request) -> web.Response:
+    """Turn the address search switch on or off: {"enabled": false}."""
+    body = await request.json()
+    request.app["api"].geocoding_enabled = bool(body.get("enabled", True))
+    return web.json_response({"enabled": request.app["api"].geocoding_enabled})
+
+
 async def _reset(request: web.Request) -> web.Response:
     request.app["api"].reset()
     return web.json_response({"reset": True})
@@ -248,6 +288,9 @@ def build_app(data_dir: Path) -> web.Application:
     app.router.add_post("/_dev/ferries/{id}", _change_ferry)
     app.router.add_post("/_dev/fail", _fail)
     app.router.add_post("/_dev/reset", _reset)
+    app.router.add_post("/_dev/geocoding", _set_geocoding)
+    app.router.add_get("/_geo/switch.json", _geo_switch)
+    app.router.add_get("/_geo/search", _geo_search)
     return app
 
 
