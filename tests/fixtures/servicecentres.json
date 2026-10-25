@@ -1,0 +1,32 @@
+[
+  {
+    "Id": -1597185408,
+    "Latitude": 44.945601,
+    "Longitude": -75.124654,
+    "Name": "Morrisburg",
+    "Title": "service centre",
+    "Roadway": "Highway 401",
+    "CommercialParking": "130",
+    "AccessVia": "Hwy 401 Eastbound Between Exit # 750 and # 758",
+    "FoodServices": "Tim Hortons, Burger King, M Market, Canadian Tire Convenience Store",
+    "Amenities": "Pet area, seasonal picnics, parking, CIBC ATM, free WiFi",
+    "FuelProvider": "Canadian Tire Gas +",
+    "Website": "http://onroute.ca/location/morrisburg/",
+    "Region": "Eastern"
+  },
+  {
+    "Id": 2014420758,
+    "Latitude": 44.97383,
+    "Longitude": -75.081821,
+    "Name": "Ingleside",
+    "Title": "service centre",
+    "Roadway": "Highway 401",
+    "CommercialParking": "18",
+    "AccessVia": "HwY 401 Westbound Between Upper Canada & Dickinson Road",
+    "FoodServices": "Tim Hortons, Burger King, M Market, Canadian Tire Convenience Store",
+    "Amenities": "Pet area, seasonal picnics, parking, CIBC ATM, free WiFi",
+    "FuelProvider": "Canadian Tire Gas + ",
+    "Website": "http://onroute.ca/location/ingleside/",
+    "Region": "Eastern"
+  }
+]

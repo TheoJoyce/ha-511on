@@ -1,0 +1,42 @@
+[
+  {
+    "SegmentName": "Highway 589",
+    "RouteDescription": "9.6 km north of Jct. Hwy 591, north to end of Hwy 589",
+    "Status": "Restrictions in effect",
+    "Date": "2020-03-20",
+    "Latitude": 48.650284,
+    "Longitude": -89.325647
+  },
+  {
+    "SegmentName": "Highway 523",
+    "RouteDescription": "Jct. Hwy 60 at Madawaska south to Hasting/Nipissing County boundary",
+    "Status": "Restrictions in effect",
+    "Date": "2020-03-09",
+    "Latitude": 45.373778,
+    "Longitude": -77.92922
+  },
+  {
+    "SegmentName": "Highway 539A",
+    "RouteDescription": "Entire length of highway",
+    "Status": "No Restrictions",
+    "Date": "2026-05-25",
+    "Latitude": 46.5975115807444,
+    "Longitude": -80.1896855077906
+  },
+  {
+    "SegmentName": "Highway 539A",
+    "RouteDescription": "Entire length of highway",
+    "Status": "No Restrictions",
+    "Date": "2026-05-25",
+    "Latitude": 46.5770949367405,
+    "Longitude": -80.1768724254648
+  },
+  {
+    "SegmentName": "Highway 510",
+    "RouteDescription": "Entire length of highway",
+    "Status": "No Restrictions ",
+    "Date": "2026-05-19",
+    "Latitude": 45.6688108158571,
+    "Longitude": -79.6434862558293
+  }
+]

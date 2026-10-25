@@ -8,6 +8,7 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import pytest
+from pytest_homeassistant_custom_component.common import load_json_array_fixture
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
@@ -177,3 +178,10 @@ def test_resource_urls() -> None:
     """Road conditions are the only v3 resource."""
     assert {r for r in Resource if r.api_version == 3} == {Resource.ROAD_CONDITIONS}
     assert Resource.EVENTS.url == "https://511on.ca/api/v2/get/event"
+
+
+@pytest.mark.parametrize("resource", list(Resource), ids=lambda r: r.value)
+def test_every_resource_has_a_fixture(resource: Resource) -> None:
+    """Each resource has a fixture with at least the two documented samples."""
+    items = load_json_array_fixture(f"{resource.value}.json")
+    assert len(items) >= 2

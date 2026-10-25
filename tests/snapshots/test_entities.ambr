@@ -188,14 +188,14 @@
           'regions': list([
             'Central',
             'Eastern',
-            'Northwestern',
+            'Northwest',
           ]),
         }),
         dict({
           'high_importance': False,
           'message': 'Clairville: The right lane is closed in both directions on 427 at South of Clairville due to flooding. Use caution in the area.',
           'regions': list([
-            'Central',
+            'Northwest',
           ]),
         }),
       ]),

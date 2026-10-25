@@ -1,0 +1,24 @@
+[
+  {
+    "Id": 482,
+    "Name": "407 ETR N",
+    "Highway": "Highway 407",
+    "Direction": "Westbound",
+    "Location": "0.5 km east of Tremain Rd",
+    "ContactInformation": "Tel: 905-465-1721 Fax: 905-564-0736",
+    "Region": "Central",
+    "Latitude": 43.42532,
+    "Longitude": -79.808123
+  },
+  {
+    "Id": 483,
+    "Name": "Bowmanville",
+    "Highway": "Highway 401",
+    "Direction": "Westbound",
+    "Location": "2.7 km west of Hwy 115 Overpass",
+    "ContactInformation": "Tel: 905-623-3932 Fax: 905-623-8593",
+    "Region": "Central",
+    "Latitude": 43.900726,
+    "Longitude": -78.657936
+  }
+]

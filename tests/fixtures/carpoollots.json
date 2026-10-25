@@ -1,0 +1,32 @@
+[
+  {
+    "Id": 1361264909,
+    "Latitude": 43.509831,
+    "Longitude": -79.749711,
+    "Highway": "Hwy 407",
+    "LocationDescription": "Trafalgar Rd",
+    "Interchange": "21",
+    "EnterLotFrom": "Trafalgar Rd or Hwy 407 westbound off-ramp",
+    "ParkingSpaces": "106",
+    "AccessibleSpaces": "0",
+    "Bike": "No",
+    "Lights": "No",
+    "Transit": "Yes",
+    "Region": "Central"
+  },
+  {
+    "Id": 268559450,
+    "Latitude": 43.944143,
+    "Longitude": -79.002217,
+    "Highway": "Hwy 7",
+    "LocationDescription": "East of Halls Road",
+    "Interchange": null,
+    "EnterLotFrom": "Hwy 7",
+    "ParkingSpaces": "160",
+    "AccessibleSpaces": "2",
+    "Bike": "No",
+    "Lights": "Yes",
+    "Transit": "No",
+    "Region": "Central"
+  }
+]

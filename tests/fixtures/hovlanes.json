@@ -1,0 +1,20 @@
+[
+  {
+    "Id": 149499285,
+    "Latitude": 43.57767,
+    "Longitude": -79.66878,
+    "EncodedPolyline": "i_vhGn}peN_JgJaNcPubAwnAeRiVcDaF_FkIw[am@mIaOmGyJkJ}LwGcHiDcDoJaIqf@o`@gEqDuGoGaoEk|EiDiCaB}@sDwA{A]_E[mBAqDPwDv@{C`AwBjA_EnCgBzAgEzEaEvF}DjG??om@`}@kNpR",
+    "Name": "Eastbound HOV",
+    "Roadway": "Highway 403",
+    "Region": "Central"
+  },
+  {
+    "Id": 856353682,
+    "Latitude": 45.32857,
+    "Longitude": -75.8654,
+    "EncodedPolyline": "messGz}bnM`Rxm@qPij@sa@srAiE}NsOsf@od@w}A",
+    "Name": "Eastbound HOV",
+    "Roadway": "Highway 417",
+    "Region": "Central"
+  }
+]

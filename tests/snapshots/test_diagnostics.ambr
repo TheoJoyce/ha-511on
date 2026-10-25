@@ -8,7 +8,7 @@
         'update_interval_seconds': 300.0,
       }),
       'event': dict({
-        'item_count': 7,
+        'item_count': 9,
         'last_update_success': True,
         'update_interval_seconds': 300.0,
       }),

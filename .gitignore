@@ -22,3 +22,6 @@ htmlcov/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Local development cache of full API responses (reference only, never used by tests)
+.dev-cache/

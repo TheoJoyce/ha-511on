@@ -1,0 +1,18 @@
+[
+  {
+    "Name": "Mattawa",
+    "Type": "Single-lane",
+    "Location": "Hwy 17 and Hwy 533",
+    "Region": "Northeastern",
+    "Latitude": 46.317359,
+    "Longitude": -78.702211
+  },
+  {
+    "Name": "Welland",
+    "Type": "Multi-lane",
+    "Location": "Hwy 406 at East Main St",
+    "Region": "Central",
+    "Latitude": 42.993509,
+    "Longitude": -79.223005
+  }
+]

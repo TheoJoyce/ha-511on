@@ -1,0 +1,40 @@
+[
+  {
+    "Id": 455,
+    "Source": "COMPASS - Central",
+    "SourceId": "968-407 E/of Bethesda Rd",
+    "Roadway": "Highway 407",
+    "Direction": "Unknown",
+    "Latitude": 43.992,
+    "Longitude": -78.6864,
+    "Location": "Highway 407 East of Bethesda",
+    "SortOrder": 3330,
+    "Views": [
+      {
+        "Id": 815,
+        "Url": "https://on.stage.traveliq.co/map/Cctv/815",
+        "Status": "Enabled",
+        "Description": ""
+      }
+    ]
+  },
+  {
+    "Id": 456,
+    "Source": "COMPASS - Central",
+    "SourceId": "969-407 DARLINGTON CLARKE TWNLN",
+    "Roadway": "Highway 407",
+    "Direction": "Unknown",
+    "Latitude": 44.001,
+    "Longitude": -78.6659,
+    "Location": "Highway 407 near Darlington Clarke Townline Road",
+    "SortOrder": 3335,
+    "Views": [
+      {
+        "Id": 816,
+        "Url": "https://on.stage.traveliq.co/map/Cctv/816",
+        "Status": "Enabled",
+        "Description": ""
+      }
+    ]
+  }
+]

@@ -1,14 +1,7 @@
 """Shared fixtures for Ontario 511 tests.
 
-Tests never call the live API. Responses come from tests/fixtures/, recorded
-with scripts/record_fixtures.py and trimmed:
-
-- event.json: seven live events. Relative to FROZEN_NOW, three nearby events
-  are active (two full closures and one collision), two nearby events are
-  planned, one has a flipped longitude and has already ended, and one is
-  1,300 km away.
-- alerts.json: the live feed had no alerts when recorded, so this is built
-  from the two examples in the API documentation.
+Tests never call the live API. Responses come from tests/fixtures/; see the
+README there for where each file comes from.
 """
 
 from __future__ import annotations

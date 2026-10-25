@@ -1,0 +1,24 @@
+[
+  {
+    "Id": 593596478,
+    "Latitude": 45.180778,
+    "Longitude": -74.397759,
+    "Name": "Bainsville",
+    "Open": "Year-round ",
+    "Address": "22064 North Service Road",
+    "PhoneNumber": "613-347-3498",
+    "Email": "OntarioTravel.Bainsville@ontario.ca",
+    "Region": "Eastern"
+  },
+  {
+    "Id": 340962807,
+    "Latitude": 44.33552,
+    "Longitude": -79.68329,
+    "Name": "Barrie",
+    "Open": "Year-round",
+    "Address": "21 Mapleview Drive East (Hwy 401 & Maple Drive)",
+    "PhoneNumber": "705-725-7280",
+    "Email": "ontariotravel.barrie@ontario.ca",
+    "Region": "Central"
+  }
+]
