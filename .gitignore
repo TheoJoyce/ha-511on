@@ -1,0 +1,24 @@
+# Secrets: never commit an Ontario 511 API key
+.env
+secrets.yaml
+
+# Local Home Assistant dev config
+config/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Claude Code local settings
+.claude/settings.local.json
