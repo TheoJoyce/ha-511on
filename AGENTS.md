@@ -28,6 +28,7 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 - **Fixtures vs the dev cache:** `tests/fixtures/` is the source of truth for tests. It holds the documented sample response for every resource, plus real items where live data differs from the docs (see `tests/fixtures/README.md`). `.dev-cache/api/` is a gitignored local copy of full responses from every resource, for browsing real data during development; it may be stale and tests must never read it. Refresh it with `uv run python -m scripts.record_fixtures .dev-cache/api`.
 - **Testing the limiter:** tests freeze time, which also freezes `time.monotonic`, so an unpatched limiter would wait forever once more than 10 resources are in use. `tests/conftest.py` installs the instance-wide limiter with a `SimulatedClock` in every test: the limit is still enforced, the wait is simulated and recorded (`limiter_clock.waits`). Unit tests inject their own fake clock. Integration tests use `aioclient_mock` with the real client, and assert on `limiter.available`, `call_count` and the recorded waits.
 - **Coordinators only poll while something listens.** Tests of polling need entities (or a listener) attached.
+- **Wait for background tasks in tests.** Initial data loads and scheduled coordinator refreshes run as background tasks, and parsing runs in the executor. After setting up an entry or advancing time, use `await hass.async_block_till_done(wait_background_tasks=True)`; a plain `async_block_till_done()` can return before the data arrives and makes tests flaky.
 
 ## Architecture
 

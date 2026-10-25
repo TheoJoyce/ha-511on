@@ -141,18 +141,18 @@ async def test_polls_follow_each_resource_policy(
 
     frozen_time.tick(events_every - timedelta(seconds=5))
     async_fire_time_changed(hass)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert mock_api.call_count == POLLED
 
     frozen_time.tick(timedelta(seconds=10))
     async_fire_time_changed(hass)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert _calls_for(mock_api, Resource.EVENTS) == 2
     assert _calls_for(mock_api, Resource.ALERTS) == 1
 
     frozen_time.tick(alerts_every - events_every)
     async_fire_time_changed(hass)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert _calls_for(mock_api, Resource.ALERTS) == 2
 
 
@@ -174,17 +174,17 @@ async def test_forced_refresh_reuses_fresh_data(
     freshness = coordinator.policy.freshness
 
     await coordinator.async_request_refresh()
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert _calls_for(mock_api, Resource.EVENTS) == 1
 
     frozen_time.tick(freshness + timedelta(seconds=1))
     await coordinator.async_request_refresh()
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert _calls_for(mock_api, Resource.EVENTS) == 2
 
     await coordinator.async_request_refresh()
     await coordinator.async_request_refresh()
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert _calls_for(mock_api, Resource.EVENTS) == 2
 
 
@@ -203,13 +203,13 @@ async def test_rate_limited_response_waits_for_next_poll(
 
     frozen_time.tick(events_every + timedelta(seconds=1))
     async_fire_time_changed(hass)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert _calls_for(mock_api, Resource.EVENTS) == 1
     assert not _coordinator(init_integration, Resource.EVENTS).last_update_success
 
     frozen_time.tick(events_every - timedelta(seconds=5))
     async_fire_time_changed(hass)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert _calls_for(mock_api, Resource.EVENTS) == 1
 
 
@@ -227,12 +227,12 @@ async def test_forced_refresh_after_failure_calls_again(
     coordinator = _coordinator(init_integration, Resource.EVENTS)
     frozen_time.tick(coordinator.policy.refresh)
     async_fire_time_changed(hass)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert _calls_for(mock_api, Resource.EVENTS) == 1
 
     frozen_time.tick(timedelta(seconds=30))
     await coordinator.async_request_refresh()
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert _calls_for(mock_api, Resource.EVENTS) == 2
 
 

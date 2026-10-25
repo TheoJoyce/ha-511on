@@ -65,7 +65,7 @@ async def test_invalid_key_starts_reauth(
         aioclient_mock.get(resource.url, status=400, text=INVALID_KEY)
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
     assert mock_config_entry.state is ConfigEntryState.SETUP_ERROR
     flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
@@ -82,7 +82,7 @@ async def test_connection_error_retries_setup(
         aioclient_mock.get(resource.url, status=503)
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert mock_config_entry.state is ConfigEntryState.SETUP_RETRY
 
 
@@ -209,7 +209,7 @@ async def test_commute_items_take_priority(
     aioclient_mock.get(Resource.CAMERAS.url, text=load_fixture("cameras.json"))
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
     commute = mock_config_entry.subentries[COMMUTE_ID]
     area = mock_config_entry.subentries[AREA_ID]

@@ -61,13 +61,18 @@ class FeedIndex:
     def __init__(self, entry: Ontario511ConfigEntry) -> None:
         """Initialize the index for an entry."""
         self._entry = entry
-        self._signature: tuple[int, ...] = ()
+        # The data objects the index was built from. Holding them (rather than
+        # their ids) means a rebuild can't be skipped by an id being reused.
+        self._sources: tuple[dict[str, Item] | None, ...] | None = None
         self._by_segment: dict[str, tuple[list[TrafficEvent], list[TrafficEvent]]] = {}
         self._scopes: dict[str, Scope] = {}
 
-    def _data(self, resource: Resource) -> dict[str, Item]:
+    def _source(self, resource: Resource) -> dict[str, Item] | None:
         coordinator = self._entry.runtime_data.coordinators.get(resource)
-        return (coordinator.data if coordinator else None) or {}
+        return coordinator.data if coordinator else None
+
+    def _data(self, resource: Resource) -> dict[str, Item]:
+        return self._source(resource) or {}
 
     def _rebuild_if_needed(self) -> None:
         sources = (
@@ -76,10 +81,12 @@ class FeedIndex:
             Resource.ROAD_CONDITIONS,
             Resource.ALERTS,
         )
-        signature = tuple(id(self._data(r)) for r in sources)
-        if signature == self._signature:
+        current = tuple(self._source(r) for r in sources)
+        if self._sources is not None and all(
+            a is b for a, b in zip(current, self._sources, strict=True)
+        ):
             return
-        self._signature = signature
+        self._sources = current
         now = dt_util.utcnow()
         events = [
             e

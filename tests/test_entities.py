@@ -6,6 +6,7 @@ along Highway 401 in Toronto, where the fixture's real events are.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import json
 from typing import Any
@@ -41,6 +42,7 @@ from pytest_homeassistant_custom_component.common import (
 )
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
+    AiohttpClientMockResponse,
 )
 from syrupy.assertion import SnapshotAssertion
 
@@ -124,7 +126,7 @@ async def loaded(
     _serve(aioclient_mock, events)
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     return mock_config_entry
 
 
@@ -155,7 +157,7 @@ async def test_entities(
         patch("random.SystemRandom.getrandbits", return_value=123456789),
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
-        await hass.async_block_till_done()
+        await hass.async_block_till_done(wait_background_tasks=True)
     await snapshot_platform(hass, entity_registry, snapshot, mock_config_entry.entry_id)
 
 
@@ -209,7 +211,7 @@ async def test_slots_unavailable_without_events(
     _serve(aioclient_mock, [])
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.states.get("sensor.home_nearest_event_1").state == STATE_UNAVAILABLE
     assert hass.states.get("sensor.home_events").state == "0"
 
@@ -229,7 +231,7 @@ async def test_new_event_fires(
 
     frozen_time.tick(timedelta(minutes=3, seconds=1))
     async_fire_time_changed(hass)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
     for entity_id in ("event.home_new_event", "event.hwy_401_west_new_event"):
         state = hass.states.get(entity_id)
@@ -312,3 +314,45 @@ async def test_more_than_ten_resources_wait_for_the_rate_limit(
     assert aioclient_mock.call_count == 16
     assert limiter_clock.waits == [pytest.approx(61.0)]
     assert all(c.data is not None for c in loaded.runtime_data.coordinators.values())
+
+
+async def test_late_events_data_does_not_fire_new_event(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    events: list[dict[str, Any]],
+) -> None:
+    """Events that load after the entities exist aren't reported as new.
+
+    Regression test: the entity used to record an empty baseline before the
+    events arrived, then report every existing event as new.
+    """
+    release = asyncio.Event()
+
+    async def held_events(
+        method: str, url: Any, data: Any
+    ) -> AiohttpClientMockResponse:
+        await release.wait()
+        return AiohttpClientMockResponse(method, url, text=json.dumps(events))
+
+    for resource in Resource:
+        if resource is Resource.EVENTS:
+            aioclient_mock.get(resource.url, side_effect=held_events)
+        elif resource is Resource.ROAD_CONDITIONS:
+            aioclient_mock.get(
+                resource.url, text=json.dumps([WEST_401, EAST_401, KENORA])
+            )
+        else:
+            aioclient_mock.get(
+                resource.url, text=load_fixture(f"{resource.value}.json")
+            )
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get("event.home_new_event") is not None
+
+    release.set()
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert hass.states.get("sensor.home_events").state == "3"
+    assert hass.states.get("event.home_new_event").state == STATE_UNKNOWN
+    assert hass.states.get("event.hwy_401_west_new_event").state == STATE_UNKNOWN

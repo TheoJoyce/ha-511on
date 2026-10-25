@@ -78,23 +78,36 @@ class _NewItemsMixin(EventEntity):
     """
 
     _seen: set[str] | None = None
+    coordinator: ResourceCoordinator
+    extra_coordinators: tuple[ResourceCoordinator, ...]
 
     def _current(self) -> dict[str, dict[str, Any]]:
         raise NotImplementedError
 
+    def _ready(self) -> bool:
+        """Return whether every coordinator this entity uses has data.
+
+        Until then the comparison would start from an empty baseline and
+        report everything already there as new.
+        """
+        return all(
+            c.data is not None for c in (self.coordinator, *self.extra_coordinators)
+        )
+
     @callback
     def _handle_coordinator_update(self) -> None:
-        current = self._current()
-        if self._seen is not None:
-            for item_id in current.keys() - self._seen:
-                self._trigger_event(self._attr_event_types[0], current[item_id])
-        self._seen = set(current)
+        if self._ready():
+            current = self._current()
+            if self._seen is not None:
+                for item_id in current.keys() - self._seen:
+                    self._trigger_event(self._attr_event_types[0], current[item_id])
+            self._seen = set(current)
         super()._handle_coordinator_update()  # type: ignore[misc]
 
     async def async_added_to_hass(self) -> None:
         """Record what's already there."""
         await super().async_added_to_hass()
-        if self.available:
+        if self._ready():
             self._seen = set(self._current())
 
 
