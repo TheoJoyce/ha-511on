@@ -39,8 +39,17 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 
 - Versions follow [SemVer](https://semver.org/). Pre-releases use `X.Y.Z-alpha.N`, `X.Y.Z-beta.N` and `X.Y.Z-rc.N`. HACS compares versions with AwesomeVersion, which orders these correctly.
 - Each release is developed on a branch named `dev/<version>`, for example `dev/0.1.0-alpha.1`. On that branch, set the same version (without a `v`) in `custom_components/ontario_511/manifest.json` and `pyproject.toml`; `tests/test_manifest.py` checks they match.
-- After merging into `main`, tag the merge commit `v<version>` and publish a GitHub release from the tag. Mark alpha, beta and rc versions as pre-releases: HACS only offers pre-releases to users who turn on beta versions. `.github/workflows/release.yml` fails if the tag doesn't match the manifest version or the pre-release flag is wrong.
-- `main` is the default branch. Don't commit directly to it.
+- `main` is the default branch. Never commit directly to it; changes reach it only by merging a reviewed pull request.
+
+### Workflow
+
+1. **Branch:** create `dev/<version>` from `main` and bump the version.
+2. **Push every commit** to the branch on GitHub.
+3. **Draft PR:** if the branch has no pull request yet, open a **draft** PR into `main` using the PR template. Fill in the version, the goals, and a task checklist for the release.
+4. **Work in the PR:** all commits, reviews and checklists for that version live in its PR. Tick tasks as they're done and add new ones as they come up. Mark the PR ready for review when the tasks are done.
+5. **Merge:** a human reviews and approves the PR, then merges it. A merge means that version is official.
+6. **Delete the branch:** the branch is always deleted after merging. GitHub does this automatically (the repository has "Automatically delete head branches" turned on).
+7. **Release:** tag the merge commit `v<version>` and publish a GitHub release from the tag. Mark alpha, beta and rc versions as pre-releases: HACS only offers pre-releases to users who turn on beta versions. `.github/workflows/release.yml` fails if the tag doesn't match the manifest version or the pre-release flag is wrong.
 
 ## Git Commit Guidelines
 
@@ -92,4 +101,4 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 
 ## AI policy
 
-Autonomous contributions are not accepted: a human must review, understand, and be able to explain every change before it is submitted. Do not open issues or pull requests autonomously, and do not post comments on behalf of a user without their review.
+Autonomous contributions are not accepted: a human must review, understand, and be able to explain every change before it is merged. Agents may push commits to `dev/*` branches and open draft pull requests as described in [Workflow](#workflow), but never merge, approve, mark a pull request ready for review, or publish a release without the user's go-ahead. Do not open issues, and do not post comments on behalf of a user without their review.
