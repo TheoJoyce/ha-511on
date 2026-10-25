@@ -12,18 +12,33 @@
         'last_update_success': True,
         'update_interval_seconds': 180.0,
       }),
+      'roadconditions': dict({
+        'item_count': 4,
+        'last_update_success': True,
+        'update_interval_seconds': 600.0,
+      }),
     }),
     'entry': dict({
       'data': dict({
         'api_key': '**REDACTED**',
-      }),
-      'options': dict({
-        'radius': 25.0,
       }),
     }),
     'rate_limit': dict({
       'calls': 10,
       'period_seconds': 61.0,
     }),
+    'subentries': list([
+      dict({
+        'feeds': list([
+          'alerts',
+          'event',
+        ]),
+        'item_counts': dict({
+        }),
+        'pending': list([
+        ]),
+        'type': 'area',
+      }),
+    ]),
   })
 # ---

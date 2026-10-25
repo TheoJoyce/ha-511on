@@ -39,7 +39,11 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 - `models.py`: frozen dataclasses for all 16 resources, all sharing `id`, `name`, `coordinates` and `region`. Resources without an `Id` field get a derived ID from stable fields. Coordinates outside Ontario's bounding box are treated as missing. Road segment polylines are thinned to about one point per 250 m to save memory.
 - `conditions.py`: ranks free-text road conditions; unrecognised text is unknown (never assumed safe) and logged once.
 - `geo.py`: polyline decoding and distances. `scope.py`: which items fall in a radius or commute corridor, and attaching events to their nearest road segment (within 2 km).
-- Entities: `sensor.py`, `binary_sensor.py` and `geo_location.py` are the first-pass entities, to be replaced as described in `docs/design.md`.
+- `__init__.py`: works out the resources in use from the subentries, creates their coordinators, waits for one (to check the key and connection) and loads the rest in the background, runs the one-time generation for new areas and commutes, and handles deleting an item's device.
+- `generation.py`: chooses generated items (commute corridor first, then nearest to an area's centre, within per-type caps) and suggests commute road segments. Pure functions; heavy work runs in the executor.
+- `config_flow.py`: initial setup (key, first area, optional commute) and the area, commute and item subentry flows.
+- `client.py` also holds the instance-wide response cache, so reloading an entry (which happens whenever a subentry changes) reuses fetched data.
+- Entity platforms are being rebuilt as described in `docs/design.md`.
 
 ## Versioning and releases
 

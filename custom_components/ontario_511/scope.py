@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 
-from .geo import Point, distance_km, distance_to_lines_km
+from .geo import BoundingBox, Point, distance_km, distance_to_lines_km
 from .models import Item, RoadSegment
 
 # Events and construction further than this from every road segment aren't
@@ -64,6 +64,45 @@ def within_corridor[T: Item](
             found.append((best[0], best[1], item))
     found.sort(key=lambda entry: (entry[0], entry[1]))
     return [(item, km) for _, km, item in found]
+
+
+def segments_within_corridor(
+    segments: Iterable[RoadSegment], route: Sequence[RoadSegment], width_km: float
+) -> list[tuple[RoadSegment, float]]:
+    """Return segments with any part within ``width_km`` of a route.
+
+    Unlike ``within_corridor``, this looks at each segment's whole line rather
+    than one representative point, so long parallel roads aren't missed.
+    """
+    route_lines = [line for segment in route for line in segment.lines]
+    found: list[tuple[RoadSegment, float]] = []
+    for segment in segments:
+        if segment.bbox is None or not any(
+            r.bbox is not None and _boxes_near(segment.bbox, r.bbox, width_km)
+            for r in route
+        ):
+            continue
+        km = min(
+            (
+                distance_to_lines_km(point, route_lines)
+                for line in segment.lines
+                for point in line
+            ),
+            default=float("inf"),
+        )
+        if km <= width_km:
+            found.append((segment, km))
+    return sorted(found, key=lambda pair: pair[1])
+
+
+def _boxes_near(a: BoundingBox, b: BoundingBox, km: float) -> bool:
+    pad = km / 111.0 * 2
+    return not (
+        a.max_lat + pad < b.min_lat
+        or b.max_lat + pad < a.min_lat
+        or a.max_lon + pad < b.min_lon
+        or b.max_lon + pad < a.min_lon
+    )
 
 
 def nearest_segment(

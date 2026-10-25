@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any
-
 import pytest
 from pytest_homeassistant_custom_component.common import load_json_array_fixture
 
@@ -19,38 +16,12 @@ from custom_components.ontario_511.scope import (
     within_radius,
 )
 
+from .common import EAST_401, KENORA, WEST_401
 from .conftest import HOME
 
-
-def _encode(points: Sequence[tuple[float, float]]) -> str:
-    """Encode points with Google's polyline algorithm (test helper)."""
-    out, prev = [], (0, 0)
-    for lat, lon in points:
-        cur = (round(lat * 1e5), round(lon * 1e5))
-        for delta in (cur[0] - prev[0], cur[1] - prev[1]):
-            value = ~(delta << 1) if delta < 0 else delta << 1
-            while value >= 0x20:
-                out.append(chr((0x20 | (value & 0x1F)) + 63))
-                value >>= 5
-            out.append(chr(value + 63))
-        prev = cur
-    return "".join(out)
-
-
-def _segment(name: str, points: Sequence[tuple[float, float]]) -> RoadSegment:
-    item: dict[str, Any] = {
-        "RoadwayName": "401",
-        "LocationDescription": name,
-        "Condition": ["Bare and dry road"],
-        "EncodedPolyline": [_encode(points)],
-    }
-    return RoadSegment.from_api(item)
-
-
-# Roughly Highway 401 across north Toronto, split into a west and east part.
-WEST = _segment("West", [(43.715, -79.60), (43.725, -79.50), (43.73, -79.44)])
-EAST = _segment("East", [(43.73, -79.44), (43.745, -79.40), (43.77, -79.25)])
-FAR = _segment("Kenora", [(49.77, -94.5), (49.78, -94.4)])
+WEST = RoadSegment.from_api(WEST_401)
+EAST = RoadSegment.from_api(EAST_401)
+FAR = RoadSegment.from_api(KENORA)
 
 
 def _events() -> list[TrafficEvent]:

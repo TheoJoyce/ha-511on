@@ -8,9 +8,79 @@
       "cannot_connect": "Failed to connect to Ontario 511.",
       "invalid_auth": "Ontario 511 rejected the API key.",
       "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
-      "unknown": "Unexpected error."
+      "unknown": "Unexpected error.",
+      "radius_out_of_range": "The radius must be more than 0 and at most 50 km.",
+      "no_types": "Choose at least one data type.",
+      "too_close": "The start and end must be at least 1 km apart.",
+      "no_segments": "No road segments were found between the start and end.",
+      "no_segments_chosen": "Choose at least one road segment."
     },
     "step": {
+      "user": {
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "Your own Ontario 511 developer API key. Request one at 511on.ca/developers/doc while logged in."
+        },
+        "description": "Community-maintained integration, not affiliated with or endorsed by Ontario 511 or the Government of Ontario."
+      },
+      "area": {
+        "data": {
+          "name": "Name",
+          "location": "Centre and radius",
+          "types": "Data to generate",
+          "event_slots": "Nearest event slots"
+        },
+        "data_description": {
+          "name": "For example Home or Cottage.",
+          "location": "Drag the circle to set the area. The radius can be up to {max_radius} km.",
+          "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
+          "event_slots": "How many of the nearest events to show on the map."
+        },
+        "description": "Choose an area to watch. Items nearest the centre are generated first.",
+        "title": "Area"
+      },
+      "add_commute": {
+        "description": "You can also add a commute now, or later from the integration page.",
+        "menu_options": {
+          "commute": "Add a commute",
+          "finish": "Finish"
+        },
+        "title": "Commute"
+      },
+      "commute": {
+        "data": {
+          "name": "Name",
+          "start": "Start",
+          "end": "End",
+          "corridor_km": "Corridor width",
+          "types": "Data to generate",
+          "event_slots": "Nearest event slots"
+        },
+        "data_description": {
+          "name": "For example Work.",
+          "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
+          "types": "Used once, to choose what to generate. Commute items are generated before nearby ones.",
+          "event_slots": "How many of the nearest events to show on the map."
+        },
+        "description": "Choose where the commute starts and ends. Road segments along the way are suggested next.",
+        "title": "Commute"
+      },
+      "commute_segments": {
+        "data": {
+          "segments": "Road segments"
+        },
+        "data_description": {
+          "segments": "Ticked segments run along the trip. Untick any you don't use and tick others you do."
+        },
+        "description": "Confirm the road segments this commute uses.",
+        "title": "Route"
+      },
+      "slow_import": {
+        "description": "You chose more than {fast} data types. Ontario 511 allows 10 requests a minute, so the rest load about a minute later. Their entities appear when the data arrives.",
+        "title": "Slower first import"
+      },
       "reauth_confirm": {
         "data": {
           "api_key": "API key"
@@ -20,35 +90,155 @@
         },
         "description": "Ontario 511 rejected the saved API key. Enter a valid key.",
         "title": "Re-authenticate Ontario 511"
-      },
-      "user": {
-        "data": {
-          "api_key": "API key"
-        },
-        "data_description": {
-          "api_key": "Your own Ontario 511 developer API key. Request one at 511on.ca/developers/doc while logged in."
-        },
-        "description": "Community-maintained integration, not affiliated with or endorsed by Ontario 511 or the Government of Ontario."
       }
     }
   },
-  "entity": {
-    "binary_sensor": {
-      "nearby_closure": {
-        "name": "Nearby road closure"
+  "config_subentries": {
+    "area": {
+      "entry_type": "Area",
+      "initiate_flow": {
+        "user": "Add area"
+      },
+      "error": {
+        "cannot_connect": "Failed to connect to Ontario 511.",
+        "invalid_auth": "Ontario 511 rejected the API key.",
+        "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
+        "unknown": "Unexpected error.",
+        "radius_out_of_range": "The radius must be more than 0 and at most 50 km.",
+        "no_types": "Choose at least one data type.",
+        "too_close": "The start and end must be at least 1 km apart.",
+        "no_segments": "No road segments were found between the start and end.",
+        "no_segments_chosen": "Choose at least one road segment."
+      },
+      "abort": {
+        "reconfigure_successful": "Settings saved."
+      },
+      "step": {
+        "area": {
+          "data": {
+            "name": "Name",
+            "location": "Centre and radius",
+            "types": "Data to generate",
+            "event_slots": "Nearest event slots"
+          },
+          "data_description": {
+            "name": "For example Home or Cottage.",
+            "location": "Drag the circle to set the area. The radius can be up to {max_radius} km.",
+            "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
+            "event_slots": "How many of the nearest events to show on the map."
+          },
+          "description": "Choose an area to watch. Items nearest the centre are generated first.",
+          "title": "Area"
+        },
+        "slow_import": {
+          "description": "You chose more than {fast} data types. Ontario 511 allows 10 requests a minute, so the rest load about a minute later. Their entities appear when the data arrives.",
+          "title": "Slower first import"
+        },
+        "reconfigure": {
+          "data": {
+            "name": "Name",
+            "feeds": "Follow",
+            "event_slots": "Nearest event slots"
+          },
+          "data_description": {
+            "feeds": "Events, construction and alerts shown for this area or commute."
+          },
+          "title": "Settings"
+        }
       }
     },
-    "sensor": {
-      "active_alerts": {
-        "name": "Active alerts",
-        "state_attributes": {
-          "alerts": {
-            "name": "Alerts"
-          }
-        }
+    "commute": {
+      "entry_type": "Commute",
+      "initiate_flow": {
+        "user": "Add commute"
       },
-      "nearby_events": {
-        "name": "Nearby events"
+      "error": {
+        "cannot_connect": "Failed to connect to Ontario 511.",
+        "invalid_auth": "Ontario 511 rejected the API key.",
+        "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
+        "unknown": "Unexpected error.",
+        "radius_out_of_range": "The radius must be more than 0 and at most 50 km.",
+        "no_types": "Choose at least one data type.",
+        "too_close": "The start and end must be at least 1 km apart.",
+        "no_segments": "No road segments were found between the start and end.",
+        "no_segments_chosen": "Choose at least one road segment."
+      },
+      "abort": {
+        "reconfigure_successful": "Settings saved."
+      },
+      "step": {
+        "commute": {
+          "data": {
+            "name": "Name",
+            "start": "Start",
+            "end": "End",
+            "corridor_km": "Corridor width",
+            "types": "Data to generate",
+            "event_slots": "Nearest event slots"
+          },
+          "data_description": {
+            "name": "For example Work.",
+            "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
+            "types": "Used once, to choose what to generate. Commute items are generated before nearby ones.",
+            "event_slots": "How many of the nearest events to show on the map."
+          },
+          "description": "Choose where the commute starts and ends. Road segments along the way are suggested next.",
+          "title": "Commute"
+        },
+        "commute_segments": {
+          "data": {
+            "segments": "Road segments"
+          },
+          "data_description": {
+            "segments": "Ticked segments run along the trip. Untick any you don't use and tick others you do."
+          },
+          "description": "Confirm the road segments this commute uses.",
+          "title": "Route"
+        },
+        "slow_import": {
+          "description": "You chose more than {fast} data types. Ontario 511 allows 10 requests a minute, so the rest load about a minute later. Their entities appear when the data arrives.",
+          "title": "Slower first import"
+        },
+        "reconfigure": {
+          "data": {
+            "name": "Name",
+            "feeds": "Follow",
+            "event_slots": "Nearest event slots"
+          },
+          "data_description": {
+            "feeds": "Events, construction and alerts shown for this area or commute."
+          },
+          "title": "Settings"
+        }
+      }
+    },
+    "item": {
+      "entry_type": "Item",
+      "initiate_flow": {
+        "user": "Add item"
+      },
+      "abort": {
+        "already_configured": "This item has already been added.",
+        "cannot_connect": "Failed to connect to Ontario 511.",
+        "invalid_auth": "Ontario 511 rejected the API key.",
+        "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
+        "no_items": "Ontario 511 has no items of this type with a location."
+      },
+      "step": {
+        "user": {
+          "data": {
+            "resource": "Type"
+          },
+          "description": "Choose the type of item to add.",
+          "title": "Add item"
+        },
+        "pick": {
+          "data": {
+            "item_id": "Item"
+          },
+          "description": "Choose the item. The nearest to your home are listed first.",
+          "title": "Add item"
+        }
       }
     }
   },
@@ -63,15 +253,25 @@
       "message": "Ontario 511 is limiting requests; the next update will try again."
     }
   },
-  "options": {
-    "step": {
-      "init": {
-        "data": {
-          "radius": "Radius"
-        },
-        "data_description": {
-          "radius": "Events within this distance of your home location count as nearby."
-        }
+  "selector": {
+    "data_types": {
+      "options": {
+        "event": "Events and closures",
+        "constructionprojects": "Construction projects",
+        "alerts": "Alerts",
+        "roadconditions": "Road conditions",
+        "cameras": "Traffic cameras",
+        "ferryterminals": "Ferry terminals",
+        "allrestareas": "Rest areas",
+        "truckrestareas": "Truck rest areas",
+        "servicecentres": "Service centres",
+        "seasonalloadapi": "Seasonal load restrictions",
+        "carpoollots": "Carpool lots",
+        "transithub": "Transit hubs",
+        "inspectionstations": "Inspection stations",
+        "roundabouts": "Roundabouts",
+        "hovlanes": "HOT/HOV lanes",
+        "informationcenter": "Travel information centres"
       }
     }
   }

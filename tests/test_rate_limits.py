@@ -12,13 +12,9 @@ from datetime import timedelta
 import hashlib
 
 from freezegun.api import FrozenDateTimeFactory
-from homeassistant.components.homeassistant import (
-    DOMAIN as HOMEASSISTANT_DOMAIN,
-    SERVICE_UPDATE_ENTITY,
-)
-from homeassistant.const import ATTR_ENTITY_ID, CONF_API_KEY, STATE_UNAVAILABLE
+from homeassistant.config_entries import ConfigSubentryData
+from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
 import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -28,19 +24,29 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
+from custom_components.ontario_511 import resources_in_use
 from custom_components.ontario_511.api import RATE_LIMIT_CALLS, Resource
 from custom_components.ontario_511.client import get_rate_limiter
-from custom_components.ontario_511.const import DOMAIN
+from custom_components.ontario_511.const import DOMAIN, SUBENTRY_AREA
+from custom_components.ontario_511.coordinator import ResourceCoordinator
 from custom_components.ontario_511.policy import (
     POLL_BUDGET_PER_MINUTE,
     RESOURCE_POLICIES,
     Category,
 )
 
-from .conftest import FIXTURE_RESOURCES
+from .conftest import area_data
 
-POLLED = len(FIXTURE_RESOURCES)
-NEARBY_EVENTS = "sensor.ontario_511_nearby_events"
+# The test entry's area follows events and alerts; events need road segments.
+POLLED = 3
+
+
+@pytest.fixture
+def listening(init_integration: MockConfigEntry) -> MockConfigEntry:
+    """Listen to every coordinator the way entities do, so they poll."""
+    for coordinator in init_integration.runtime_data.coordinators.values():
+        init_integration.async_on_unload(coordinator.async_add_listener(lambda: None))
+    return init_integration
 
 
 def _calls_for(mock: AiohttpClientMocker, resource: Resource) -> int:
@@ -80,7 +86,12 @@ async def test_setup_calls_go_through_limiter(
     init_integration: MockConfigEntry,
     mock_api: AiohttpClientMocker,
 ) -> None:
-    """Setup makes one call per polled resource, all counted by the limiter."""
+    """Setup makes one call per resource in use, all counted by the limiter."""
+    assert resources_in_use(init_integration) == {
+        Resource.EVENTS,
+        Resource.ALERTS,
+        Resource.ROAD_CONDITIONS,
+    }
     limiter = get_rate_limiter(hass)
     assert mock_api.call_count == POLLED
     assert limiter.available == limiter.calls - POLLED
@@ -97,6 +108,15 @@ async def test_limiter_is_shared_across_entries(
         domain=DOMAIN,
         data={CONF_API_KEY: other_key},
         unique_id=hashlib.sha256(other_key.encode()).hexdigest(),
+        version=2,
+        subentries_data=[
+            ConfigSubentryData(
+                subentry_type=SUBENTRY_AREA,
+                title="Cottage",
+                unique_id=None,
+                data=area_data(),
+            )
+        ],
     )
     second.add_to_hass(hass)
     await hass.config_entries.async_setup(second.entry_id)
@@ -107,6 +127,7 @@ async def test_limiter_is_shared_across_entries(
     assert limiter.available == limiter.calls - 2 * POLLED
 
 
+@pytest.mark.usefixtures("listening")
 async def test_polls_follow_each_resource_policy(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
@@ -135,37 +156,39 @@ async def test_polls_follow_each_resource_policy(
     assert _calls_for(mock_api, Resource.ALERTS) == 2
 
 
+def _coordinator(entry: MockConfigEntry, resource: Resource) -> ResourceCoordinator:
+    return entry.runtime_data.coordinators[resource]
+
+
 async def test_forced_refresh_reuses_fresh_data(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
     mock_api: AiohttpClientMocker,
     frozen_time: FrozenDateTimeFactory,
 ) -> None:
-    """ "Update entity" only calls the API once the cached data is stale."""
-    await async_setup_component(hass, HOMEASSISTANT_DOMAIN, {})
-    freshness = RESOURCE_POLICIES[Resource.EVENTS].freshness
+    """A forced refresh only calls the API once the cached data is stale.
 
-    async def update() -> None:
-        await hass.services.async_call(
-            HOMEASSISTANT_DOMAIN,
-            SERVICE_UPDATE_ENTITY,
-            {ATTR_ENTITY_ID: NEARBY_EVENTS},
-            blocking=True,
-        )
-        await hass.async_block_till_done()
+    "Update entity" on any entity calls the coordinator's request refresh.
+    """
+    coordinator = _coordinator(init_integration, Resource.EVENTS)
+    freshness = coordinator.policy.freshness
 
-    await update()
+    await coordinator.async_request_refresh()
+    await hass.async_block_till_done()
     assert _calls_for(mock_api, Resource.EVENTS) == 1
 
     frozen_time.tick(freshness + timedelta(seconds=1))
-    await update()
+    await coordinator.async_request_refresh()
+    await hass.async_block_till_done()
     assert _calls_for(mock_api, Resource.EVENTS) == 2
 
-    await update()
-    await update()
+    await coordinator.async_request_refresh()
+    await coordinator.async_request_refresh()
+    await hass.async_block_till_done()
     assert _calls_for(mock_api, Resource.EVENTS) == 2
 
 
+@pytest.mark.usefixtures("listening")
 async def test_rate_limited_response_waits_for_next_poll(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
@@ -174,7 +197,7 @@ async def test_rate_limited_response_waits_for_next_poll(
 ) -> None:
     """A 429 marks entities unavailable without retrying early."""
     mock_api.clear_requests()
-    for resource in FIXTURE_RESOURCES:
+    for resource in Resource:
         mock_api.get(resource.url, status=429)
     events_every = RESOURCE_POLICIES[Resource.EVENTS].refresh
 
@@ -182,7 +205,7 @@ async def test_rate_limited_response_waits_for_next_poll(
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     assert _calls_for(mock_api, Resource.EVENTS) == 1
-    assert hass.states.get(NEARBY_EVENTS).state == STATE_UNAVAILABLE
+    assert not _coordinator(init_integration, Resource.EVENTS).last_update_success
 
     frozen_time.tick(events_every - timedelta(seconds=5))
     async_fire_time_changed(hass)
@@ -190,6 +213,7 @@ async def test_rate_limited_response_waits_for_next_poll(
     assert _calls_for(mock_api, Resource.EVENTS) == 1
 
 
+@pytest.mark.usefixtures("listening")
 async def test_forced_refresh_after_failure_calls_again(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
@@ -197,21 +221,28 @@ async def test_forced_refresh_after_failure_calls_again(
     frozen_time: FrozenDateTimeFactory,
 ) -> None:
     """Data from before a failed update isn't treated as fresh."""
-    await async_setup_component(hass, HOMEASSISTANT_DOMAIN, {})
     mock_api.clear_requests()
-    mock_api.get(Resource.EVENTS.url, status=503)
-    mock_api.get(Resource.ALERTS.url, json=[])
-    frozen_time.tick(RESOURCE_POLICIES[Resource.EVENTS].refresh)
+    for resource in Resource:
+        mock_api.get(resource.url, status=503)
+    coordinator = _coordinator(init_integration, Resource.EVENTS)
+    frozen_time.tick(coordinator.policy.refresh)
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     assert _calls_for(mock_api, Resource.EVENTS) == 1
 
     frozen_time.tick(timedelta(seconds=30))
-    await hass.services.async_call(
-        HOMEASSISTANT_DOMAIN,
-        SERVICE_UPDATE_ENTITY,
-        {ATTR_ENTITY_ID: NEARBY_EVENTS},
-        blocking=True,
-    )
+    await coordinator.async_request_refresh()
     await hass.async_block_till_done()
     assert _calls_for(mock_api, Resource.EVENTS) == 2
+
+
+async def test_reload_reuses_cached_responses(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    mock_api: AiohttpClientMocker,
+) -> None:
+    """Reloading the entry (after adding an item) doesn't re-fetch anything."""
+    assert mock_api.call_count == POLLED
+    assert await hass.config_entries.async_reload(init_integration.entry_id)
+    await hass.async_block_till_done()
+    assert mock_api.call_count == POLLED
