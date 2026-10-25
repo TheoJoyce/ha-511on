@@ -1,0 +1,20 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "nearby_closure": {
+        "default": "mdi:road-variant",
+        "state": {
+          "on": "mdi:sign-caution"
+        }
+      }
+    },
+    "sensor": {
+      "active_alerts": {
+        "default": "mdi:alert-outline"
+      },
+      "nearby_events": {
+        "default": "mdi:traffic-cone"
+      }
+    }
+  }
+}

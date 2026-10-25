@@ -1,0 +1,24 @@
+[
+  {
+    "Id": 2001,
+    "Message": "HWY 6 Northbound - Argyle Street between 6th Line and Braemar Avenue remains closed. ONLY Southbound traffic turning ONTO Argyle Street from Highway 6 will be permitted.",
+    "Notes": "Argyle Street between 6th Line and Braemar Avenue remains closed. ONLY Southbound traffic turning ONTO Argyle Street from Highway 6 will be permitted.",
+    "StartTime": 1792890000,
+    "EndTime": 1793494800,
+    "LastUpdated": 1792890000,
+    "Regions": ["Central", "Eastern", "Northwestern"],
+    "HighImportance": true,
+    "SendNotification": true
+  },
+  {
+    "Id": 2143,
+    "Message": "Clairville: The right lane is closed in both directions on 427 at South of Clairville due to flooding. Use caution in the area.",
+    "Notes": "427 is still open in both directions.",
+    "StartTime": 1793100000,
+    "EndTime": null,
+    "LastUpdated": 1793100000,
+    "Regions": ["Central"],
+    "HighImportance": false,
+    "SendNotification": false
+  }
+]

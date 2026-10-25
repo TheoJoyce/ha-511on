@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Tag matches manifest version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          version=$(jq -r .version custom_components/ontario_511/manifest.json)
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::Tag $TAG does not match manifest version v$version"
+            exit 1
+          fi
+          case "$version" in
+            *-*) expected=true ;;
+            *) expected=false ;;
+          esac
+          if [ "$PRERELEASE" != "$expected" ]; then
+            echo "::error::Version $version needs pre-release=$expected on GitHub"
+            exit 1
+          fi

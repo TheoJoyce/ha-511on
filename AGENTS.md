@@ -1,6 +1,6 @@
 # Agent Instructions
 
-> Adapted from [`AGENTS.md` in home-assistant/core](https://github.com/home-assistant/core/blob/7c3a98ae6f4454d65500438b2fb503363fcf490a/AGENTS.md), licensed under the [Apache License 2.0](LICENSE). Modified for this project: rewritten for a custom integration (uv commands, no Core scripts or PR template), and a section on Ontario 511 compliance added.
+> Adapted from [`AGENTS.md` in home-assistant/core](https://github.com/home-assistant/core/blob/7c3a98ae6f4454d65500438b2fb503363fcf490a/AGENTS.md), licensed under the [Apache License 2.0](LICENSE). Modified for this project: rewritten for a custom integration (uv commands, no Core scripts or PR template), and sections on Ontario 511 compliance, rate limits, architecture, and versioning and releases added.
 
 This repository contains the Ontario 511 integration (repository `ha-511on`, domain `ontario_511`), a community-maintained Home Assistant custom integration for Ontario 511 traffic data. It is a custom integration, not part of Home Assistant Core.
 
@@ -9,13 +9,38 @@ This repository contains the Ontario 511 integration (repository `ha-511on`, dom
 These rules come from the Ontario 511 [API documentation](https://511on.ca/developers/doc), its [Developer's Access Agreement](https://511on.ca/developers/resources) and the [Open Government Licence – Ontario](https://www.ontario.ca/page/open-government-licence-ontario). They are not negotiable.
 
 - **Keys:** every user supplies their own API key. Never hardcode, ship, log or commit a key. Keys live in config entry data. For local development, use `.env` (`ONTARIO_511_API_KEY`), which is gitignored. Redact keys from diagnostics, logs and request URLs in error messages.
-- **Rate limit:** Ontario 511 allows 10 calls every 60 seconds per key. Enforce this in code with one limiter per key, shared across every config entry that uses that key. The limiter covers every call, including config flow validation. Never add an option that bypasses or raises the limit.
+- **Rate limit:** see [Rate limits](#rate-limits) below. Never add an option that bypasses or raises the limit.
 - **Polling:** design schedules to stay well below the limit, not run at it. Poll static resources (rest areas, roundabouts, service centres and so on) rarely, and live resources (events, alerts, road conditions) more often. Users cannot configure polling intervals.
 - **Attribution:** every entity sets `_attr_attribution` to `ATTRIBUTION` from `const.py`. The README keeps the licence link and a link to https://511on.ca.
 - **No endorsement:** never use the Ontario 511, MTO or Government of Ontario logos in brand assets or docs, and never imply that the project is official or endorsed.
 - **Naming:** wherever the integration is presented as "Ontario 511" (README title, integration listings, docs), state that it is community-maintained and not affiliated with or endorsed by Ontario 511, MTO or the Government of Ontario. Keep that notice at the top of the README.
 - **Disclaimer:** keep the "as is" data disclaimer in the README.
 - **Tests:** tests never call the live API. Use recorded JSON fixtures.
+
+## Rate limits
+
+- **What the docs say:** the [API documentation](https://511on.ca/developers/doc) states one limit for the whole API: "Throttling is enabled. Ten calls every 60 seconds." None of the 16 endpoint pages documents a different limit (checked October 2026). Re-check the docs when adding a resource.
+- **Scope:** the docs don't say whether the limit is counted per key or per IP address. The integration therefore uses **one `RateLimiter` for the whole Home Assistant instance** (`client.get_rate_limiter`), shared by every config entry and every key, and by the config flow.
+- **The limiter** (`api.RateLimiter`) is a sliding window of 10 calls per 61 seconds (the extra second absorbs clock and network skew). `acquire()` waits for a free slot instead of failing. `Ontario511Client.async_get` acquires a slot before every request, so no code path can skip it.
+- **Polling budget:** fixed intervals live in `const.UPDATE_INTERVALS`. Their combined calls per minute must stay at or under `const.POLL_BUDGET_PER_MINUTE`, which must stay at or under a fifth of the limit. `tests/test_rate_limits.py` enforces both; when adding a polled resource, give it an interval, a fixture, and keep the budget test passing.
+- **Throttled responses:** an HTTP 429 raises `Ontario511RateLimitError`. Coordinators turn it into `UpdateFailed` and wait for the next scheduled poll; never retry immediately.
+- **Live calls during development:** anything that calls the real API must go through `RateLimiter` (use `Ontario511Client`). Record fixtures with `uv run python -m scripts.record_fixtures OUT_DIR [RESOURCE ...]`: all 16 resources take about a minute because of the limiter. Don't run it while a development Home Assistant instance uses the same key, because they don't share a limiter.
+- **Testing the limiter:** unit tests inject a fake clock and sleep into `RateLimiter`, so they never wait in real time. Integration tests use `aioclient_mock` with the real client and the real limiter, and assert on `limiter.available` and `call_count`.
+
+## Architecture
+
+- `api.py`: the API client, `Resource` enum, errors and `RateLimiter`. No Home Assistant imports. Every resource is under `/api/v2/get/` except `roadconditions`, which is under `/api/v3/get/`. Error messages never contain the request URL, because it carries the key.
+- `client.py`: Home Assistant glue: the instance-wide limiter and client creation (shared aiohttp session; `lang=fr` when Home Assistant's language is French).
+- `models.py`: frozen dataclasses parsed from API items. The feed sometimes publishes a flipped longitude sign; coordinates outside Ontario's bounding box are treated as missing rather than corrected. Several resources (rest areas, roundabouts, seasonal loads, road conditions) have no `Id` field and need a derived unique ID.
+- `coordinator.py`: one `DataUpdateCoordinator` per polled resource.
+- Entities: `sensor.py`, `binary_sensor.py`, and `geo_location.py`, whose entities come and go with nearby events and are kept out of the entity registry.
+
+## Versioning and releases
+
+- Versions follow [SemVer](https://semver.org/). Pre-releases use `X.Y.Z-alpha.N`, `X.Y.Z-beta.N` and `X.Y.Z-rc.N`. HACS compares versions with AwesomeVersion, which orders these correctly.
+- Each release is developed on a branch named `dev/<version>`, for example `dev/0.1.0-alpha.1`. On that branch, set the same version (without a `v`) in `custom_components/ontario_511/manifest.json` and `pyproject.toml`; `tests/test_manifest.py` checks they match.
+- After merging into `main`, tag the merge commit `v<version>` and publish a GitHub release from the tag. Mark alpha, beta and rc versions as pre-releases: HACS only offers pre-releases to users who turn on beta versions. `.github/workflows/release.yml` fails if the tag doesn't match the manifest version or the pre-release flag is wrong.
+- `main` is the default branch. Don't commit directly to it.
 
 ## Git Commit Guidelines
 
@@ -31,6 +56,9 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 - Run `uv sync` to set up the virtual environment with all development dependencies. If uv reports that no download was found for the required Python version, uv is outdated; upgrade it and run `uv sync` again.
 - Use `uv run` so the project's virtual environment and Python version are used.
 - After finishing a code session, run `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` and `uv run pytest`. CI also runs hassfest (`hassfest.yml`) and HACS validation (`hacs.yml`) as separate workflows.
+- Run hassfest locally with the same image CI uses: `docker run --rm -v "$PWD"://github/workspace ghcr.io/home-assistant/hassfest`. Its current release rejects the manifest `categories` field, so leave it out until hassfest accepts it; HACS only warns that it's missing.
+- Home Assistant 2026.10 uses `probatio` in place of `voluptuous`; import `probatio` the way Core does.
+- Pin GitHub Actions to tags that exist. Some actions (for example `astral-sh/setup-uv`) no longer publish major-only tags such as `v10`; use the full version.
 
 ## Python Syntax Notes
 

@@ -1,6 +1,6 @@
 [project]
 name = "ha-511on"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 description = "Community-maintained Home Assistant integration for Ontario 511 traffic data."
 readme = "README.md"
 requires-python = ">=3.14.2"
@@ -24,6 +24,12 @@ target-version = "py314"
 [tool.ruff.lint]
 extend-select = ["I", "F", "E", "W", "B", "UP", "SIM", "C4"]
 
+[tool.ruff.lint.isort]
+# Same ordering style as Home Assistant Core.
+force-sort-within-sections = true
+combine-as-imports = true
+known-first-party = ["custom_components", "scripts", "tests"]
+
 [tool.mypy]
 python_version = "3.14"
 strict = true
@@ -33,3 +39,8 @@ files = ["custom_components"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[[tool.mypy.overrides]]
+# Home Assistant re-exports names (e.g. device classes) without __all__.
+module = "homeassistant.*"
+implicit_reexport = true

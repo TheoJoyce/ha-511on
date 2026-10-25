@@ -1,0 +1,29 @@
+# serializer version: 1
+# name: test_diagnostics
+  dict({
+    'coordinators': dict({
+      'alerts': dict({
+        'item_count': 2,
+        'last_update_success': True,
+        'update_interval_seconds': 300.0,
+      }),
+      'event': dict({
+        'item_count': 7,
+        'last_update_success': True,
+        'update_interval_seconds': 300.0,
+      }),
+    }),
+    'entry': dict({
+      'data': dict({
+        'api_key': '**REDACTED**',
+      }),
+      'options': dict({
+        'radius': 25.0,
+      }),
+    }),
+    'rate_limit': dict({
+      'calls': 10,
+      'period_seconds': 61.0,
+    }),
+  })
+# ---

@@ -1,0 +1,78 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "This API key is already configured.",
+      "reauth_successful": "Re-authentication was successful."
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Ontario 511.",
+      "invalid_auth": "Ontario 511 rejected the API key.",
+      "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
+      "unknown": "Unexpected error."
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "A new Ontario 511 developer API key."
+        },
+        "description": "Ontario 511 rejected the saved API key. Enter a valid key.",
+        "title": "Re-authenticate Ontario 511"
+      },
+      "user": {
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "Your own Ontario 511 developer API key. Request one at 511on.ca/developers/doc while logged in."
+        },
+        "description": "Community-maintained integration, not affiliated with or endorsed by Ontario 511 or the Government of Ontario."
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "nearby_closure": {
+        "name": "Nearby road closure"
+      }
+    },
+    "sensor": {
+      "active_alerts": {
+        "name": "Active alerts",
+        "state_attributes": {
+          "alerts": {
+            "name": "Alerts"
+          }
+        }
+      },
+      "nearby_events": {
+        "name": "Nearby events"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Failed to fetch data from Ontario 511: {error}"
+    },
+    "invalid_auth": {
+      "message": "Ontario 511 rejected the API key."
+    },
+    "rate_limited": {
+      "message": "Ontario 511 is limiting requests; the next update will try again."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "radius": "Radius"
+        },
+        "data_description": {
+          "radius": "Events within this distance of your home location count as nearby."
+        }
+      }
+    }
+  }
+}

@@ -33,6 +33,17 @@ The integration covers the data Ontario 511 publishes through its API. Coverage 
 
 Use the entities in automations, for example to get a notification about driving conditions on your commute, with a camera preview.
 
+## Entities
+
+| Entity | Type | What it shows |
+|---|---|---|
+| Nearby events | Sensor | The number of active events (roadwork, closures, incidents) within your radius of home |
+| Nearby road closure | Binary sensor | On while an active event within your radius closes all lanes |
+| Active alerts | Sensor | The number of province-wide alerts. The `alerts` attribute lists their messages and regions, high importance first |
+| One per nearby event | Geolocation | Each active event within your radius, on the map, with its road, direction, lanes affected and planned end. These appear and disappear with the events, so you can use them with zone triggers |
+
+Events count as active once they've started and until their planned end. Planned future events aren't shown.
+
 ## Requirements
 
 - Home Assistant 2026.10.0 or later
@@ -78,11 +89,15 @@ Or add it by hand:
 
 The key is checked against Ontario 511 before the integration is added.
 
+### Options
+
+Select **Configure** on the integration to change the **radius**: how far from your home location an event can be and still count as nearby. The default is 25 km.
+
 ## Rate limits and updates
 
-Ontario 511 allows 10 calls every 60 seconds per key. The integration enforces this limit itself, across every entry that uses the same key, and it can't be changed.
+Ontario 511 allows 10 calls every 60 seconds. The integration enforces this limit itself, across every entry in your Home Assistant, and it can't be changed.
 
-Update intervals are fixed and stay well under the limit. Live data, such as events and road conditions, refreshes every few minutes. Data that rarely changes, such as rest areas and roundabouts, refreshes much less often.
+Update intervals are fixed and stay well under the limit. Events and alerts refresh every 5 minutes. Data that rarely changes, such as rest areas and roundabouts, will refresh much less often when it's added.
 
 ## Removal
 
