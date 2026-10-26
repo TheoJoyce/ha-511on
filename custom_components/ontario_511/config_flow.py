@@ -98,7 +98,6 @@ from .const import (
     MAX_CORRIDOR_KM,
     MAX_RADIUS_KM,
     MIN_CORRIDOR_KM,
-    MIN_RADIUS_KM,
     SUBENTRY_AREA,
     SUBENTRY_COMMUTE,
     SUBENTRY_ITEM,
@@ -312,12 +311,10 @@ class _SetupSteps:
                     found = f"📍 {place.name}"
             elif not user_input[CONF_TYPES]:
                 errors[CONF_TYPES] = "no_types"
-            elif not (
-                MIN_RADIUS_KM * 1000
-                <= float(user_input[CONF_LOCATION].get("radius", 0))
-                <= MAX_RADIUS_KM * 1000
+            elif float(user_input[CONF_LOCATION].get("radius", 0)) > (
+                MAX_RADIUS_KM * 1000
             ):
-                errors[CONF_LOCATION] = "radius_out_of_range"
+                errors[CONF_LOCATION] = "radius_too_large"
             else:
                 location = user_input[CONF_LOCATION]
                 feeds, pending = _split_types(user_input[CONF_TYPES])
@@ -361,7 +358,6 @@ class _SetupSteps:
             errors=errors,
             description_placeholders={
                 "found": found,
-                "min_radius": str(int(MIN_RADIUS_KM * 1000)),
                 "max_radius": str(int(MAX_RADIUS_KM * 1000)),
             },
         )

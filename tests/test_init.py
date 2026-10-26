@@ -28,6 +28,7 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 )
 
 from custom_components.ontario_511.api import Resource
+from custom_components.ontario_511.card import frontend_hash
 from custom_components.ontario_511.const import (
     CONF_CORRIDOR_KM,
     CONF_END,
@@ -349,16 +350,27 @@ async def test_commute_route_sensor(
 
 
 async def test_map_card_is_served(hass: HomeAssistant) -> None:
-    """The card and its files are served from a versioned URL and loaded."""
+    """The card's files are served from a URL with their hash, and it's loaded.
+
+    Browsers cache the files for a month, so changed files need a new URL.
+    """
     hass.config.components.add("frontend")
     hass.http = Mock(async_register_static_paths=AsyncMock())
     with patch("custom_components.ontario_511.card.add_extra_js_url") as add_js:
         assert await async_setup_component(hass, DOMAIN, {})
     (paths,) = hass.http.async_register_static_paths.call_args.args
     (path,) = paths
-    assert path.url_path == "/ontario_511/0.1.0-alpha.2"
+    url = f"/ontario_511/{frontend_hash()}"
+    assert path.url_path == url
     assert path.cache_headers
     assert (Path(path.path) / "maplibre-gl.mjs").is_file()
-    add_js.assert_called_once_with(
-        hass, "/ontario_511/0.1.0-alpha.2/ontario-511-map-card.js"
-    )
+    add_js.assert_called_once_with(hass, f"{url}/ontario-511-map-card.js")
+
+
+def test_card_url_changes_with_its_files(tmp_path: Path) -> None:
+    """Changing any of the card's files changes its URL."""
+    (tmp_path / "ontario-511-map-card.js").write_text("one")
+    with patch("custom_components.ontario_511.card.FRONTEND_DIR", tmp_path):
+        before = frontend_hash()
+        (tmp_path / "ontario-511-map-card.js").write_text("two")
+        assert frontend_hash() != before

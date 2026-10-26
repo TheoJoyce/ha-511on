@@ -212,25 +212,34 @@ async def test_area_requires_a_type(
     assert result["errors"] == {CONF_TYPES: "no_types"}
 
 
-@pytest.mark.parametrize(
-    "radius", [pytest.param(499, id="too_small"), pytest.param(50001, id="too_big")]
-)
-async def test_radius_out_of_range(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, radius: int
+async def test_radius_too_large(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """The radius must be 0.5 to 50 km; the form says so in metres."""
+    """The radius can be at most 50 km; the form says so in metres."""
     result = await _start_with_key(hass, aioclient_mock)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {**HOME_INPUT, CONF_LOCATION: {**WEST_END, "radius": radius}},
+        {**HOME_INPUT, CONF_LOCATION: {**WEST_END, "radius": 50001}},
     )
     assert result["step_id"] == "area"
-    assert result["errors"] == {CONF_LOCATION: "radius_out_of_range"}
-    assert result["description_placeholders"] == {
-        "found": "",
-        "min_radius": "500",
-        "max_radius": "50000",
-    }
+    assert result["errors"] == {CONF_LOCATION: "radius_too_large"}
+    assert result["description_placeholders"] == {"found": "", "max_radius": "50000"}
+
+
+@pytest.mark.usefixtures("mock_setup_entry")
+async def test_area_without_radius(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """An area can have no radius, to only be the start or end of a commute."""
+    result = await _start_with_key(hass, aioclient_mock)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**HOME_INPUT, CONF_LOCATION: {**WEST_END, "radius": 0}}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "finish"}
+    )
+    (area,) = result["result"].subentries.values()
+    assert area.data[CONF_RADIUS_KM] == 0
 
 
 @pytest.mark.usefixtures("mock_setup_entry")
