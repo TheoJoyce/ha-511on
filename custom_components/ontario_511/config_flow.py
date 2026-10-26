@@ -649,10 +649,7 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
                 CONF_FEEDS: user_input[CONF_FEEDS],
             }
             _with_ha_area(new_data, user_input)
-            if (ha_area := new_data.get(CONF_HA_AREA)) and ha_area != subentry.data.get(
-                CONF_HA_AREA
-            ):
-                self._assign_area(subentry.subentry_id, ha_area)
+            self._move_devices_if_changed(subentry, new_data)
             if is_commute:
                 new_data[CONF_CORRIDOR_KM] = round(
                     float(user_input[CONF_CORRIDOR_KM]), 1
@@ -699,12 +696,17 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
             data_schema=probatio.Schema(fields),
         )
 
-    def _assign_area(self, subentry_id: str, area_id: str) -> None:
-        """Move every device of an area, commute or item to a Home Assistant area."""
+    def _move_devices_if_changed(
+        self, subentry: ConfigSubentry, new_data: Mapping[str, Any]
+    ) -> None:
+        """Move every device of a subentry to a newly chosen Home Assistant area."""
+        area_id = new_data.get(CONF_HA_AREA)
+        if not area_id or area_id == subentry.data.get(CONF_HA_AREA):
+            return
         entry_id = self._get_entry().entry_id
         registry = dr.async_get(self.hass)
         for device in dr.async_entries_for_config_entry(registry, entry_id):
-            if subentry_id in device.config_entries_subentries.get(entry_id, ()):
+            if device.config_subentry_id == subentry.subentry_id:
                 registry.async_update_device(device.id, area_id=area_id)
 
     async def async_step_reconfigure_commute(
@@ -926,3 +928,20 @@ class ItemSubentryFlow(_EntrySubentryFlow):
             }
         )
         return self.async_show_form(step_id="pick", data_schema=schema)
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Choose the Home Assistant area of a single item's device."""
+        subentry = self._get_reconfigure_subentry()
+        if user_input is not None:
+            data = dict(subentry.data)
+            _with_ha_area(data, user_input)
+            self._move_devices_if_changed(subentry, data)
+            return self.async_update_and_abort(self._get_entry(), subentry, data=data)
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=probatio.Schema(
+                {_ha_area_field(subentry.data.get(CONF_HA_AREA)): AreaSelector()}
+            ),
+        )

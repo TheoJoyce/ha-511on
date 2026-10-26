@@ -672,3 +672,48 @@ async def test_reconfigure_moves_devices_to_ha_area(
     )
     assert devices
     assert {d.area_id for d in devices} == {outside.id}
+
+
+async def test_reconfigure_item(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    mock_api: AiohttpClientMocker,
+    area_registry: ar.AreaRegistry,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """A single item's settings only choose its Home Assistant area."""
+    outside = area_registry.async_create("Outside")
+    result = await _start_subentry(hass, init_integration, SUBENTRY_ITEM)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_RESOURCE: Resource.CAMERAS.value}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_ITEM_ID: "456"}
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+    item = next(
+        s
+        for s in init_integration.subentries.values()
+        if s.subentry_type == SUBENTRY_ITEM
+    )
+
+    result = await init_integration.start_subentry_reconfigure_flow(
+        hass, item.subentry_id
+    )
+    assert list(result["data_schema"].schema) == [CONF_HA_AREA]
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_HA_AREA: outside.id}
+    )
+    assert result["reason"] == "reconfigure_successful"
+    assert init_integration.subentries[item.subentry_id].data[CONF_HA_AREA] == (
+        outside.id
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+    (device,) = (
+        d
+        for d in dr.async_entries_for_config_entry(
+            device_registry, init_integration.entry_id
+        )
+        if d.config_subentry_id == item.subentry_id
+    )
+    assert device.area_id == outside.id
