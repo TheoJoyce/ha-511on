@@ -72,13 +72,13 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 
 ### Workflow
 
-1. **Branch:** create `dev/<version>` from `main` and bump the version.
+1. **Branch:** create `dev/<version>` from `main`, bump the version, and start the release notes in `docs/releases/<version>.md` (`tests/test_manifest.py` checks they exist). Write them for users: what's new, what to do when upgrading, and known limitations; keep the not-affiliated line and the OGL–Ontario attribution, as earlier notes do.
 2. **Push every commit** to the branch on GitHub.
 3. **Draft PR:** if the branch has no pull request yet, open a **draft** PR into `main` using the PR template. Fill in the version, the goals, and a task checklist for the release.
 4. **Work in the PR:** all commits, reviews and checklists for that version live in its PR. Tick tasks as they're done and add new ones as they come up. Mark the PR ready for review when the tasks are done.
-5. **Merge:** a human reviews and approves the PR, then merges it. A merge means that version is official.
+5. **Merge:** a human reviews and approves the PR, including its release notes, then merges it. A merge means that version is official, and publishes it (step 7).
 6. **Delete the branch:** the branch is always deleted after merging. GitHub does this automatically (the repository has "Automatically delete head branches" turned on).
-7. **Release:** tag the merge commit `v<version>` and publish a GitHub release from the tag. Mark alpha, beta and rc versions as pre-releases: HACS only offers pre-releases to users who turn on beta versions. `.github/workflows/release.yml` fails if the tag doesn't match the manifest version or the pre-release flag is wrong.
+7. **Release:** automatic. On every push to `main`, `.github/workflows/release.yml` tags the merge commit `v<version>` (from `manifest.json`) and publishes a GitHub release with `docs/releases/<version>.md` as its notes. Alpha, beta and rc versions are marked as pre-releases, because HACS only offers those to users who turn on beta versions. If the tag already exists, it publishes nothing, so a merge that doesn't bump the version releases nothing. Don't tag or publish releases by hand.
 
 ## Git Commit Guidelines
 

@@ -28,3 +28,11 @@ def test_versions_match_and_are_semver() -> None:
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     assert manifest_version == project["version"]
     assert AwesomeVersion(manifest_version).strategy is AwesomeVersionStrategy.SEMVER
+
+
+def test_release_notes_exist() -> None:
+    """Merging into main publishes the release with these notes."""
+    version = json.loads(MANIFEST.read_text())["version"]
+    notes = ROOT / "docs" / "releases" / f"{version}.md"
+    assert notes.is_file(), f"Write the release notes in {notes.relative_to(ROOT)}"
+    assert notes.read_text().strip()

@@ -1,33 +1,62 @@
 name: Release
 
+# Merging a release's pull request into main publishes it: the merge commit
+# is tagged v<version> from manifest.json, and the release notes come from
+# docs/releases/<version>.md, reviewed in that pull request. Alpha, beta and
+# rc versions are pre-releases, which HACS only offers to users who turn on
+# beta versions. A merge whose version already has a tag publishes nothing.
+
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
-  check-version:
+  release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
 
-      - name: Tag matches manifest version
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-          PRERELEASE: ${{ github.event.release.prerelease }}
+      - name: Read the version
+        id: version
         run: |
           version=$(jq -r .version custom_components/ontario_511/manifest.json)
-          if [ "$TAG" != "v$version" ]; then
-            echo "::error::Tag $TAG does not match manifest version v$version"
+          project=$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml)
+          if [ "$version" != "$project" ]; then
+            echo "::error::manifest.json ($version) and pyproject.toml ($project) differ"
             exit 1
           fi
-          case "$version" in
-            *-*) expected=true ;;
-            *) expected=false ;;
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          tag="v$VERSION"
+          if gh release view "$tag" > /dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
+            echo "::notice::$tag already exists; nothing to release"
+            exit 0
+          fi
+          notes="docs/releases/$VERSION.md"
+          if [ ! -f "$notes" ]; then
+            echo "::error::$notes is missing"
+            exit 1
+          fi
+          case "$VERSION" in
+            *-*) channel=(--prerelease --latest=false) ;;
+            *) channel=(--latest) ;;
           esac
-          if [ "$PRERELEASE" != "$expected" ]; then
-            echo "::error::Version $version needs pre-release=$expected on GitHub"
-            exit 1
-          fi
+          gh release create "$tag" \
+            --target "$GITHUB_SHA" \
+            --title "$tag" \
+            --notes-file "$notes" \
+            "${channel[@]}"
