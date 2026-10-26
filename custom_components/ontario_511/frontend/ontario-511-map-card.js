@@ -2,7 +2,8 @@
 //
 // Home Assistant's map card can't draw lines, so this card draws any entity
 // with a `route` attribute (an Ontario 511 commute's Route sensor) as a line,
-// and any entity with a latitude and longitude as a marker. It uses MapLibre
+// with its `local` roads dashed, and any entity with a latitude and longitude
+// as a marker. It uses MapLibre
 // GL (bundled next to this file) and the same free OpenStreetMap vector tiles
 // (VersaTiles) as Home Assistant's own map.
 
@@ -12,6 +13,7 @@ const STYLES = {
   dark: "https://tiles.versatiles.org/assets/styles/colorful-dark/style.json",
 };
 const ROUTES = "o511-routes";
+const LOCAL = "o511-local";
 const ZONES = "o511-zones";
 
 let mapLibre;
@@ -132,6 +134,7 @@ class Ontario511MapCard extends HTMLElement {
     if (dark !== this._dark) {
       this._dark = dark;
       this._seen = undefined;
+      this._styleReady = false;
       this._map.setStyle(STYLES[dark ? "dark" : "light"]);
       return;
     }
@@ -144,7 +147,9 @@ class Ontario511MapCard extends HTMLElement {
     ) {
       return;
     }
-    if (!this._map.isStyleLoaded()) {
+    // Not map.isStyleLoaded(): it can still be false when style.load fires,
+    // while sprites and fonts finish, and then nothing would draw.
+    if (!this._styleReady) {
       return;
     }
     this._seen = states;
@@ -180,6 +185,7 @@ class Ontario511MapCard extends HTMLElement {
       );
       // Fires again after a theme change replaces the style.
       this._map.on("style.load", () => {
+        this._styleReady = true;
         this._seen = undefined;
         this._update();
       });
@@ -206,7 +212,16 @@ class Ontario511MapCard extends HTMLElement {
   _draw() {
     const map = this._map;
     const routes = [];
+    const local = [];
     const points = [];
+    const line = (coordinates) => ({
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "LineString",
+        coordinates: coordinates.map(([lat, lon]) => [lon, lat]),
+      },
+    });
     for (const entry of this._config.entities) {
       const state = this._hass.states[entityId(entry)];
       if (!state) {
@@ -214,16 +229,8 @@ class Ontario511MapCard extends HTMLElement {
       }
       const { route, latitude, longitude } = state.attributes;
       if (Array.isArray(route)) {
-        for (const line of route) {
-          routes.push({
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "LineString",
-              coordinates: line.map(([lat, lon]) => [lon, lat]),
-            },
-          });
-        }
+        routes.push(...route.map(line));
+        local.push(...(state.attributes.local ?? []).map(line));
       } else if (typeof latitude === "number" && typeof longitude === "number") {
         points.push({ entry, state, lngLat: [longitude, latitude] });
       }
@@ -251,6 +258,7 @@ class Ontario511MapCard extends HTMLElement {
       }));
 
     this._setSource(ZONES, zones);
+    this._setSource(LOCAL, local);
     this._setSource(ROUTES, routes);
     if (!map.getLayer(ZONES)) {
       const accent = this._color("--accent-color", "#ff9800");
@@ -259,6 +267,19 @@ class Ontario511MapCard extends HTMLElement {
         type: "fill",
         source: ZONES,
         paint: { "fill-color": accent, "fill-opacity": 0.15 },
+      });
+      // Local roads are straight lines standing in for streets: dashed.
+      map.addLayer({
+        id: LOCAL,
+        type: "line",
+        source: LOCAL,
+        layout: { "line-cap": "round" },
+        paint: {
+          "line-color": this._color("--primary-color", "#03a9f4"),
+          "line-width": 3,
+          "line-opacity": 0.7,
+          "line-dasharray": [2, 2],
+        },
       });
       map.addLayer({
         id: `${ROUTES}-casing`,
@@ -280,9 +301,11 @@ class Ontario511MapCard extends HTMLElement {
     }
     this._drawMarkers(points);
 
-    if (!this._fitted && (routes.length || points.length)) {
+    if (!this._fitted && (routes.length || local.length || points.length)) {
       const bounds = new this._lib.LngLatBounds();
-      routes.forEach((f) => f.geometry.coordinates.forEach((c) => bounds.extend(c)));
+      [...routes, ...local].forEach((f) =>
+        f.geometry.coordinates.forEach((c) => bounds.extend(c))
+      );
       points.forEach((p) => bounds.extend(p.lngLat));
       map.fitBounds(bounds, { padding: 40, maxZoom: 14, duration: 0 });
       this._fitted = true;
@@ -407,9 +430,13 @@ class Ontario511MapCardEditor extends HTMLElement {
   }
 }
 
-if (!customElements.get(CARD_TYPE)) {
-  customElements.define(CARD_TYPE, Ontario511MapCard);
-  customElements.define(`${CARD_TYPE}-editor`, Ontario511MapCardEditor);
+const register = () => {
+  const registry = window.customElements;
+  if (registry.get(CARD_TYPE)) {
+    return;
+  }
+  registry.define(CARD_TYPE, Ontario511MapCard);
+  registry.define(`${CARD_TYPE}-editor`, Ontario511MapCardEditor);
   window.customCards = window.customCards || [];
   window.customCards.push({
     type: CARD_TYPE,
@@ -418,4 +445,15 @@ if (!customElements.get(CARD_TYPE)) {
     preview: true,
     documentationURL: "https://github.com/TheoJoyce/ha-511on#map-card",
   });
-}
+};
+
+// Home Assistant loads this module alongside its own bundles, which then put
+// their own custom element registry in place of window.customElements. A card
+// defined before that is invisible to the frontend, so wait for the frontend's
+// root element to be defined first.
+const whenFrontendReady = (check) =>
+  window.customElements.get("home-assistant")
+    ? check()
+    : setTimeout(() => whenFrontendReady(check), 50);
+
+whenFrontendReady(register);

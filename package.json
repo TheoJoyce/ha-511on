@@ -1,0 +1,14 @@
+{
+  "name": "ha-511on-frontend-tests",
+  "private": true,
+  "description": "Tests for the Ontario 511 map card. The card itself has no build step or dependencies.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/frontend/",
+    "test:e2e": "node scripts/e2e_card.mjs"
+  },
+  "devDependencies": {
+    "@happy-dom/global-registrator": "20.14.6",
+    "playwright-core": "1.64.0"
+  }
+}
