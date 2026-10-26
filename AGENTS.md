@@ -72,11 +72,11 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 
 ### Workflow
 
-1. **Branch:** create `dev/<version>` from `main`, bump the version, and add a `## [<version>] - <date>` section at the top of `CHANGELOG.md` (`tests/test_manifest.py` checks it exists). Write it for users: what's new, what to do when upgrading, and known limitations, under `###` headings like earlier versions. The release adds the not-affiliated notice and the OGL–Ontario attribution itself.
+1. **Branch:** create `dev/<version>` from `main`, bump the version, and add a `## [<version>] - Unreleased` section at the top of `CHANGELOG.md` (`tests/test_manifest.py` checks it exists). Before the PR is ready, replace `Unreleased` with the date; the Release workflow refuses a version still marked Unreleased. Write it for users: what's new, what to do when upgrading, and known limitations, under `###` headings like earlier versions. The release adds the not-affiliated notice and the OGL–Ontario attribution itself.
 2. **Push every commit** to the branch on GitHub.
 3. **Draft PR:** if the branch has no pull request yet, open a **draft** PR into `main` using the PR template. Fill in the version, the goals, and a task checklist for the release.
 4. **Work in the PR:** all commits, reviews and checklists for that version live in its PR. Tick tasks as they're done and add new ones as they come up. Mark the PR ready for review when the tasks are done.
-5. **Merge:** a human reviews and approves the PR, including its release notes, then merges it. A merge means that version is official, and publishes it (step 7).
+5. **Merge:** the maintainer reviews the PR, including its release notes, and merges it. A merge means that version is official, and publishes it (step 7). A PR is finished once it's merged: the branch deletion and the release are automatic, so nothing is tracked or updated in it afterwards.
 6. **Delete the branch:** the branch is always deleted after merging. GitHub does this automatically (the repository has "Automatically delete head branches" turned on).
 7. **Release:** automatic. On every push to `main`, `.github/workflows/release.yml` tags the merge commit `v<version>` (from `manifest.json`) and publishes a GitHub release with that version's `CHANGELOG.md` section as its notes. Alpha, beta and rc versions are marked as pre-releases, because HACS only offers those to users who turn on beta versions. If the tag already exists, it publishes nothing, so a merge that doesn't bump the version releases nothing. Don't tag or publish releases by hand.
 
