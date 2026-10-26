@@ -1,10 +1,11 @@
 name: Release
 
 # Merging a release's pull request into main publishes it: the merge commit
-# is tagged v<version> from manifest.json, and the release notes come from
-# docs/releases/<version>.md, reviewed in that pull request. Alpha, beta and
-# rc versions are pre-releases, which HACS only offers to users who turn on
-# beta versions. A merge whose version already has a tag publishes nothing.
+# is tagged v<version> from manifest.json, and the release notes are that
+# version's section of CHANGELOG.md, reviewed in that pull request. Alpha,
+# beta and rc versions are pre-releases, which HACS only offers to users who
+# turn on beta versions. A merge whose version already has a tag publishes
+# nothing.
 
 on:
   push:
@@ -46,11 +47,23 @@ jobs:
             echo "::notice::$tag already exists; nothing to release"
             exit 0
           fi
-          notes="docs/releases/$VERSION.md"
-          if [ ! -f "$notes" ]; then
-            echo "::error::$notes is missing"
+          # The lines under "## [<version>]", up to the next version.
+          awk -v heading="## [$VERSION]" '
+            index($0, "## [") == 1 { found = index($0, heading) == 1; next }
+            found
+          ' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::CHANGELOG.md has no section for $VERSION"
             exit 1
           fi
+          cat >> notes.md <<'FOOTER'
+
+          ---
+
+          Community-maintained; not affiliated with or endorsed by Ontario 511, the Ministry of Transportation, or the Government of Ontario.
+
+          Data: contains information licensed under the [Open Government Licence – Ontario](https://www.ontario.ca/page/open-government-licence-ontario).
+          FOOTER
           case "$VERSION" in
             *-*) channel=(--prerelease --latest=false) ;;
             *) channel=(--latest) ;;
@@ -58,5 +71,5 @@ jobs:
           gh release create "$tag" \
             --target "$GITHUB_SHA" \
             --title "$tag" \
-            --notes-file "$notes" \
+            --notes-file notes.md \
             "${channel[@]}"
