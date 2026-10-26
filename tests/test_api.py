@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 import aiohttp
 from homeassistant.core import HomeAssistant
@@ -16,9 +17,11 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 from custom_components.ontario_511.api import (
     RATE_LIMIT_CALLS,
     RATE_LIMIT_PERIOD,
+    DevCacheClient,
     Ontario511AuthError,
     Ontario511Client,
     Ontario511ConnectionError,
+    Ontario511DevCacheError,
     Ontario511Error,
     Ontario511RateLimitError,
     RateLimiter,
@@ -185,3 +188,15 @@ def test_every_resource_has_a_fixture(resource: Resource) -> None:
     """Each resource has a fixture with at least the two documented samples."""
     items = load_json_array_fixture(f"{resource.value}.json")
     assert len(items) >= 2
+
+
+async def test_dev_cache_client(tmp_path: Path) -> None:
+    """Saved responses are served as they are; bad or missing ones raise."""
+    (tmp_path / "alerts.json").write_text('[{"Id": 1}]')
+    (tmp_path / "event.json").write_text('{"not": "a list"}')
+    client = DevCacheClient(tmp_path)
+    assert await client.async_get(Resource.ALERTS) == [{"Id": 1}]
+    with pytest.raises(Ontario511DevCacheError):
+        await client.async_get(Resource.EVENTS)
+    with pytest.raises(Ontario511DevCacheError):
+        await client.async_get(Resource.CAMERAS)

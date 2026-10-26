@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 import hashlib
 import json
+from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from homeassistant.components.zone import ATTR_RADIUS
 from homeassistant.config_entries import (
@@ -17,13 +20,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import area_registry as ar, device_registry as dr
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import MockConfigEntry, load_fixture
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
 from custom_components.ontario_511.api import Resource
-from custom_components.ontario_511.client import get_rate_limiter
+from custom_components.ontario_511.client import DEV_API_KEY, get_rate_limiter
 from custom_components.ontario_511.const import (
     CONF_ADDRESS,
     CONF_CORRIDOR_KM,
@@ -717,3 +720,48 @@ async def test_reconfigure_item(
         if d.config_subentry_id == item.subentry_id
     )
     assert device.area_id == outside.id
+
+
+@pytest.fixture
+def dev_cache(tmp_path: Path) -> Generator[Path]:
+    """Point the development key at a copy of the test fixtures."""
+    for resource in Resource:
+        (tmp_path / f"{resource.value}.json").write_text(
+            load_fixture(f"{resource.value}.json")
+        )
+    with patch("custom_components.ontario_511.client.DEV_CACHE_DIR", tmp_path):
+        yield tmp_path
+
+
+@pytest.mark.usefixtures("mock_setup_entry", "dev_cache")
+async def test_dev_key_uses_saved_responses(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """The development key reads saved responses, with no request or limit."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_API_KEY: DEV_API_KEY}
+    )
+    assert result["step_id"] == "area"
+    assert aioclient_mock.call_count == 0
+    limiter = get_rate_limiter(hass)
+    assert limiter.available == limiter.calls
+
+
+async def test_dev_key_without_saved_responses(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, tmp_path: Path
+) -> None:
+    """Outside a development checkout, the development key is refused."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    with patch(
+        "custom_components.ontario_511.client.DEV_CACHE_DIR", tmp_path / "missing"
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_API_KEY: DEV_API_KEY}
+        )
+    assert result["errors"] == {"base": "dev_cache_missing"}
+    assert aioclient_mock.call_count == 0

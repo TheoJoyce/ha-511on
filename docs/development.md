@@ -15,6 +15,14 @@ Home Assistant runs at http://localhost:8123 with its config in `config/` (gitig
 - With the fake API, any key works except `invalid`, which is rejected the way Ontario 511 rejects a bad key (useful for testing re-authentication).
 - Don't use `--live` while another Home Assistant uses the same key: they don't share a rate limiter.
 
+## Development key
+
+Enter `dev-cache` as the API key to use the saved responses in `.dev-cache/api/` instead of Ontario 511. Nothing is requested and no real key is involved, so you can add as many areas, commutes and items as you like, then add a second entry with your own key when you want live, end-to-end tests.
+
+- It works in any Home Assistant that runs this checkout's `custom_components/` through a symlink (as `scripts/develop` does, with or without `--live`), as long as `.dev-cache/api/` holds all 16 resources. Refresh them with `uv run python -m scripts.record_fixtures .dev-cache/api`.
+- The saved files are found next to `custom_components/` (two levels above the integration's code). In a Home Assistant that has a copy of the integration, put a `.dev-cache/api/` folder in its config directory to use the key there. Elsewhere it's refused with "That's the development key…".
+- The data doesn't change, and the rate limiter isn't involved because no call is made. To test changing data or the rate limit, use the fake API below.
+
 ## Fake Ontario 511 API
 
 `scripts/fake_511.py` serves the full responses saved in `.dev-cache/api/` (refresh them with `uv run python -m scripts.record_fixtures .dev-cache/api`). It runs on http://127.0.0.1:8511 and:

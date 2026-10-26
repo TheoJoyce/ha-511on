@@ -55,6 +55,7 @@ from . import Ontario511ConfigEntry
 from .api import (
     Ontario511AuthError,
     Ontario511Client,
+    Ontario511DevCacheError,
     Ontario511Error,
     Ontario511RateLimitError,
     Resource,
@@ -225,6 +226,8 @@ async def _async_validate_key(hass: HomeAssistant, api_key: str) -> dict[str, st
         return {"base": "invalid_auth"}
     except Ontario511RateLimitError:
         return {"base": "rate_limited"}
+    except Ontario511DevCacheError:
+        return {"base": "dev_cache_missing"}
     except Ontario511Error:
         return {"base": "cannot_connect"}
     except Exception:

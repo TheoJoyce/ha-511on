@@ -14,7 +14,8 @@
       "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
       "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
       "outside_ontario": "That address isn't in Ontario.",
-      "radius_out_of_range": "The radius must be between {min_radius} and {max_radius} metres."
+      "radius_out_of_range": "The radius must be between {min_radius} and {max_radius} metres.",
+      "dev_cache_missing": "That's the development key, which only works in a development checkout with saved responses in .dev-cache/api. Enter your own API key."
     },
     "step": {
       "user": {
