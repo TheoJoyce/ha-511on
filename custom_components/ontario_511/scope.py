@@ -80,7 +80,7 @@ def segments_within_corridor(
     found: list[tuple[RoadSegment, float]] = []
     for segment in segments:
         if segment.bbox is None or not any(
-            _boxes_near(segment.bbox, box, width_km) for box in boxes
+            boxes_near(segment.bbox, box, width_km) for box in boxes
         ):
             continue
         km = min(
@@ -96,7 +96,8 @@ def segments_within_corridor(
     return sorted(found, key=lambda pair: pair[1])
 
 
-def _boxes_near(a: BoundingBox, b: BoundingBox, km: float) -> bool:
+def boxes_near(a: BoundingBox, b: BoundingBox, km: float) -> bool:
+    """Return False only when the boxes are certainly further than ``km`` apart."""
     pad = km / 111.0 * 2
     return not (
         a.max_lat + pad < b.min_lat

@@ -9,8 +9,10 @@
 // it adds an area, a second area and a commute to it, and removes only those
 // afterwards; otherwise it sets one up and removes it afterwards. It then
 // puts the map card on a dashboard and checks in headless Chromium that the
-// route is drawn, markers appear, map tiles load and a marker opens its
-// entity. Screenshots go to config/e2e/.
+// route is drawn along roads, markers appear, map tiles load and a marker
+// opens its entity. Screenshots go to config/e2e/. The commute's route comes
+// from the fake API's saved routes (.dev-cache/routing/), fetched once from
+// OpenStreetMap's routing server if they aren't saved yet.
 //
 // Chromium comes from Playwright's cache; set PLAYWRIGHT_CHROMIUM to use
 // another build.
@@ -163,7 +165,9 @@ const createEntry = async (token) => {
   flow = await step(flow.flow_id, { next_step_id: "destination" });
   flow = await step(flow.flow_id, WORK_INPUT);
   flow = await step(flow.flow_id, COMMUTE_INPUT);
-  check("Entry created with a commute", flow.type === "create_entry");
+  // A menu here means road routing failed (routing_failed or
+  // routing_unavailable).
+  check("Entry created with a commute", flow.type === "create_entry", flow.step_id ?? "");
   return flow.result.entry_id;
 };
 
@@ -192,7 +196,11 @@ const addToEntry = async (ws, token, entryId) => {
   flow = await step(flow.flow_id, { from_area: home.unique_id });
   flow = await step(flow.flow_id, WORK_INPUT);
   flow = await step(flow.flow_id, COMMUTE_INPUT);
-  check("Commute added to the existing development entry", flow.type === "create_entry");
+  check(
+    "Commute added to the existing development entry",
+    flow.type === "create_entry",
+    flow.step_id ?? ""
+  );
   return (await listed()).filter((s) => !before.has(s.subentry_id)).map((s) => s.subentry_id);
 };
 
@@ -218,11 +226,17 @@ const findCommute = async (ws, token, entryId, subentryIds) => {
   const camera = ours.find(
     (e) => e.entity_id.startsWith("camera.") && byId[e.entity_id]?.attributes.latitude
   );
-  const lines = byId[found.entity_id].attributes.route;
+  const { route: lines, local, alternatives } = byId[found.entity_id].attributes;
   check(
     "Route sensor has the commute's route",
     lines.length > 0,
-    `${byId[found.entity_id].state} km over ${lines.length} stretches`
+    `${byId[found.entity_id].state} km over ${lines.length} stretches, ` +
+      `${alternatives.length} stretches of other routes`
+  );
+  check(
+    "Route planned along roads",
+    local.length === 0,
+    local.length ? `${local.length} straight stand-ins` : ""
   );
   return [found.entity_id, ...onSummary.map((e) => e.entity_id), camera?.entity_id].filter(
     Boolean
@@ -306,6 +320,7 @@ const checkCard = async (tokens, entities) => {
       return {
         style: map.getStyle().name,
         routes: map.queryRenderedFeatures({ layers: ["o511-routes"] }).length,
+        alternatives: map.queryRenderedFeatures({ layers: ["o511-alternatives"] }).length,
         local: map.queryRenderedFeatures({ layers: ["o511-local"] }).length,
         roads: map.queryRenderedFeatures().filter((f) => f.sourceLayer).length,
         markers: card.shadowRoot.querySelectorAll(".marker").length,
@@ -318,7 +333,11 @@ const checkCard = async (tokens, entities) => {
     check("OpenStreetMap tiles loaded", report.roads > 0, `${report.roads} map features`);
     check("OpenStreetMap attribution shown", report.attribution.includes("OpenStreetMap"));
     check("Commute route rendered", report.routes > 0, `${report.routes} route features`);
-    check("Local roads rendered dashed", report.local > 0, `${report.local} local features`);
+    check(
+      "No straight stand-ins for local roads",
+      report.local === 0,
+      `${report.alternatives} features of other routes`
+    );
     check(
       "A marker for each located entity",
       report.markers === expectedMarkers,

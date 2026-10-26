@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
-from itertools import pairwise
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -20,9 +19,15 @@ from homeassistant.helpers.typing import StateType
 
 from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
 from .api import Resource
-from .commute import route_pieces
+from .commute import alternative_pieces, route_pieces
 from .conditions import RoadCondition
-from .const import NEAREST_EVENTS, SUBENTRY_COMMUTE, SUBENTRY_ITEM
+from .const import (
+    CONF_ROUTING,
+    NEAREST_EVENTS,
+    ROUTING_ROADS,
+    SUBENTRY_COMMUTE,
+    SUBENTRY_ITEM,
+)
 from .coordinator import ResourceCoordinator
 from .entity import (
     LOCATION_ATTRIBUTES,
@@ -33,7 +38,7 @@ from .entity import (
     location_attributes,
 )
 from .feeds import Scope
-from .geo import Point, distance_km
+from .geo import Point, line_km
 from .models import (
     VISIBILITY_OPTIONS,
     Camera as CameraModel,
@@ -388,9 +393,7 @@ def _summary_sensors(
     if road is not None:
         sensors.append(WorstConditionSensor(road, subentry_id, title))
         if subentry.subentry_type == SUBENTRY_COMMUTE:
-            sensors.append(
-                RouteSensor(road, subentry_id, title, route_pieces(subentry.data))
-            )
+            sensors.append(RouteSensor(road, subentry_id, title, subentry.data))
     for feed in (Resource.EVENTS, Resource.CONSTRUCTION, Resource.ALERTS):
         if feed in feeds and (coordinator := coordinators.get(feed)):
             sensors.append(ScopeCountSensor(coordinator, subentry_id, title, road))
@@ -620,43 +623,44 @@ class NearestEventSensor(SummaryEntity, SensorEntity):
 
 
 class RouteSensor(SummaryEntity, SensorEntity):
-    """A commute's route: the roads it covers, drawn by the map card.
+    """A commute's routes, drawn by the map card.
 
-    The state is the length of the distinct stretches driven by all of the
-    commute's routes. As [latitude, longitude] lines, ``route`` holds the
-    highway stretches and ``local`` the local roads between them and the start
-    and end, which are straight lines. They never change, so they aren't
-    recorded.
+    The state is the main route's length. As [latitude, longitude] lines,
+    ``route`` holds the main route, ``alternatives`` the other routes items
+    were generated along, and ``local`` the straight lines standing in for
+    local roads when the routes were planned over highways only. They only
+    change when the commute is planned again, so they aren't recorded.
     """
 
     _attr_device_class = SensorDeviceClass.DISTANCE
     _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
     _attr_suggested_display_precision = 0
-    _unrecorded_attributes = frozenset({"route", "local"})
+    _unrecorded_attributes = frozenset({"route", "alternatives", "local"})
 
     def __init__(
         self,
         road: ResourceCoordinator,
         subentry_id: str,
         subentry_title: str,
-        pieces: list[tuple[str, tuple[Point, ...]]],
+        data: Mapping[str, Any],
     ) -> None:
-        """Initialize the sensor from the commute's stored route."""
+        """Initialize the sensor from the commute's stored routes."""
         super().__init__(road, subentry_id, subentry_title, "commute_route")
-        distinct = list(dict.fromkeys(pieces))
-        self._attr_native_value = round(
-            sum(distance_km(a, b) for _, line in distinct for a, b in pairwise(line)),
-            1,
-        )
-
-        def lines(local: bool) -> list[list[list[float]]]:
-            return [
-                [[round(lat, 5), round(lon, 5)] for lat, lon in line]
-                for segment_id, line in distinct
-                if (not segment_id) == local
-            ]
-
+        main = list(dict.fromkeys(route_pieces(data)))
+        self._attr_native_value = round(sum(line_km(line) for _, line in main), 1)
+        # Along roads, every piece follows a road; over highways, pieces
+        # without a segment are straight stand-ins.
+        straight = data.get(CONF_ROUTING) != ROUTING_ROADS
         self._attr_extra_state_attributes = {
-            "route": lines(local=False),
-            "local": lines(local=True),
+            "route": [_rounded(line) for sid, line in main if sid or not straight],
+            "alternatives": [
+                _rounded(line)
+                for pieces in alternative_pieces(data)
+                for _, line in pieces
+            ],
+            "local": [_rounded(line) for sid, line in main if not sid and straight],
         }
+
+
+def _rounded(line: Iterable[Point]) -> list[list[float]]:
+    return [[round(lat, 5), round(lon, 5)] for lat, lon in line]

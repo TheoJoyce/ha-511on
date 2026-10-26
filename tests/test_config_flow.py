@@ -29,6 +29,7 @@ from custom_components.ontario_511.api import Resource
 from custom_components.ontario_511.client import DEV_API_KEY, get_rate_limiter
 from custom_components.ontario_511.const import (
     CONF_ADDRESS,
+    CONF_ALTERNATIVES,
     CONF_CORRIDOR_KM,
     CONF_CREATE_ZONE,
     CONF_FEEDS,
@@ -40,21 +41,26 @@ from custom_components.ontario_511.const import (
     CONF_RADIUS_KM,
     CONF_RESOURCE,
     CONF_ROUTE,
+    CONF_ROUTING,
     CONF_SEGMENTS,
     CONF_TO_AREA,
     CONF_TYPES,
     DEFAULT_RADIUS_KM,
     DOMAIN,
+    ROUTING_HIGHWAYS,
+    ROUTING_ROADS,
     SUBENTRY_AREA,
     SUBENTRY_COMMUTE,
     SUBENTRY_ITEM,
     VALIDATION_RESOURCE,
 )
-from custom_components.ontario_511.geocode import SEARCH_URL, SWITCH_URL
+from custom_components.ontario_511.geo import decode_polyline
+from custom_components.ontario_511.geocode import SEARCH_URL
 from custom_components.ontario_511.models import RoadSegment
+from custom_components.ontario_511.osm import SWITCH_URL
 
-from .common import EAST_401, KENORA, WEST_401
-from .conftest import API_KEY, AREA_ID, area_data
+from .common import ALONG_401, EAST_401, KENORA, WEST_401
+from .conftest import API_KEY, AREA_ID, ROUTE_PATTERN, area_data, serve_routes
 
 INVALID_KEY_BODY = "<Error><Message>Invalid Key</Message></Error>"
 # The west end of the synthetic Highway 401, and its east end.
@@ -140,6 +146,7 @@ async def test_setup_with_commute(
 ) -> None:
     """A commute in setup adds a second area, then routes between the two."""
     _mock_road_conditions(aioclient_mock)
+    serve_routes(aioclient_mock)
     configure = hass.config_entries.flow.async_configure
     result = await _start_with_key(hass, aioclient_mock)
     result = await configure(result["flow_id"], HOME_INPUT)
@@ -161,19 +168,22 @@ async def test_setup_with_commute(
     assert commute.title == "Work run"
     assert commute.data[CONF_FROM_AREA] == home.unique_id
     assert commute.data[CONF_TO_AREA] == work.unique_id
+    # The road route runs along both segments of the 401.
+    assert commute.data[CONF_ROUTING] == ROUTING_ROADS
     assert commute.data[CONF_SEGMENTS] == [WEST_ID, EAST_ID]
-    # Local roads to and from the 401 have no segment ID.
-    assert {sid for sid, _ in commute.data[CONF_ROUTE]} == {"", WEST_ID, EAST_ID}
+    assert [sid for sid, _ in commute.data[CONF_ROUTE]] == [WEST_ID, EAST_ID]
+    assert commute.data[CONF_ALTERNATIVES] == []
     assert commute.data[CONF_FEEDS] == ["event"]
     assert commute.data[CONF_PENDING] == ["cameras"]
 
 
 @pytest.mark.usefixtures("mock_setup_entry")
-async def test_local_commute_uses_a_straight_corridor(
+async def test_commute_off_the_highways_follows_the_roads(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """With no sensible highway route, the commute follows the straight line."""
+    """Without Ontario 511 segments on the way, the route is the road route."""
     _mock_road_conditions(aioclient_mock, [KENORA])
+    serve_routes(aioclient_mock)
     configure = hass.config_entries.flow.async_configure
     result = await _start_with_key(hass, aioclient_mock)
     result = await configure(result["flow_id"], HOME_INPUT)
@@ -183,7 +193,73 @@ async def test_local_commute_uses_a_straight_corridor(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     commute = list(result["result"].subentries.values())[-1]
     assert commute.data[CONF_SEGMENTS] == []
-    assert len(commute.data[CONF_ROUTE]) == 1
+    ((segment_id, encoded),) = commute.data[CONF_ROUTE]
+    assert segment_id == ""
+    assert decode_polyline(encoded) == ALONG_401
+
+
+@pytest.mark.parametrize(
+    ("routing", "status", "step_id"),
+    [
+        pytest.param(False, 200, "routing_unavailable", id="switched_off"),
+        pytest.param(True, 503, "routing_failed", id="service_down"),
+    ],
+)
+@pytest.mark.usefixtures("mock_setup_entry")
+async def test_commute_when_routing_fails(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    routing: bool,
+    status: int,
+    step_id: str,
+) -> None:
+    """Without road routing, the user can try again or use highways only."""
+    _mock_road_conditions(aioclient_mock)
+    aioclient_mock.get(SWITCH_URL, json={"enabled": True, "routing": routing})
+    aioclient_mock.get(ROUTE_PATTERN, status=status)
+    configure = hass.config_entries.flow.async_configure
+    result = await _start_with_key(hass, aioclient_mock)
+    result = await configure(result["flow_id"], HOME_INPUT)
+    result = await configure(result["flow_id"], {"next_step_id": "destination"})
+    result = await configure(result["flow_id"], WORK_INPUT)
+    result = await configure(result["flow_id"], COMMUTE_INPUT)
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == step_id
+    assert result["menu_options"] == ["commute_retry", "commute_highways"]
+
+    result = await configure(result["flow_id"], {"next_step_id": "commute_retry"})
+    assert result["step_id"] == step_id
+
+    result = await configure(result["flow_id"], {"next_step_id": "commute_highways"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    commute = list(result["result"].subentries.values())[-1]
+    assert commute.data[CONF_ROUTING] == ROUTING_HIGHWAYS
+    assert commute.data[CONF_SEGMENTS] == [WEST_ID, EAST_ID]
+
+
+@pytest.mark.usefixtures("mock_setup_entry")
+async def test_commute_routing_retry(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Trying again uses the settings already entered."""
+    _mock_road_conditions(aioclient_mock)
+    aioclient_mock.get(SWITCH_URL, json={"routing": True})
+    aioclient_mock.get(ROUTE_PATTERN, status=503)
+    configure = hass.config_entries.flow.async_configure
+    result = await _start_with_key(hass, aioclient_mock)
+    result = await configure(result["flow_id"], HOME_INPUT)
+    result = await configure(result["flow_id"], {"next_step_id": "destination"})
+    result = await configure(result["flow_id"], WORK_INPUT)
+    result = await configure(result["flow_id"], COMMUTE_INPUT)
+    assert result["step_id"] == "routing_failed"
+
+    aioclient_mock.clear_requests()
+    serve_routes(aioclient_mock)
+    result = await configure(result["flow_id"], {"next_step_id": "commute_retry"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    commute = list(result["result"].subentries.values())[-1]
+    assert commute.title == "Work run"
+    assert commute.data[CONF_ROUTING] == ROUTING_ROADS
 
 
 @pytest.mark.usefixtures("mock_setup_entry")
@@ -428,6 +504,7 @@ async def test_add_commute_to_a_new_area(
     """A commute to a new area adds the area, then the commute."""
     mock_api.clear_requests()
     _mock_road_conditions(mock_api)
+    serve_routes(mock_api)
     configure = hass.config_entries.subentries.async_configure
     result = await _start_subentry(hass, init_integration, SUBENTRY_COMMUTE)
     assert result["type"] is FlowResultType.MENU
@@ -467,7 +544,7 @@ async def test_add_commute_to_a_new_area(
     commute = init_integration.subentries[commute.subentry_id]
     assert commute.data[CONF_SEGMENTS] == [EAST_ID]
     assert commute.data[CONF_CORRIDOR_KM] == 2.5
-    assert {sid for sid, _ in commute.data[CONF_ROUTE]} == {"", EAST_ID}
+    assert [sid for sid, _ in commute.data[CONF_ROUTE]] == [EAST_ID]
 
 
 @pytest.mark.parametrize("subentries", [WEST_AREA])
@@ -489,6 +566,7 @@ async def test_add_commute_between_existing_areas(
     await hass.async_block_till_done(wait_background_tasks=True)
     mock_api.clear_requests()
     _mock_road_conditions(mock_api)
+    serve_routes(mock_api)
     configure = hass.config_entries.subentries.async_configure
     result = await _start_subentry(hass, init_integration, SUBENTRY_COMMUTE)
     result = await configure(result["flow_id"], {"next_step_id": "existing_areas"})

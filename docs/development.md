@@ -23,7 +23,7 @@ npm test                  # unit tests, with a fake MapLibre
 npm run test:e2e          # end to end, against scripts/develop
 ```
 
-The end-to-end check needs `scripts/develop` running and saved responses in `.dev-cache/api/`. It logs in with the dev account and uses the development key (below). If you already have an entry with that key, it adds an area, a second area and a commute along Highway 401 to it, and afterwards removes only those; otherwise it creates an entry and removes it afterwards. It puts the map card on a temporary dashboard and checks in headless Chromium that the route and local roads are drawn, markers appear, the map tiles load and a marker opens its details. Add `-- --keep` to leave what it added. Screenshots go to `config/e2e/`. It uses Playwright's cached Chromium (`npx playwright-core install chromium-headless-shell` if you have none) or `PLAYWRIGHT_CHROMIUM`.
+The end-to-end check needs `scripts/develop` running and saved responses in `.dev-cache/api/`. It logs in with the dev account and uses the development key (below). If you already have an entry with that key, it adds an area, a second area and a commute along Highway 401 to it, and afterwards removes only those; otherwise it creates an entry and removes it afterwards. It puts the map card on a temporary dashboard and checks in headless Chromium that the route is drawn along roads (with no straight stand-ins), markers appear, the map tiles load and a marker opens its details. Add `-- --keep` to leave what it added. Screenshots go to `config/e2e/`. It uses Playwright's cached Chromium (`npx playwright-core install chromium-headless-shell` if you have none) or `PLAYWRIGHT_CHROMIUM`.
 
 ## Development key
 
@@ -82,6 +82,13 @@ curl -s localhost:8511/_dev/state
 # ottawa, kingston, sudbury) are found, "vancouver" is outside Ontario, anything
 # else isn't found. Switch it off to test the remote switch:
 curl -s -X POST localhost:8511/_dev/geocoding -H 'Content-Type: application/json' -d '{"enabled": false}'
+
+# Commute routing: routes are served from .dev-cache/routing/. One that isn't
+# saved yet is fetched once from OpenStreetMap's routing server (at most once a
+# second) and saved, so you see real routes. Switch routing off, or make it
+# fail, to test the fallback to highways only:
+curl -s -X POST localhost:8511/_dev/routing -H 'Content-Type: application/json' -d '{"enabled": false}'
+curl -s -X POST localhost:8511/_dev/routing -H 'Content-Type: application/json' -d '{"fail": true}'
 
 # Back to the saved responses
 curl -s -X POST localhost:8511/_dev/reset

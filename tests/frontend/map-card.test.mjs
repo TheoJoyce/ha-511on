@@ -23,6 +23,13 @@ const ROUTE_STATE = state(ROUTE, "42.0", {
       [43.7, -79.5],
     ],
   ],
+  alternatives: [
+    [
+      [43.7, -79.6],
+      [43.75, -79.55],
+      [43.7, -79.5],
+    ],
+  ],
   local: [
     [
       [43.71, -79.61],
@@ -101,6 +108,12 @@ test("draws routes as lines, located entities as markers, and zones", async () =
     [-79.6, 43.7],
   ]);
   assert.deepEqual(map.layers["o511-local"].paint["line-dasharray"], [2, 2]);
+  const [alternative] = map.sources["o511-alternatives"].data.features;
+  assert.deepEqual(alternative.geometry.coordinates[1], [-79.55, 43.75]);
+  assert.ok(map.layers["o511-alternatives"].paint["line-opacity"] < 1);
+  // Alternatives are drawn under the main route.
+  const order = Object.keys(map.layers);
+  assert.ok(order.indexOf("o511-alternatives") < order.indexOf("o511-routes"));
   const [zone] = map.sources["o511-zones"].data.features;
   assert.equal(zone.geometry.type, "Polygon");
   assert.ok(map.layers["o511-routes"] && map.layers["o511-zones"]);
@@ -117,9 +130,9 @@ test("draws routes as lines, located entities as markers, and zones", async () =
   assert.equal(camera.style.background, "#03a9f4");
   assert.equal(event.title, `${EVENT}: Collision (formatted)`);
 
-  // Fitted once, around the route, its local roads and the markers.
+  // Fitted once, around the routes, local roads and markers.
   assert.equal(map.fits.length, 1);
-  assert.equal(map.fits[0].bounds.points.length, 6);
+  assert.equal(map.fits[0].bounds.points.length, 9);
 });
 
 test("a marker opens the entity's more-info dialog", async () => {

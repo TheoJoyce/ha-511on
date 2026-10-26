@@ -2,8 +2,8 @@
 //
 // Home Assistant's map card can't draw lines, so this card draws any entity
 // with a `route` attribute (an Ontario 511 commute's Route sensor) as a line,
-// with its `local` roads dashed, and any entity with a latitude and longitude
-// as a marker. It uses MapLibre
+// with its `alternatives` faded and any straight `local` stand-ins dashed, and
+// any entity with a latitude and longitude as a marker. It uses MapLibre
 // GL (bundled next to this file) and the same free OpenStreetMap vector tiles
 // (VersaTiles) as Home Assistant's own map.
 
@@ -14,6 +14,7 @@ const STYLES = {
 };
 const ROUTES = "o511-routes";
 const LOCAL = "o511-local";
+const ALTERNATIVES = "o511-alternatives";
 const ZONES = "o511-zones";
 
 let mapLibre;
@@ -222,6 +223,7 @@ class Ontario511MapCard extends HTMLElement {
   _draw() {
     const map = this._map;
     const routes = [];
+    const alternatives = [];
     const local = [];
     const points = [];
     const line = (coordinates) => ({
@@ -240,6 +242,7 @@ class Ontario511MapCard extends HTMLElement {
       const { route, latitude, longitude } = state.attributes;
       if (Array.isArray(route)) {
         routes.push(...route.map(line));
+        alternatives.push(...(state.attributes.alternatives ?? []).map(line));
         local.push(...(state.attributes.local ?? []).map(line));
       } else if (typeof latitude === "number" && typeof longitude === "number") {
         points.push({ entry, state, lngLat: [longitude, latitude] });
@@ -268,6 +271,7 @@ class Ontario511MapCard extends HTMLElement {
       }));
 
     this._setSource(ZONES, zones);
+    this._setSource(ALTERNATIVES, alternatives);
     this._setSource(LOCAL, local);
     this._setSource(ROUTES, routes);
     if (!map.getLayer(ZONES)) {
@@ -278,7 +282,19 @@ class Ontario511MapCard extends HTMLElement {
         source: ZONES,
         paint: { "fill-color": accent, "fill-opacity": 0.15 },
       });
-      // Local roads are straight lines standing in for streets: dashed.
+      // Other routes items were generated along: under the main one, faded.
+      map.addLayer({
+        id: ALTERNATIVES,
+        type: "line",
+        source: ALTERNATIVES,
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": this._color("--primary-color", "#03a9f4"),
+          "line-width": 4,
+          "line-opacity": 0.35,
+        },
+      });
+      // Straight lines standing in for local roads: dashed.
       map.addLayer({
         id: LOCAL,
         type: "line",
@@ -311,9 +327,10 @@ class Ontario511MapCard extends HTMLElement {
     }
     this._drawMarkers(points);
 
-    if (!this._fitted && (routes.length || local.length || points.length)) {
+    const lines = [...routes, ...alternatives, ...local];
+    if (!this._fitted && (lines.length || points.length)) {
       const bounds = new this._lib.LngLatBounds();
-      [...routes, ...local].forEach((f) =>
+      lines.forEach((f) =>
         f.geometry.coordinates.forEach((c) => bounds.extend(c))
       );
       points.forEach((p) => bounds.extend(p.lngLat));
@@ -380,7 +397,7 @@ const SCHEMA = [
 const LABELS = { title: "Title", entities: "Entities" };
 const HELPERS = {
   entities:
-    "A commute's Route sensor draws its route. Other entities with a location, such as nearest events, are shown as markers.",
+    "A commute's Route sensor draws its route, with the other routes its items come from faded. Other entities with a location, such as nearest events, are shown as markers.",
 };
 
 class Ontario511MapCardEditor extends HTMLElement {

@@ -17,15 +17,16 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 - **Disclaimer:** keep the "as is" data disclaimer in the README.
 - **Tests:** tests never call the live API. Use recorded JSON fixtures.
 
-## Address search (OpenStreetMap Nominatim)
+## OpenStreetMap services: address search and road routing
 
-`geocode.py` looks up addresses typed in the area form. The [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) applies to the integration as a whole, so these rules are not negotiable:
+`geocode.py` looks up addresses typed in the area form with OpenStreetMap Nominatim. `directions.py` finds commute routes along roads with OSRM on the FOSSGIS server (`routing.openstreetmap.de`). `osm.py` holds what they share. The [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) and the [FOSSGIS routing policy](https://routing.openstreetmap.de/about.html) apply to the integration as a whole, so these rules are not negotiable:
 
-- Never add autocomplete, periodic, background or bulk lookups. Only a user submitting a form may trigger one.
-- Keep the one-request-per-second spacing, the result cache, and the integration's own User-Agent.
-- Keep the remote switch: `geocoding.json` on `main` must stay in the repository. Lookups must stay refused when it says off or can't be read. To switch address search off for everyone (for example if OpenStreetMap asks), set `"enabled": false` there.
-- Keep the attribution and the note that the address is sent to OpenStreetMap on the form, and in the README.
-- In development, `scripts/develop` points lookups at the fake API (`ONTARIO_511_GEOCODING_BASE`), so test addresses never reach OpenStreetMap. Tests mock both URLs.
+- Never add autocomplete, periodic, background or bulk requests. Only a user submitting a form (or a repair) may trigger one. Old commutes get a repair asking to plan them again; never re-plan in the background.
+- Keep the one-request-per-second spacing per service, the result caches, and the integration's own User-Agent.
+- Keep the remote switch: `geocoding.json` on `main` must stay in the repository. Each service has its own key: `enabled` for address search (which 0.1.0-alpha.1 reads) and `routing` for routing. A service must stay refused when its key isn't `true` or the file can't be read. To switch one off for everyone (for example if OpenStreetMap or FOSSGIS asks), set its key to `false` there.
+- When routing is off or fails, commutes fall back to Ontario 511's highway network (`routing.py`), and the form says so and offers to try again.
+- Keep the attribution and the note that the address, or the commute's start and end, are sent to OpenStreetMap on the forms, and in the README.
+- In development, `scripts/develop` points both services at the fake API (`ONTARIO_511_OSM_BASE`), so test addresses never reach OpenStreetMap. Routes it hasn't saved are fetched once from the routing server and kept in `.dev-cache/routing/`. Tests mock every URL.
 
 ## Rate limits
 
@@ -51,10 +52,11 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 - `coordinator.py`: `ResourceCoordinator`, one per resource in use. It caches the whole parsed response; every entity of that resource reads from it. A forced refresh ("Update entity") reuses the cache inside the freshness window and is debounced. Parsing runs in the executor, because decoding road polylines is slow on small hardware.
 - `models.py`: frozen dataclasses for all 16 resources, all sharing `id`, `name`, `coordinates` and `region`. Resources without an `Id` field get a derived ID from stable fields. Coordinates outside Ontario's bounding box are treated as missing. Road segment polylines are thinned to about one point per 250 m to save memory.
 - `conditions.py`: ranks free-text road conditions; unrecognised text is unknown (never assumed safe) and logged once.
-- `geo.py`: polyline decoding and distances. `scope.py`: which items fall in a radius or commute corridor, and attaching events to their nearest road segment (within 2 km).
+- `geo.py`: polyline decoding, distances and line simplification. `scope.py`: which items fall in a radius or commute corridor, and attaching events to their nearest road segment (within 2 km).
 - `__init__.py`: works out the resources in use from the subentries, creates their coordinators, waits for one (to check the key and connection) and loads the rest in the background, runs the one-time generation for new areas and commutes, and handles deleting an item's device.
 - `generation.py`: chooses generated items (commute corridor first, then nearest to an area's centre, within per-type caps). Pure functions; heavy work runs in the executor.
-- `routing.py`: routes commutes over the road segment network (segments split where others join them partway; Dijkstra; up to three routes within 30% of the best). `commute.py` plans a commute and reads its stored route: the segments used and the stretches actually driven, so corridors follow the trip rather than whole segments. Trips where local roads beat any highway route use the straight start-to-end line.
+- `commute.py` plans a commute and reads its stored routes. Up to three routes along roads (`directions.py`): the service's own alternatives, plus routes through the highway routes it missed, within 30% of the fastest's time. Each is matched to the road segments it runs along. The fastest is the main route: its pieces are the corridor and its segments the summary's. The other routes only add generated items. `routing.py` is the fallback when routing isn't available: it routes over the road segment network (segments split where others join them partway; Dijkstra), with straight lines to and from it.
+- `repairs.py`: the repair that plans commutes from before 0.1.0-alpha.2 (no `routing` in their data) again, along roads.
 - `config_flow.py`: initial setup (key, first area, optional commute) and the area, commute and item subentry flows.
 - `client.py` also holds the instance-wide response cache, so reloading an entry (which happens whenever a subentry changes) reuses fetched data.
 - `feeds.py`: `FeedIndex`, rebuilt only when data changes: active events and construction attached to their road segment, and each area's or commute's scope (events, construction, segments, regions, alerts).

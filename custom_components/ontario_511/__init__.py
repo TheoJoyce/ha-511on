@@ -17,13 +17,14 @@ from homeassistant.helpers import (
     config_validation as cv,
     device_registry as dr,
     entity_registry as er,
+    issue_registry as ir,
 )
 from homeassistant.helpers.typing import ConfigType
 
 from .api import Ontario511Client, Resource
 from .card import async_register_card
 from .client import create_client, key_id
-from .commute import route_lines
+from .commute import generation_lines, generation_segments
 from .const import (
     CONF_CORRIDOR_KM,
     CONF_FEEDS,
@@ -34,11 +35,12 @@ from .const import (
     CONF_PENDING,
     CONF_RADIUS_KM,
     CONF_RESOURCE,
-    CONF_SEGMENTS,
+    CONF_ROUTING,
     DEFAULT_AREA_NAME,
     DEFAULT_RADIUS_KM,
     DOMAIN,
     NEAREST_EVENTS,
+    REPLAN_ISSUE,
     SUBENTRY_AREA,
     SUBENTRY_COMMUTE,
     SUBENTRY_ITEM,
@@ -135,6 +137,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -
             area := areas.async_get_area(area_id)
         ):
             entry.runtime_data.suggested_areas[subentry.subentry_id] = area.name
+    _async_update_replan_issues(hass, entry)
 
     # Setup waits for one resource, which checks the key and connection; the
     # rest load in the background, because with many resources the rate
@@ -158,6 +161,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove the entry's repair issues."""
+    _async_update_replan_issues(hass, entry, removed=True)
+
+
+def _async_update_replan_issues(
+    hass: HomeAssistant, entry: ConfigEntry, *, removed: bool = False
+) -> None:
+    """Ask for commutes planned before routes followed roads to be planned again.
+
+    Planning sends the start and end to OpenStreetMap, so it's left to the
+    user rather than done in the background.
+    """
+    wanted = {
+        f"{REPLAN_ISSUE}_{s.subentry_id}": s
+        for s in entry.subentries.values()
+        if not removed
+        and s.subentry_type == SUBENTRY_COMMUTE
+        and CONF_ROUTING not in s.data
+    }
+    registry = ir.async_get(hass)
+    for domain, issue_id in list(registry.issues):
+        issue = registry.issues[(domain, issue_id)]
+        if (
+            domain == DOMAIN
+            and issue_id.startswith(f"{REPLAN_ISSUE}_")
+            and (issue.data or {}).get("entry_id") == entry.entry_id
+            and issue_id not in wanted
+        ):
+            ir.async_delete_issue(hass, DOMAIN, issue_id)
+    for issue_id, commute in wanted.items():
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=REPLAN_ISSUE,
+            translation_placeholders={"commute": commute.title},
+            data={"entry_id": entry.entry_id, "subentry_id": commute.subentry_id},
+        )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -> bool:
@@ -237,8 +283,8 @@ def _plan_generation(
                 generated = generate_for_commute(
                     resource,
                     items,
-                    subentry.data[CONF_SEGMENTS],
-                    route_lines(subentry.data),
+                    generation_segments(subentry.data),
+                    generation_lines(subentry.data),
                     subentry.data[CONF_CORRIDOR_KM],
                     exclude,
                 )

@@ -63,9 +63,11 @@ from .api import (
 from .client import create_client, key_id
 from .commute import (
     area_key,
+    async_plan_commute,
+    async_replan,
     change_segments,
     new_area_key,
-    plan_commute,
+    plan_highway_commute,
     route_lines,
 )
 from .const import (
@@ -81,6 +83,7 @@ from .const import (
     CONF_LOCATION,
     CONF_PENDING,
     CONF_RADIUS_KM,
+    CONF_REPLAN,
     CONF_RESOURCE,
     CONF_SEGMENTS,
     CONF_START,
@@ -104,6 +107,7 @@ from .const import (
     VALIDATION_RESOURCE,
 )
 from .coordinator import async_fetch_resource
+from .directions import RoutingFailed, RoutingUnavailable, async_get_router
 from .geo import distance_km
 from .geocode import (
     AddressNotFound,
@@ -255,6 +259,7 @@ class _SetupSteps:
     _zones: list[tuple[str, dict[str, Any], float]]
 
     async_show_form: Any
+    async_show_menu: Any
 
     def _client_and_key(self) -> tuple[Ontario511Client, str]:
         raise NotImplementedError
@@ -372,7 +377,6 @@ class _SetupSteps:
         """Settings for a commute between two areas; routes are worked out."""
         assert self._from is not None and self._to is not None
         errors: dict[str, str] = {}
-        start, end = self._from["centre"], self._to["centre"]
         if user_input is not None:
             if not user_input[CONF_TYPES]:
                 errors[CONF_TYPES] = "no_types"
@@ -389,30 +393,11 @@ class _SetupSteps:
                 except Ontario511Error:
                     errors["base"] = "cannot_connect"
                 else:
-                    plan = await self.hass.async_add_executor_job(
-                        plan_commute,
-                        [s for s in segments.values() if isinstance(s, RoadSegment)],
-                        start,
-                        end,
-                    )
-                    feeds, pending = _split_types(user_input[CONF_TYPES])
-                    self._type_count = len(user_input[CONF_TYPES])
-                    self._draft_kind = SUBENTRY_COMMUTE
-                    self._draft = {
-                        CONF_NAME: user_input[CONF_NAME].strip()
-                        or self._commute_name(),
-                        CONF_FROM_AREA: self._from["key"],
-                        CONF_TO_AREA: self._to["key"],
-                        CONF_START: {"latitude": start[0], "longitude": start[1]},
-                        CONF_END: {"latitude": end[0], "longitude": end[1]},
-                        CONF_CORRIDOR_KM: round(float(user_input[CONF_CORRIDOR_KM]), 1),
-                        CONF_FEEDS: feeds,
-                        CONF_PENDING: pending,
-                        CONF_ITEMS: {},
-                        **plan,
-                    }
-                    _with_ha_area(self._draft, user_input)
-                    return await self._async_next_after_draft()
+                    self._commute_input = user_input
+                    self._commute_segments = [
+                        s for s in segments.values() if isinstance(s, RoadSegment)
+                    ]
+                    return await self._async_plan_commute(roads=True)
         defaults = user_input or {
             CONF_NAME: self._commute_name(),
             CONF_CORRIDOR_KM: DEFAULT_CORRIDOR_KM,
@@ -440,6 +425,76 @@ class _SetupSteps:
                 "to": self._to["title"],
             },
         )
+
+    async def _async_plan_commute(self, *, roads: bool) -> Any:
+        """Plan the commute's routes, along roads or over highways only."""
+        assert self._from is not None and self._to is not None
+        start, end = self._from["centre"], self._to["centre"]
+        if roads:
+            try:
+                plan = await async_plan_commute(
+                    self.hass,
+                    await async_get_router(self.hass),
+                    self._commute_segments,
+                    start,
+                    end,
+                )
+            except RoutingUnavailable:
+                return self._show_routing_menu("routing_unavailable")
+            except RoutingFailed:
+                return self._show_routing_menu("routing_failed")
+        else:
+            plan = await self.hass.async_add_executor_job(
+                plan_highway_commute, self._commute_segments, start, end
+            )
+        user_input = self._commute_input
+        feeds, pending = _split_types(user_input[CONF_TYPES])
+        self._type_count = len(user_input[CONF_TYPES])
+        self._draft_kind = SUBENTRY_COMMUTE
+        self._draft = {
+            CONF_NAME: user_input[CONF_NAME].strip() or self._commute_name(),
+            CONF_FROM_AREA: self._from["key"],
+            CONF_TO_AREA: self._to["key"],
+            CONF_START: {"latitude": start[0], "longitude": start[1]},
+            CONF_END: {"latitude": end[0], "longitude": end[1]},
+            CONF_CORRIDOR_KM: round(float(user_input[CONF_CORRIDOR_KM]), 1),
+            CONF_FEEDS: feeds,
+            CONF_PENDING: pending,
+            CONF_ITEMS: {},
+            **plan,
+        }
+        _with_ha_area(self._draft, user_input)
+        return await self._async_next_after_draft()
+
+    def _show_routing_menu(self, reason: str) -> Any:
+        return self.async_show_menu(
+            step_id=reason,
+            menu_options=["commute_retry", "commute_highways"],
+        )
+
+    async def async_step_routing_unavailable(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
+        """Offer highways only while road routing is switched off."""
+        return self._show_routing_menu("routing_unavailable")
+
+    async def async_step_routing_failed(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
+        """Offer to try again, or highways only, after routing failed."""
+        return self._show_routing_menu("routing_failed")
+
+    async def async_step_commute_retry(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
+        """Try routing along roads again."""
+        return await self._async_plan_commute(roads=True)
+
+    async def async_step_commute_highways(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
+        """Route over Ontario 511's highways only."""
+        return await self._async_plan_commute(roads=False)
 
     def _commute_name(self) -> str:
         assert self._from is not None and self._to is not None
@@ -492,6 +547,8 @@ class _SetupSteps:
 
     _draft_kind: str
     _create_zone: bool = False
+    _commute_input: dict[str, Any]
+    _commute_segments: list[RoadSegment]
 
 
 class Ontario511ConfigFlow(ConfigFlow, _SetupSteps, domain=DOMAIN):
@@ -644,26 +701,44 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
             except Ontario511Error:
                 return self.async_abort(reason="cannot_connect")
             segments = {k: v for k, v in data.items() if isinstance(v, RoadSegment)}
+        errors: dict[str, str] = {}
         if user_input is not None:
             new_data = {
                 **subentry.data,
                 CONF_FEEDS: user_input[CONF_FEEDS],
             }
             _with_ha_area(new_data, user_input)
-            self._move_devices_if_changed(subentry, new_data)
             if is_commute:
                 new_data[CONF_CORRIDOR_KM] = round(
                     float(user_input[CONF_CORRIDOR_KM]), 1
                 )
-                new_data.update(
-                    change_segments(subentry.data, user_input[CONF_SEGMENTS], segments)
+                if user_input.get(CONF_REPLAN):
+                    try:
+                        new_data = await async_replan(
+                            self.hass,
+                            self._get_entry(),
+                            subentry,
+                            list(segments.values()),
+                            new_data,
+                        )
+                    except RoutingUnavailable:
+                        errors["base"] = "routing_unavailable"
+                    except RoutingFailed:
+                        errors["base"] = "routing_failed"
+                else:
+                    new_data.update(
+                        change_segments(
+                            subentry.data, user_input[CONF_SEGMENTS], segments
+                        )
+                    )
+            if not errors:
+                self._move_devices_if_changed(subentry, new_data)
+                return self.async_update_and_abort(
+                    self._get_entry(),
+                    subentry,
+                    title=user_input[CONF_NAME].strip() or subentry.title,
+                    data=new_data,
                 )
-            return self.async_update_and_abort(
-                self._get_entry(),
-                subentry,
-                title=user_input[CONF_NAME].strip() or subentry.title,
-                data=new_data,
-            )
         fields: dict[Any, Any] = {
             probatio.Required(CONF_NAME, default=subentry.title): str,
             probatio.Required(
@@ -692,9 +767,11 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
                     options=options, multiple=True, mode=SelectSelectorMode.LIST
                 )
             )
+            fields[probatio.Optional(CONF_REPLAN, default=False)] = BooleanSelector()
         return self.async_show_form(
             step_id="reconfigure_commute" if is_commute else "reconfigure",
             data_schema=probatio.Schema(fields),
+            errors=errors,
         )
 
     def _move_devices_if_changed(

@@ -6,9 +6,10 @@ README there for where each file comes from.
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
 from datetime import UTC, datetime
 import hashlib
+import re
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -35,8 +36,13 @@ from custom_components.ontario_511.const import (
     DOMAIN,
     SUBENTRY_AREA,
 )
+from custom_components.ontario_511.directions import ROUTE_URL
+from custom_components.ontario_511.osm import SWITCH_URL
+
+from .common import ALONG_401, osrm_response
 
 API_KEY = "test-key-0123456789"
+ROUTE_PATTERN = re.compile(re.escape(ROUTE_URL) + "/")
 HOME = (43.6532, -79.3832)
 FROZEN_NOW = datetime(2026, 10, 28, tzinfo=UTC)
 ENTRY_ID = "01JTEST0NTAR10511ENTRY0001"
@@ -172,3 +178,35 @@ def mock_setup_entry() -> Generator[AsyncMock]:
         "custom_components.ontario_511.async_setup_entry", return_value=True
     ) as mock:
         yield mock
+
+
+def serve_routes(
+    aioclient_mock: AiohttpClientMocker,
+    routes: Sequence[tuple[Sequence[tuple[float, float]], float]] = (
+        (ALONG_401, 20.0),
+    ),
+    *,
+    routing: bool = True,
+) -> None:
+    """Serve the remote switch and road routes, as (line, minutes)."""
+    aioclient_mock.get(SWITCH_URL, json={"enabled": True, "routing": routing})
+    aioclient_mock.get(ROUTE_PATTERN, json=osrm_response(routes))
+
+
+@pytest.fixture(autouse=True)
+def routing_spacing() -> Generator[AsyncMock]:
+    """Record the second between routing requests instead of waiting.
+
+    Time is frozen, so a real wait would never end.
+    """
+    with patch(
+        "custom_components.ontario_511.directions.asyncio.sleep", new=AsyncMock()
+    ) as sleep:
+        yield sleep
+
+
+@pytest.fixture
+def mock_routing(aioclient_mock: AiohttpClientMocker) -> AiohttpClientMocker:
+    """Serve a road route along the synthetic Highway 401."""
+    serve_routes(aioclient_mock)
+    return aioclient_mock

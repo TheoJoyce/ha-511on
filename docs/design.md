@@ -17,7 +17,7 @@ One **config entry** per API key. It holds three kinds of **config subentries**,
 | Subentry | What the user sets | What it generates |
 |---|---|---|
 | **Area** | Name, centre and radius (drag a pin and circle on the map, or type the radius in metres; up to 50 km, and 0 is fine for an area that's only a commute's start or end) | Items of the chosen data types, nearest to the centre first, and a summary device |
-| **Commute** | The two areas it runs between (an existing one, or a new area added in the same flow), corridor width (default 5 km, max 20 km). Routes between the areas' centres are worked out automatically (see [Routing](#routing)); the segments can be adjusted by reconfiguring | Items of the chosen data types within the corridor, and a summary device covering both areas and the route (door to door) |
+| **Commute** | The two areas it runs between (an existing one, or a new area added in the same flow), corridor width (default 5 km, max 20 km). Routes along the roads between the areas' centres are worked out automatically (see [Routing](#routing)); the main route's segments can be adjusted, or the routes planned again, by reconfiguring | Items of the chosen data types along any of its routes, and a summary device covering both areas and the main route (door to door) |
 | **Item** | A data type, then one item from a list sorted by distance | That one item. No cap applies |
 
 Setup chains: API key, then a first area ("Home", 25 km), then optionally a commute, which first adds the area it goes to ("Work").
@@ -77,11 +77,22 @@ The map card shows any entity with numeric `latitude` and `longitude` attributes
 
 ### Routing
 
-Road conditions cover provincial highways only (not, for example, Toronto's Gardiner Expressway). Segments form a network, split where other segments join them partway. A route can join and leave a segment at any of its points (about every 250 m), as drivers can at any interchange; local roads to and from it are straight lines weighted at twice their length, as a stand-in for being slower and less direct. Dijkstra's algorithm finds the cheapest route, then up to two alternatives within 30% of it. A highway route has to cost at least 5% less than local roads all the way, or the commute follows the straight line. The local stretches are stored with the route, so the corridor covers the trip door to door. Checked against the saved full responses: Oshawa to Pickering follows the 401, London to Kitchener the 401 then Highways 7 and 8, and downtown Toronto to Mississauga, with no provincial highway downtown, is a straight line.
+Road conditions cover provincial highways only (not, for example, Toronto's Gardiner Expressway or any local road), so they can't route a commute door to door on their own. Routes come from OSRM on the FOSSGIS server (`directions.py`, see [OpenStreetMap services](#openstreetmap-services)), which routes over every road:
+
+1. One request asks for the fastest route and the service's own alternatives. The service often offers none, so:
+2. The road segment network (below) suggests highway routes. For each one the routes found so far don't already use, the route through a point halfway along it is requested, up to three routes in all (at most three requests).
+3. Routes more than 30% slower than the fastest, and routes that are 90% the same as one already kept, are dropped.
+4. Each route is matched to the road segments it runs along: points every 200 m are matched to the nearest segment within 300 m (Ontario 511's polylines are approximate), and runs shorter than 1 km (crossings, ramps) don't count. The pieces are stored as polylines, simplified to within 10 m, each with its segment ID or none.
+
+The fastest route is the commute's **main route**: its pieces are the corridor, and its segments are the summary's. Items are generated along all of them. Toronto to Barrie, for example, follows the streets to Highway 400 and up it to Barrie, matching its three segments; no other route is within 30%.
+
+**Fallback.** When routing is switched off or fails, the form says so and offers to try again or to use the road segment network alone (`routing.py`). Segments form a network, split where other segments join them partway. A route can join and leave a segment at any of its points (about every 250 m), as drivers can at any interchange; local roads to and from it are straight lines weighted at twice their length, as a stand-in for being slower and less direct. Dijkstra's algorithm finds the cheapest route, then up to two alternatives within 30% of it. A highway route has to cost at least 5% less than local roads all the way, or the commute follows the straight line. These commutes have `routing: highways`, and can be planned again along roads from their settings.
+
+**Commutes from before 0.1.0-alpha.2** were planned over highways only and have no `routing` in their data. A fixable repair asks to plan each one again; it isn't done in the background, because planning sends the start and end to OpenStreetMap. Planning again uses the areas' current centres and generates the commute's data types again, which adds items along the new routes; existing items stay.
 
 ### Map card
 
-**Commute routes** need lines, which Home Assistant's map card can't draw (it only draws an entity's own location history). Each commute's **Route** sensor holds the highway stretches it drives as a `route` attribute and the local roads as `local` (both excluded from the recorder), with their length as its state. The card draws local roads dashed, as they're straight lines standing in for streets. The integration serves its own card, `custom:ontario-511-map-card` (`frontend/`), from a static path named after a hash of its files (browsers cache them for a month, so changed files need a new URL) and registers it with `add_extra_js_url`. It draws routes as lines, other located entities as markers, and zones. It bundles MapLibre GL 6.14.0 (BSD-3-Clause, licence alongside) and uses VersaTiles' OpenStreetMap vector tiles, as Home Assistant 2026.10's own map does; it doesn't depend on the frontend's internal map element, which changed engines in 2026.
+**Commute routes** need lines, which Home Assistant's map card can't draw (it only draws an entity's own location history). Each commute's **Route** sensor holds the main route as a `route` attribute, the other routes as `alternatives`, and, for commutes planned over highways only, the straight stand-ins for local roads as `local` (all excluded from the recorder), with the main route's length as its state. The card draws alternatives faded under the main route, and `local` dashed. The integration serves its own card, `custom:ontario-511-map-card` (`frontend/`), from a static path named after a hash of its files (browsers cache them for a month, so changed files need a new URL) and registers it with `add_extra_js_url`. It draws routes as lines, other located entities as markers, and zones. It bundles MapLibre GL 6.14.0 (BSD-3-Clause, licence alongside) and uses VersaTiles' OpenStreetMap vector tiles, as Home Assistant 2026.10's own map does; it doesn't depend on the frontend's internal map element, which changed engines in 2026.
 
 **Nearest events** put events on the map without temporary entities. Each area and commute has three fixed entities ("Nearest event 1" to "Nearest event 3"). Entity N shows the Nth nearest active event: its location, description and details. When there are fewer than three events, the rest are Unknown. Home Assistant's dynamic alternative, `geo_location` entities, can't belong to a device or subentry, and automations can only match them by source and zone, so they couldn't be tied to an area or commute.
 
@@ -124,16 +135,16 @@ Camera images come from Ontario 511's web map (`511on.ca/map/Cctv/<id>`), not fr
 
 Measured October 2026: the image server sends `Cache-Control: max-age=20`, and images changed about every 1 to 2 minutes (some cameras less often). Each view's image is cached for 60 seconds, so a dashboard showing a camera fetches it at most once a minute and the image is rarely more than a minute behind.
 
-## Address search
+## OpenStreetMap services
 
-Areas can be placed by typing an address, looked up with OpenStreetMap Nominatim (`geocode.py`). Its [usage policy](https://operations.osmfoundation.org/policies/nominatim/) sets the rules:
+Areas can be placed by typing an address, looked up with OpenStreetMap Nominatim (`geocode.py`), and commutes are routed along roads with OSRM on the FOSSGIS server (`directions.py`). Their usage policies ([Nominatim](https://operations.osmfoundation.org/policies/nominatim/), [FOSSGIS routing](https://routing.openstreetmap.de/about.html)) set the rules, which `osm.py` and the two modules follow:
 
-- Only a user submitting the area form triggers a lookup; no autocomplete and nothing periodic. Limits apply to the integration as a whole, across every install.
-- At most one request per second per Home Assistant instance; identical addresses are answered from a cache.
+- Only a user submitting a form (or a repair) triggers a request; no autocomplete and nothing periodic or in the background. Limits apply to the integration as a whole, across every install.
+- At most one request per second per service and Home Assistant instance; identical requests are answered from a cache.
 - Requests send the integration's own User-Agent (`ha-511on/<version> (+repository URL)`).
-- OpenStreetMap must be able to switch the service off without a software update: before a lookup, `geocoding.json` on the repository's `main` branch is checked (cached for an hour). If it isn't `{"enabled": true}`, or can't be read, lookups are refused.
-- The form shows OpenStreetMap attribution and says the address is sent to OpenStreetMap.
-- Results outside Ontario are rejected.
+- Either service can be switched off without a software update: before a request, `geocoding.json` on the repository's `main` branch is checked (cached for an hour). Address search needs `"enabled": true` there and routing `"routing": true`; otherwise, or if it can't be read, requests are refused. Without routing, commutes fall back to the highway network.
+- The forms show OpenStreetMap attribution and say the address, or the commute's start and end, are sent to OpenStreetMap.
+- Address results outside Ontario are rejected.
 
 ## Data quirks
 
@@ -146,6 +157,7 @@ Areas can be placed by typing an address, looked up with OpenStreetMap Nominatim
 
 ## Later
 
-- Easier ways to define a commute, for example importing a route from Google Maps.
+- Custom commute routes: pins placed along the way, sent to the same routing as waypoints.
+- Importing a route from Google Maps, Apple Maps or similar, likely as waypoints for the same routing.
 - Linking areas to commutes.
 - Checking the road condition ranking against winter data.

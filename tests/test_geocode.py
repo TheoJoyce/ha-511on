@@ -14,7 +14,6 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 
 from custom_components.ontario_511.geocode import (
     SEARCH_URL,
-    SWITCH_URL,
     AddressNotFound,
     GeocodingError,
     GeocodingFailed,
@@ -22,6 +21,7 @@ from custom_components.ontario_511.geocode import (
     OutsideOntario,
     get_geocoder,
 )
+from custom_components.ontario_511.osm import SWITCH_URL
 
 TORONTO = [{"lat": "43.6532", "lon": "-79.3832", "display_name": "Toronto City Hall"}]
 VANCOUVER = [{"lat": "49.28", "lon": "-123.12", "display_name": "Vancouver"}]

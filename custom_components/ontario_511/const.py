@@ -22,6 +22,9 @@ CONF_RADIUS_KM: Final = "radius_km"
 CONF_CORRIDOR_KM: Final = "corridor_km"
 CONF_SEGMENTS: Final = "segments"
 CONF_ROUTE: Final = "route"
+CONF_ALTERNATIVES: Final = "alternatives"
+CONF_ROUTING: Final = "routing"
+CONF_REPLAN: Final = "replan"
 CONF_FROM_AREA: Final = "from_area"
 CONF_TO_AREA: Final = "to_area"
 CONF_TYPES: Final = "types"
@@ -41,6 +44,13 @@ MAX_RADIUS_KM: Final = 50.0
 DEFAULT_CORRIDOR_KM: Final = 5.0
 MIN_CORRIDOR_KM: Final = 0.5
 MAX_CORRIDOR_KM: Final = 20.0
+# How a commute's routes were planned: along every road (OpenStreetMap
+# routing), or over Ontario 511's highways with straight lines between them
+# and the start and end.
+ROUTING_ROADS: Final = "roads"
+ROUTING_HIGHWAYS: Final = "highways"
+# Repair issue for commutes planned before routes followed roads.
+REPLAN_ISSUE: Final = "replan_commute"
 # Area and commute summaries show this many of the nearest events.
 NEAREST_EVENTS: Final = 3
 

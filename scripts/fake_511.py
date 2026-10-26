@@ -20,29 +20,41 @@ entity can be seen with data. All take and return JSON:
   POST   /_dev/fail                      fail the next N calls of a resource
   POST   /_dev/reset                     reload everything from the data folder
   POST   /_dev/geocoding                 turn address search on or off
+  POST   /_dev/routing                   turn road routing on or off, or make
+                                         it fail ({"fail": true})
 
-It also stands in for address search (OpenStreetMap Nominatim) at
-/_geo/switch.json and /_geo/search, so test addresses never reach
-OpenStreetMap: queries containing a known place name (see PLACES) return it,
-"vancouver" returns a place outside Ontario, and anything else finds nothing.
-Point the integration at it with ONTARIO_511_GEOCODING_BASE.
+It also stands in for OpenStreetMap's services under /_osm (point the
+integration at it with ONTARIO_511_OSM_BASE):
+
+- The remote switch, at /_osm/switch.json.
+- Address search (Nominatim), at /_osm/search, so test addresses never reach
+  OpenStreetMap: queries containing a known place name (see PLACES) return it,
+  "vancouver" returns a place outside Ontario, and anything else finds nothing.
+- Road routing (OSRM), at /_osm/route/{coordinates}. Routes are served from
+  .dev-cache/routing/ (gitignored). A route that isn't saved yet is fetched
+  once from OpenStreetMap's routing server, like a real install does when a
+  commute form is submitted, at most once a second, and saved.
 """
 
 from __future__ import annotations
 
 import argparse
+import asyncio
 from collections import defaultdict, deque
+import hashlib
 import json
 import logging
 from pathlib import Path
 import time
 from typing import Any
 
-from aiohttp import web
+from aiohttp import ClientError, ClientSession, ClientTimeout, web
 
 _LOGGER = logging.getLogger("fake_511")
 INVALID_KEY = "<Error><Message>Invalid Key</Message></Error>"
 RATE_CALLS, RATE_PERIOD = 10, 60.0
+OSRM_URL = "https://routing.openstreetmap.de/routed-car/route/v1/driving"
+DEV_USER_AGENT = "ha-511on-development (+https://github.com/TheoJoyce/ha-511on)"
 PLACES = {
     "toronto": (43.6532, -79.3832, "Toronto City Hall, Toronto, Ontario"),
     "barrie": (44.3894, -79.6903, "Barrie, Simcoe County, Ontario"),
@@ -67,6 +79,11 @@ class FakeApi:
         self.calls: dict[str, deque[float]] = defaultdict(deque)
         self.next_id = 900_000_000
         self.geocoding_enabled = True
+        self.routing_enabled = True
+        self.routing_fails = False
+        self.routing_dir = data_dir.parent / "routing"
+        self.routing_lock = asyncio.Lock()
+        self.last_routing = 0.0
         self.reset()
 
     def reset(self) -> None:
@@ -249,8 +266,11 @@ async def _fail(request: web.Request) -> web.Response:
     return web.json_response({"queued": len(api.failures[body["resource"]])})
 
 
-async def _geo_switch(request: web.Request) -> web.Response:
-    return web.json_response({"enabled": request.app["api"].geocoding_enabled})
+async def _osm_switch(request: web.Request) -> web.Response:
+    api: FakeApi = request.app["api"]
+    return web.json_response(
+        {"enabled": api.geocoding_enabled, "routing": api.routing_enabled}
+    )
 
 
 async def _geo_search(request: web.Request) -> web.Response:
@@ -268,6 +288,55 @@ async def _set_geocoding(request: web.Request) -> web.Response:
     body = await request.json()
     request.app["api"].geocoding_enabled = bool(body.get("enabled", True))
     return web.json_response({"enabled": request.app["api"].geocoding_enabled})
+
+
+async def _route(request: web.Request) -> web.Response:
+    """Serve a saved route, or fetch it once from OpenStreetMap and save it."""
+    api: FakeApi = request.app["api"]
+    if api.routing_fails:
+        return web.json_response({"code": "NoRoute"}, status=400)
+    path = request.match_info["coordinates"]
+    name = hashlib.sha256(f"{path}?{request.query_string}".encode()).hexdigest()
+    saved = api.routing_dir / f"{name[:16]}.json"
+    if saved.exists():
+        return web.Response(
+            text=saved.read_text(encoding="utf-8"), content_type="application/json"
+        )
+    async with api.routing_lock:
+        wait = api.last_routing + 1.0 - time.monotonic()
+        if wait > 0:
+            await asyncio.sleep(wait)
+        api.last_routing = time.monotonic()
+        try:
+            async with (
+                ClientSession(timeout=ClientTimeout(total=30)) as session,
+                session.get(
+                    f"{OSRM_URL}/{path}",
+                    params=request.query,
+                    headers={"User-Agent": DEV_USER_AGENT},
+                ) as response,
+            ):
+                body = await response.text()
+                status = response.status
+        except ClientError, TimeoutError:
+            _LOGGER.warning("Couldn't reach OpenStreetMap routing for %s", path)
+            return web.json_response({"code": "Unreachable"}, status=502)
+    if status == 200:
+        api.routing_dir.mkdir(parents=True, exist_ok=True)
+        saved.write_text(body, encoding="utf-8")
+        _LOGGER.info("Saved a route from OpenStreetMap routing: %s", saved.name)
+    return web.Response(text=body, status=status, content_type="application/json")
+
+
+async def _set_routing(request: web.Request) -> web.Response:
+    """Turn road routing on or off, or make it fail: {"enabled": false}."""
+    api: FakeApi = request.app["api"]
+    body = await request.json()
+    api.routing_enabled = bool(body.get("enabled", True))
+    api.routing_fails = bool(body.get("fail", False))
+    return web.json_response(
+        {"enabled": api.routing_enabled, "fail": api.routing_fails}
+    )
 
 
 async def _reset(request: web.Request) -> web.Response:
@@ -289,8 +358,10 @@ def build_app(data_dir: Path) -> web.Application:
     app.router.add_post("/_dev/fail", _fail)
     app.router.add_post("/_dev/reset", _reset)
     app.router.add_post("/_dev/geocoding", _set_geocoding)
-    app.router.add_get("/_geo/switch.json", _geo_switch)
-    app.router.add_get("/_geo/search", _geo_search)
+    app.router.add_post("/_dev/routing", _set_routing)
+    app.router.add_get("/_osm/switch.json", _osm_switch)
+    app.router.add_get("/_osm/search", _geo_search)
+    app.router.add_get("/_osm/route/{coordinates}", _route)
     return app
 
 

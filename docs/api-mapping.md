@@ -50,7 +50,7 @@ Camera **images** don't come from the API. They're fetched from each view's `Url
 
 The data type checkboxes on an area or commute are used once, to choose items. For each chosen type:
 
-- **Commutes first:** items within the corridor around the route, in route order.
+- **Commutes first:** items within the corridor around any of the commute's routes, in route order.
 - **Then areas:** items within the radius, nearest to the centre first, skipping items a commute already has.
 - **Caps** for this first pass: 40 road segments, 25 cameras, 25 of every other type. **Add item** adds any single item later, without a cap.
 
@@ -247,7 +247,7 @@ Events and construction projects start and end all the time. Making each one a d
 - **Active only:** an event or project counts once its `StartDate` has passed and until its `PlannedEndDate`. Planned future work doesn't count.
 - **On a road segment:** each active event or project is attached to the nearest road segment within 2 km of its `Latitude`/`Longitude`. Live data puts 95% within 150 m. A segment only counts those inside the area or commute it belongs to, so a 100 km segment doesn't report events far outside it.
 - **In an area:** within the radius of the centre, nearest first.
-- **On a commute:** door to door. That means everything in the start area, then everything within the corridor width of the route (highway stretches and the local roads to and from them) in route order, then the destination area, with each event counted once.
+- **On a commute:** door to door. That means everything in the start area, then everything within the corridor width of its main route (along the roads, door to door) in route order, then the destination area, with each event counted once.
 - **Alerts** have no location. An alert applies to an area or commute when its `Regions` include the region of any road segment there, or when it lists no region. "Northwest" and "Northwestern" are treated as the same region.
 
 ### Where they appear
@@ -308,5 +308,5 @@ Both endpoints share one model. **Every field is in every event's details:** the
 ## Location data that isn't from Ontario 511
 
 - **Address search** sends a typed address to OpenStreetMap Nominatim, only when the area form is submitted (see the README).
-- **Commute routes** are worked out locally from the road conditions polylines (see [Routing](design.md#routing)). Nothing is sent anywhere.
+- **Commute routes** send the two areas' centres (and points along highway routes it missed) to OpenStreetMap's routing service, only when a commute form or repair is submitted (see [Routing](design.md#routing)). Without it, routes are worked out locally from the road conditions polylines.
 - **The map card** loads map tiles from VersaTiles (OpenStreetMap data). It sends the map area being viewed, not any Ontario 511 data.

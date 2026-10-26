@@ -30,6 +30,7 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 from custom_components.ontario_511.api import Resource
 from custom_components.ontario_511.card import frontend_hash
 from custom_components.ontario_511.const import (
+    CONF_ALTERNATIVES,
     CONF_CORRIDOR_KM,
     CONF_END,
     CONF_FEEDS,
@@ -38,9 +39,11 @@ from custom_components.ontario_511.const import (
     CONF_PENDING,
     CONF_RADIUS_KM,
     CONF_ROUTE,
+    CONF_ROUTING,
     CONF_SEGMENTS,
     CONF_START,
     DOMAIN,
+    ROUTING_ROADS,
     SUBENTRY_AREA,
     SUBENTRY_COMMUTE,
 )
@@ -347,6 +350,61 @@ async def test_commute_route_sensor(
     assert state.attributes["unit_of_measurement"] == "km"
     assert state.attributes["route"] == [[[43.7, -79.6], [43.7, -79.5]]]
     assert state.attributes["local"] == [[[43.71, -79.61], [43.7, -79.6]]]
+
+
+# Another way there, about 1.4 km north.
+ALTERNATIVE_LINE = [(43.7, -79.6), (43.71, -79.55), (43.7, -79.5)]
+
+
+@pytest.mark.parametrize(
+    "subentries",
+    [
+        [
+            ConfigSubentryDataWithId(
+                subentry_id=COMMUTE_ID,
+                subentry_type=SUBENTRY_COMMUTE,
+                title="Work",
+                unique_id=None,
+                data={
+                    CONF_START: {"latitude": 43.71, "longitude": -79.61},
+                    CONF_END: {"latitude": 43.7, "longitude": -79.5},
+                    CONF_ROUTING: ROUTING_ROADS,
+                    CONF_SEGMENTS: ["a"],
+                    CONF_ROUTE: [
+                        ["", encode_polyline(LOCAL_LINE)],
+                        ["a", encode_polyline(ROUTE_LINE)],
+                    ],
+                    CONF_ALTERNATIVES: [[["", encode_polyline(ALTERNATIVE_LINE)]]],
+                    CONF_CORRIDOR_KM: 5.0,
+                    CONF_FEEDS: [],
+                    CONF_PENDING: [],
+                    CONF_ITEMS: {},
+                },
+            )
+        ]
+    ],
+)
+async def test_road_route_sensor(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_api: AiohttpClientMocker,
+) -> None:
+    """Along roads, the whole main route is a route line, and the other routes
+    are alternatives; the state is the main route's length."""
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    state = hass.states.get("sensor.work_route")
+    assert float(state.state) == pytest.approx(8.0 + 1.4, abs=0.1)
+    assert state.attributes["route"] == [
+        [[43.71, -79.61], [43.7, -79.6]],
+        [[43.7, -79.6], [43.7, -79.5]],
+    ]
+    assert state.attributes["local"] == []
+    assert state.attributes["alternatives"] == [
+        [[43.7, -79.6], [43.71, -79.55], [43.7, -79.5]]
+    ]
 
 
 async def test_map_card_is_served(hass: HomeAssistant) -> None:
