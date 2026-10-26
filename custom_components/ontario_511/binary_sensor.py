@@ -18,12 +18,7 @@ from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
 from .api import Resource
 from .const import SUBENTRY_ITEM
 from .coordinator import ResourceCoordinator
-from .entity import (
-    LOCATION_ATTRIBUTES,
-    ItemEntity,
-    SummaryEntity,
-    location_attributes,
-)
+from .entity import ItemEntity, SummaryEntity
 from .models import CarpoolLot, RestArea, RoadSegment, SeasonalLoad
 
 PARALLEL_UPDATES = 0
@@ -36,8 +31,6 @@ class ItemBinaryDescription(BinarySensorEntityDescription):
     resource: Resource
     model: type
     value_fn: Callable[[Any], bool | None]
-    attrs_fn: Callable[[Any], dict[str, Any]] = lambda item: {}
-    main: bool = False
 
 
 def _flag(
@@ -155,8 +148,6 @@ async def async_setup_entry(
 class ItemBinarySensor(ItemEntity, BinarySensorEntity):
     """A yes/no fact about an item."""
 
-    _unrecorded_attributes = LOCATION_ATTRIBUTES
-
     entity_description: ItemBinaryDescription
 
     def __init__(
@@ -182,15 +173,6 @@ class ItemBinarySensor(ItemEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         """Return the fact's value."""
         return self.entity_description.value_fn(self.item)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return details, plus the location on the main entity."""
-        item = self.item
-        attrs = self.entity_description.attrs_fn(item)
-        if self.entity_description.main and item is not None:
-            attrs |= location_attributes(item.coordinates)
-        return attrs
 
 
 class SegmentClosureSensor(ItemEntity, BinarySensorEntity):

@@ -15,7 +15,8 @@
       "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
       "outside_ontario": "That address isn't in Ontario.",
       "dev_cache_missing": "That's the development key, which only works in a development checkout with saved responses in .dev-cache/api. Enter your own API key.",
-      "radius_too_large": "The radius can be at most {max_radius} metres."
+      "radius_too_large": "The radius can be at most {max_radius} metres.",
+      "zone_needs_radius": "A zone needs a radius. Make the circle larger, or untick Create a matching zone."
     },
     "step": {
       "user": {
@@ -102,7 +103,8 @@
         "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
         "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
         "outside_ontario": "That address isn't in Ontario.",
-        "radius_too_large": "The radius can be at most {max_radius} metres."
+        "radius_too_large": "The radius can be at most {max_radius} metres.",
+        "zone_needs_radius": "A zone needs a radius. Make the circle larger, or untick Create a matching zone."
       },
       "abort": {
         "reconfigure_successful": "Settings saved."
@@ -162,7 +164,8 @@
         "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
         "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
         "outside_ontario": "That address isn't in Ontario.",
-        "radius_too_large": "The radius can be at most {max_radius} metres."
+        "radius_too_large": "The radius can be at most {max_radius} metres.",
+        "zone_needs_radius": "A zone needs a radius. Make the circle larger, or untick Create a matching zone."
       },
       "abort": {
         "reconfigure_successful": "Settings saved.",

@@ -284,6 +284,11 @@ class _SetupSteps:
         }
         if user_input is not None:
             address = (user_input.get(CONF_ADDRESS) or "").strip()
+            # The location selector doesn't guarantee a radius.
+            radius_m = float(
+                user_input[CONF_LOCATION].get("radius", DEFAULT_RADIUS_KM * 1000)
+            )
+            radius_km = round(radius_m / 1000, 1)
             if address:
                 try:
                     place = await (await self._async_geocoder()).async_lookup(address)
@@ -296,25 +301,22 @@ class _SetupSteps:
                 except OutsideOntario:
                     errors[CONF_ADDRESS] = "outside_ontario"
                 else:
-                    radius = user_input[CONF_LOCATION].get(
-                        "radius", DEFAULT_RADIUS_KM * 1000
-                    )
                     defaults = {
                         **user_input,
                         CONF_ADDRESS: "",
                         CONF_LOCATION: {
                             "latitude": place.latitude,
                             "longitude": place.longitude,
-                            "radius": radius,
+                            "radius": radius_m,
                         },
                     }
                     found = f"📍 {place.name}"
             elif not user_input[CONF_TYPES]:
                 errors[CONF_TYPES] = "no_types"
-            elif float(user_input[CONF_LOCATION].get("radius", 0)) > (
-                MAX_RADIUS_KM * 1000
-            ):
+            elif radius_m > MAX_RADIUS_KM * 1000:
                 errors[CONF_LOCATION] = "radius_too_large"
+            elif user_input.get(CONF_CREATE_ZONE) and not radius_km:
+                errors[CONF_CREATE_ZONE] = "zone_needs_radius"
             else:
                 location = user_input[CONF_LOCATION]
                 feeds, pending = _split_types(user_input[CONF_TYPES])
@@ -325,7 +327,7 @@ class _SetupSteps:
                         "latitude": location["latitude"],
                         "longitude": location["longitude"],
                     },
-                    CONF_RADIUS_KM: round(float(location["radius"]) / 1000, 1),
+                    CONF_RADIUS_KM: radius_km,
                     CONF_FEEDS: feeds,
                     CONF_PENDING: pending,
                     CONF_ITEMS: {},

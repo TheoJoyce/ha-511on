@@ -43,6 +43,7 @@ from custom_components.ontario_511.const import (
     CONF_SEGMENTS,
     CONF_TO_AREA,
     CONF_TYPES,
+    DEFAULT_RADIUS_KM,
     DOMAIN,
     SUBENTRY_AREA,
     SUBENTRY_COMMUTE,
@@ -240,6 +241,42 @@ async def test_area_without_radius(
     )
     (area,) = result["result"].subentries.values()
     assert area.data[CONF_RADIUS_KM] == 0
+
+
+@pytest.mark.parametrize(
+    "radius", [pytest.param(0, id="none"), pytest.param(49, id="rounds_to_0_km")]
+)
+async def test_zone_needs_radius(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, radius: int
+) -> None:
+    """A matching zone can't be created for an area without a radius."""
+    result = await _start_with_key(hass, aioclient_mock)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            **HOME_INPUT,
+            CONF_LOCATION: {**WEST_END, "radius": radius},
+            CONF_CREATE_ZONE: True,
+        },
+    )
+    assert result["step_id"] == "area"
+    assert result["errors"] == {CONF_CREATE_ZONE: "zone_needs_radius"}
+
+
+@pytest.mark.usefixtures("mock_setup_entry")
+async def test_location_without_radius(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """The location selector doesn't require a radius; the default is used."""
+    result = await _start_with_key(hass, aioclient_mock)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**HOME_INPUT, CONF_LOCATION: WEST_END}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "finish"}
+    )
+    (area,) = result["result"].subentries.values()
+    assert area.data[CONF_RADIUS_KM] == DEFAULT_RADIUS_KM
 
 
 @pytest.mark.usefixtures("mock_setup_entry")
