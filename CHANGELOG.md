@@ -2,6 +2,10 @@
 
 Changes to the Ontario 511 integration for Home Assistant, newest first. It's community-maintained and not affiliated with or endorsed by Ontario 511, the Ministry of Transportation, or the Government of Ontario. Versions follow [Semantic Versioning](https://semver.org/); alpha, beta and rc versions are pre-releases.
 
+## [0.1.0-alpha.3] - Unreleased
+
+In progress; this section is written before release.
+
 ## [0.1.0-alpha.2] - 2026-10-26
 
 > [!WARNING]
