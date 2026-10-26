@@ -62,6 +62,8 @@ export class Map {
     this.options = options;
     this.style = options.style;
     this.styleLoaded = false;
+    // Like MapLibre, sources and layers can't be added before style.load.
+    this.styleReady = false;
     this.sources = {};
     this.layers = {};
     this.markers = [];
@@ -81,6 +83,7 @@ export class Map {
   // still report the style as not loaded when style.load fires.
   loadStyle({ reportLoaded = true } = {}) {
     this.styleLoaded = reportLoaded;
+    this.styleReady = true;
     for (const listener of this.listeners["style.load"] ?? []) {
       listener();
     }
@@ -89,6 +92,7 @@ export class Map {
   setStyle(style) {
     this.style = style;
     this.styleLoaded = false;
+    this.styleReady = false;
     this.sources = {};
     this.layers = {};
   }
@@ -102,6 +106,7 @@ export class Map {
   }
 
   addSource(id, { data }) {
+    this._checkStyle();
     this.sources[id] = new Source(data);
   }
 
@@ -110,6 +115,7 @@ export class Map {
   }
 
   addLayer(layer) {
+    this._checkStyle();
     this.layers[layer.id] = layer;
   }
 
@@ -119,6 +125,12 @@ export class Map {
 
   fitBounds(bounds, options) {
     this.fits.push({ bounds, options });
+  }
+
+  _checkStyle() {
+    if (!this.styleReady) {
+      throw new Error("Style is not done loading");
+    }
   }
 
   resize() {

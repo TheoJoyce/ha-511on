@@ -66,8 +66,13 @@ class Ontario511MapCard extends HTMLElement {
     if (config.entities !== undefined && !Array.isArray(config.entities)) {
       throw new Error("entities must be a list");
     }
-    this._config = { ...config, entities: config.entities ?? [] };
-    this._fitted = false;
+    const entities = config.entities ?? [];
+    const ids = JSON.stringify(entities.map(entityId));
+    if (ids !== this._ids) {
+      this._ids = ids;
+      this._fitted = false;
+    }
+    this._config = { ...config, entities };
     this._seen = undefined;
     this._render();
   }
@@ -89,12 +94,20 @@ class Ontario511MapCard extends HTMLElement {
     this._map?.resize();
   }
 
+  // Builds the card once; later config changes (every edit in the card
+  // editor) only update the title and what's drawn, keeping the map.
   _render() {
     if (!this.shadowRoot) {
-      this.attachShadow({ mode: "open" });
+      this._build();
     }
-    this._map?.remove();
-    this._map = undefined;
+    const title = this.shadowRoot.querySelector(".title");
+    title.textContent = this._config.title ?? "";
+    title.hidden = !this._config.title;
+    this._update();
+  }
+
+  _build() {
+    this.attachShadow({ mode: "open" });
     this._markers = new Map();
     this.shadowRoot.innerHTML = `
       <link rel="stylesheet" href="${new URL("./maplibre-gl.css", import.meta.url).href}">
@@ -113,13 +126,9 @@ class Ontario511MapCard extends HTMLElement {
         <div class="title" hidden></div>
         <div class="map"></div>
       </ha-card>`;
-    const title = this.shadowRoot.querySelector(".title");
-    title.textContent = this._config.title ?? "";
-    title.hidden = !this._config.title;
     new ResizeObserver(() => this._map?.resize()).observe(
       this.shadowRoot.querySelector(".map")
     );
-    this._update();
   }
 
   async _update() {
@@ -168,6 +177,7 @@ class Ontario511MapCard extends HTMLElement {
         return;
       }
       this._lib = lib;
+      this._styleReady = false;
       this._dark = Boolean(this._hass.themes?.darkMode);
       this._map = new lib.Map({
         container,

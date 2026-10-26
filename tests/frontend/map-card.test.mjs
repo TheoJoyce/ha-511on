@@ -255,3 +255,33 @@ test("draws on style.load even if MapLibre still reports loading", async () => {
   assert.equal(map.sources["o511-routes"].data.features.length, 1);
   assert.equal(map.markers.length, 1);
 });
+
+test("a config change keeps the map and redraws what's listed", async () => {
+  const card = document.createElement(CARD);
+  document.body.appendChild(card);
+  card.setConfig({ entities: [ROUTE, EVENT] });
+  card.hass = makeHass([ROUTE_STATE, EVENT_STATE]);
+  await settle();
+  const map = fake.maps.at(-1);
+  const created = fake.maps.length;
+  map.loadStyle();
+  assert.equal(map.fits.length, 1);
+
+  // The card editor calls setConfig on every edit.
+  card.setConfig({ title: "Commute", entities: [ROUTE, EVENT] });
+  card.hass = makeHass([ROUTE_STATE, EVENT_STATE]);
+  await settle();
+  assert.equal(fake.maps.length, created);
+  assert.equal(map.removed, false);
+  assert.equal(card.shadowRoot.querySelector(".title").textContent, "Commute");
+  // Same entities: the user's view isn't reset.
+  assert.equal(map.fits.length, 1);
+
+  card.setConfig({ title: "Commute", entities: [ROUTE] });
+  card.hass = makeHass([ROUTE_STATE, EVENT_STATE]);
+  await settle();
+  assert.equal(fake.maps.length, created);
+  assert.equal(map.markers[0].removed, true);
+  assert.equal(map.sources["o511-routes"].data.features.length, 1);
+  assert.equal(map.fits.length, 2);
+});
