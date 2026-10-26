@@ -28,7 +28,7 @@
 Entities for the Ontario 511 data near the places you care about, not the whole province.
 
 - **Areas:** drag a pin and a radius circle on the map (0.5 to 50 km; Home Assistant shows the radius in metres). Items nearest the centre are generated.
-- **Commutes:** a commute runs from one area to another (for example Home to Work). Up to three sensible highway routes between them are worked out and all used, and a corridor (default 5 km) around the stretches actually driven counts as on the commute. Its summaries are door to door: both areas plus the route. Commute items are generated before anything else.
+- **Commutes:** a commute runs from one area to another (for example Home to Work). Up to three sensible highway routes between them are worked out and all used, joining and leaving the highways wherever is quickest. A corridor (default 5 km) around the stretches actually driven, including the local roads to and from the highway, counts as on the commute. Its summaries are door to door: both areas plus the route. Commute items are generated before anything else.
 - **Every data type:** events and closures, construction, road conditions, alerts, traffic cameras, ferry terminals, rest areas, truck rest areas, service centres, seasonal load restrictions, carpool lots, transit hubs, inspection stations, roundabouts, HOT/HOV lanes and travel information centres.
 - **No temporary entities:** events and construction come and go, so they're counted on the road segment, area or commute they fall in. Event entities fire when something new appears.
 - **On the map:** each item's main entity has a location, and "Nearest event" entities put the closest events on the map.

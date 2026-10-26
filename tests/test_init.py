@@ -295,6 +295,8 @@ async def test_new_devices_go_in_the_chosen_ha_area(
 
 
 ROUTE_LINE = [(43.7, -79.6), (43.7, -79.5)]
+# Local roads from the start to the highway, about 1.4 km.
+LOCAL_LINE = [(43.71, -79.61), (43.7, -79.6)]
 
 
 @pytest.mark.parametrize(
@@ -312,6 +314,7 @@ ROUTE_LINE = [(43.7, -79.6), (43.7, -79.5)]
                     CONF_SEGMENTS: [],
                     # Two routes sharing a stretch count it once.
                     CONF_ROUTE: [
+                        ["", encode_polyline(LOCAL_LINE)],
                         ["a", encode_polyline(ROUTE_LINE)],
                         ["a", encode_polyline(ROUTE_LINE)],
                     ],
@@ -329,15 +332,20 @@ async def test_commute_route_sensor(
     mock_config_entry: MockConfigEntry,
     mock_api: AiohttpClientMocker,
 ) -> None:
-    """A commute's Route sensor has its length and the lines for the map card."""
+    """A commute's Route sensor has its length and the lines for the map card.
+
+    Highway stretches and local roads are kept apart, so the card can draw
+    local roads (straight lines) differently.
+    """
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
 
     state = hass.states.get("sensor.work_route")
-    assert float(state.state) == pytest.approx(8.0, abs=0.1)
+    assert float(state.state) == pytest.approx(8.0 + 1.4, abs=0.1)
     assert state.attributes["unit_of_measurement"] == "km"
     assert state.attributes["route"] == [[[43.7, -79.6], [43.7, -79.5]]]
+    assert state.attributes["local"] == [[[43.71, -79.61], [43.7, -79.6]]]
 
 
 async def test_map_card_is_served(hass: HomeAssistant) -> None:

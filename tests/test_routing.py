@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import itertools
+
 from custom_components.ontario_511.commute import (
     change_segments,
     plan_commute,
@@ -67,7 +69,12 @@ def test_plan_commute_and_fallback() -> None:
     """Plans store segments and stretches; local trips fall back to a line."""
     plan = plan_commute([WEST, EAST], START, (43.77, -79.25))
     assert plan[CONF_SEGMENTS] == [WEST.id, EAST.id]
-    assert {sid for sid, _ in plan[CONF_ROUTE]} == {WEST.id, EAST.id}
+    assert {sid for sid, _ in plan[CONF_ROUTE]} == {"", WEST.id, EAST.id}
+    # Local roads connect the start and end to the highway, so the corridor
+    # covers the trip door to door.
+    local = [decode_polyline(e) for sid, e in plan[CONF_ROUTE] if not sid]
+    assert local[0][0] == START
+    assert local[-1][-1] == (43.77, -79.25)
 
     local = plan_commute([FAR], START, (43.72, -79.55))
     assert local[CONF_SEGMENTS] == []
@@ -85,10 +92,37 @@ def test_change_segments() -> None:
     changed = change_segments(plan, [WEST.id, NORTH.id], {NORTH.id: NORTH})
     assert changed[CONF_SEGMENTS] == [WEST.id, NORTH.id]
     pieces = {sid for sid, _ in changed[CONF_ROUTE]}
-    assert pieces == {WEST.id, NORTH.id}
+    assert pieces == {"", WEST.id, NORTH.id}
     north_line = next(
         decode_polyline(encoded)
         for sid, encoded in changed[CONF_ROUTE]
         if sid == NORTH.id
     )
     assert len(north_line) == len(NORTH.lines[0])
+
+
+# Highway 401 across Toronto as one long segment, with no junction between
+# its ends (like the QEW between Highway 427 and Mississauga).
+# Points about every 800 m, as real segments have (thinned to about 250 m).
+LONG_401 = RoadSegment.from_api(
+    road_condition(
+        "Long 401", [(43.70, round(-79.80 + i * 0.01, 2)) for i in range(61)]
+    )
+)
+
+
+def test_joins_and_leaves_between_junctions() -> None:
+    """Routes use any point of a segment, as drivers use any interchange."""
+    start, end = (43.71, -79.70), (43.71, -79.30)
+    (route,) = RoadNetwork([LONG_401]).routes(start, end)
+    assert route.segments == (LONG_401.id,)
+    assert distance_km(route.entry, (43.70, -79.70)) < 1.5
+    assert distance_km(route.exit, (43.70, -79.30)) < 1.5
+    ((_, piece),) = route.pieces
+    # The driven stretch is the part between the two, not the whole segment.
+    assert 30 < sum(distance_km(a, b) for a, b in itertools.pairwise(piece)) < 35
+
+
+def test_short_highway_hop_is_not_a_route() -> None:
+    """A highway that barely helps doesn't beat local roads."""
+    assert RoadNetwork([LONG_401]).routes((43.75, -79.70), (43.75, -79.65)) == []

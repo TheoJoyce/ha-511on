@@ -20,7 +20,7 @@ from homeassistant.helpers.typing import StateType
 
 from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
 from .api import Resource
-from .commute import route_lines
+from .commute import route_pieces
 from .conditions import RoadCondition
 from .const import NEAREST_EVENTS, SUBENTRY_COMMUTE, SUBENTRY_ITEM
 from .coordinator import ResourceCoordinator
@@ -323,7 +323,7 @@ def _summary_sensors(
         sensors.append(WorstConditionSensor(road, subentry_id, title))
         if subentry.subentry_type == SUBENTRY_COMMUTE:
             sensors.append(
-                RouteSensor(road, subentry_id, title, route_lines(subentry.data))
+                RouteSensor(road, subentry_id, title, route_pieces(subentry.data))
             )
     for feed in (Resource.EVENTS, Resource.CONSTRUCTION, Resource.ALERTS):
         if feed in feeds and (coordinator := coordinators.get(feed)):
@@ -571,32 +571,40 @@ class RouteSensor(SummaryEntity, SensorEntity):
     """A commute's route: the roads it covers, drawn by the map card.
 
     The state is the length of the distinct stretches driven by all of the
-    commute's routes. The ``route`` attribute holds those stretches as
-    [latitude, longitude] lines; it never changes, so it isn't recorded.
+    commute's routes. As [latitude, longitude] lines, ``route`` holds the
+    highway stretches and ``local`` the local roads between them and the start
+    and end, which are straight lines. They never change, so they aren't
+    recorded.
     """
 
     _attr_device_class = SensorDeviceClass.DISTANCE
     _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
     _attr_suggested_display_precision = 0
-    _unrecorded_attributes = frozenset({"route"})
+    _unrecorded_attributes = frozenset({"route", "local"})
 
     def __init__(
         self,
         road: ResourceCoordinator,
         subentry_id: str,
         subentry_title: str,
-        lines: list[tuple[Point, ...]],
+        pieces: list[tuple[str, tuple[Point, ...]]],
     ) -> None:
         """Initialize the sensor from the commute's stored route."""
         super().__init__(road, subentry_id, subentry_title, "commute_route")
-        distinct = list(dict.fromkeys(lines))
+        distinct = list(dict.fromkeys(pieces))
         self._attr_native_value = round(
-            sum(distance_km(a, b) for line in distinct for a, b in pairwise(line)),
+            sum(distance_km(a, b) for _, line in distinct for a, b in pairwise(line)),
             1,
         )
-        self._attr_extra_state_attributes = {
-            "route": [
+
+        def lines(local: bool) -> list[list[list[float]]]:
+            return [
                 [[round(lat, 5), round(lon, 5)] for lat, lon in line]
-                for line in distinct
+                for segment_id, line in distinct
+                if (not segment_id) == local
             ]
+
+        self._attr_extra_state_attributes = {
+            "route": lines(local=False),
+            "local": lines(local=True),
         }

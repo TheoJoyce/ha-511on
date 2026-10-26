@@ -521,6 +521,9 @@
         "state_attributes": {
           "route": {
             "name": "Route"
+          },
+          "local": {
+            "name": "Local roads"
           }
         }
       }

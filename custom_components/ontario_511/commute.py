@@ -3,8 +3,10 @@
 A commute stores the road segments it uses and the stretches of them actually
 driven (``CONF_ROUTE``: pairs of segment ID and encoded polyline). Corridors
 follow those stretches, so a long segment only counts where the trip uses it.
-When local roads beat any highway route, the route is the straight line from
-start to end, with no segment.
+Stretches on local roads, from the start to the highway and from the highway
+to the end, are straight lines with no segment ID, so the corridor covers the
+trip door to door. When local roads beat any highway route, the route is the
+straight line from start to end.
 """
 
 from __future__ import annotations
@@ -45,26 +47,44 @@ def plan_commute(
         for segment_id in route.segments:
             if segment_id not in ordered:
                 ordered.append(segment_id)
-        pieces.extend([sid, encode_polyline(line)] for sid, line in route.pieces)
+        local = ([start, route.entry], [route.exit, end])
+        for piece in (
+            ["", encode_polyline(local[0])],
+            *([sid, encode_polyline(line)] for sid, line in route.pieces),
+            ["", encode_polyline(local[1])],
+        ):
+            if piece not in pieces:
+                pieces.append(piece)
     return {CONF_SEGMENTS: ordered, CONF_ROUTE: pieces}
+
+
+def route_pieces(data: Mapping[str, Any]) -> list[tuple[str, tuple[Point, ...]]]:
+    """Return the stretches a commute drives, with their segment IDs.
+
+    Local roads have no segment ID.
+    """
+    pieces = [
+        (segment_id, tuple(decode_polyline(encoded)))
+        for segment_id, encoded in data.get(CONF_ROUTE, [])
+        if encoded
+    ]
+    if pieces:
+        return pieces
+    start, end = data[CONF_START], data[CONF_END]
+    return [
+        (
+            "",
+            (
+                (start["latitude"], start["longitude"]),
+                (end["latitude"], end["longitude"]),
+            ),
+        )
+    ]
 
 
 def route_lines(data: Mapping[str, Any]) -> list[tuple[Point, ...]]:
     """Return the stretches a commute drives."""
-    lines = [
-        tuple(decode_polyline(encoded))
-        for _, encoded in data.get(CONF_ROUTE, [])
-        if encoded
-    ]
-    if lines:
-        return lines
-    start, end = data[CONF_START], data[CONF_END]
-    return [
-        (
-            (start["latitude"], start["longitude"]),
-            (end["latitude"], end["longitude"]),
-        )
-    ]
+    return [line for _, line in route_pieces(data)]
 
 
 def change_segments(
@@ -75,7 +95,8 @@ def change_segments(
     Stretches of kept segments stay as they were; newly added segments are
     used along their full length.
     """
-    pieces = [list(p) for p in data.get(CONF_ROUTE, []) if p[0] in keep]
+    # Local stretches (no segment ID) stay, so the trip stays door to door.
+    pieces = [list(p) for p in data.get(CONF_ROUTE, []) if not p[0] or p[0] in keep]
     for segment_id in keep:
         if segment_id not in data.get(CONF_SEGMENTS, []) and (
             segment := segments.get(segment_id)

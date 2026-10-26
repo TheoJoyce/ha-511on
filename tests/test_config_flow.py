@@ -161,7 +161,8 @@ async def test_setup_with_commute(
     assert commute.data[CONF_FROM_AREA] == home.unique_id
     assert commute.data[CONF_TO_AREA] == work.unique_id
     assert commute.data[CONF_SEGMENTS] == [WEST_ID, EAST_ID]
-    assert {sid for sid, _ in commute.data[CONF_ROUTE]} == {WEST_ID, EAST_ID}
+    # Local roads to and from the 401 have no segment ID.
+    assert {sid for sid, _ in commute.data[CONF_ROUTE]} == {"", WEST_ID, EAST_ID}
     assert commute.data[CONF_FEEDS] == ["event"]
     assert commute.data[CONF_PENDING] == ["cameras"]
 
@@ -420,7 +421,7 @@ async def test_add_commute_to_a_new_area(
     commute = init_integration.subentries[commute.subentry_id]
     assert commute.data[CONF_SEGMENTS] == [EAST_ID]
     assert commute.data[CONF_CORRIDOR_KM] == 2.5
-    assert {sid for sid, _ in commute.data[CONF_ROUTE]} == {EAST_ID}
+    assert {sid for sid, _ in commute.data[CONF_ROUTE]} == {"", EAST_ID}
 
 
 @pytest.mark.parametrize("subentries", [WEST_AREA])
