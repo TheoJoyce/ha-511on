@@ -12,6 +12,7 @@ import logging
 from types import MappingProxyType
 from typing import Any
 
+from homeassistant.components.zone import DATA_ZONE_STORAGE_COLLECTION
 from homeassistant.config_entries import (
     ConfigEntryState,
     ConfigFlow,
@@ -21,9 +22,19 @@ from homeassistant.config_entries import (
     ConfigSubentryFlow,
     SubentryFlowResult,
 )
-from homeassistant.const import CONF_API_KEY, CONF_NAME
+from homeassistant.const import (
+    CONF_API_KEY,
+    CONF_ICON,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    CONF_NAME,
+    CONF_RADIUS,
+)
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.selector import (
+    AreaSelector,
+    BooleanSelector,
     LocationSelector,
     LocationSelectorConfig,
     NumberSelector,
@@ -59,9 +70,11 @@ from .commute import (
 from .const import (
     CONF_ADDRESS,
     CONF_CORRIDOR_KM,
+    CONF_CREATE_ZONE,
     CONF_END,
     CONF_FEEDS,
     CONF_FROM_AREA,
+    CONF_HA_AREA,
     CONF_ITEM_ID,
     CONF_ITEMS,
     CONF_LOCATION,
@@ -155,6 +168,40 @@ def _km_selector(minimum: float, maximum: float) -> NumberSelector:
     )
 
 
+def _ha_area_field(current: str | None) -> probatio.Optional:
+    """Return an optional Home Assistant area field, prefilled if known."""
+    if current:
+        return probatio.Optional(CONF_HA_AREA, description={"suggested_value": current})
+    return probatio.Optional(CONF_HA_AREA)
+
+
+def _with_ha_area(data: dict[str, Any], user_input: Mapping[str, Any]) -> None:
+    """Store the chosen Home Assistant area, or none."""
+    if ha_area := user_input.get(CONF_HA_AREA):
+        data[CONF_HA_AREA] = ha_area
+    else:
+        data.pop(CONF_HA_AREA, None)
+
+
+async def _async_create_zone(
+    hass: HomeAssistant, name: str, location: Mapping[str, Any], radius_km: float
+) -> None:
+    """Create a Home Assistant zone matching an area.
+
+    The zone belongs to the user from then on: it isn't changed or removed
+    with the area.
+    """
+    await hass.data[DATA_ZONE_STORAGE_COLLECTION].async_create_item(
+        {
+            CONF_NAME: name,
+            CONF_LATITUDE: location["latitude"],
+            CONF_LONGITUDE: location["longitude"],
+            CONF_RADIUS: radius_km * 1000,
+            CONF_ICON: "mdi:map-marker-radius",
+        }
+    )
+
+
 def _home(hass: HomeAssistant) -> dict[str, float]:
     return {"latitude": hass.config.latitude, "longitude": hass.config.longitude}
 
@@ -202,6 +249,8 @@ class _SetupSteps:
     _area_name_default: str
     _from: dict[str, Any] | None
     _to: dict[str, Any] | None
+    # Areas whose matching zone is created once the area is saved.
+    _zones: list[tuple[str, dict[str, Any], float]]
 
     async_show_form: Any
 
@@ -229,6 +278,7 @@ class _SetupSteps:
             CONF_ADDRESS: "",
             CONF_LOCATION: {**_home(self.hass), "radius": DEFAULT_RADIUS_KM * 1000},
             CONF_TYPES: DEFAULT_TYPES,
+            CONF_CREATE_ZONE: False,
         }
         if user_input is not None:
             address = (user_input.get(CONF_ADDRESS) or "").strip()
@@ -280,6 +330,8 @@ class _SetupSteps:
                     CONF_PENDING: pending,
                     CONF_ITEMS: {},
                 }
+                _with_ha_area(self._draft, user_input)
+                self._create_zone = bool(user_input.get(CONF_CREATE_ZONE))
                 self._draft_kind = SUBENTRY_AREA
                 return await self._async_next_after_draft()
         schema = probatio.Schema(
@@ -294,6 +346,10 @@ class _SetupSteps:
                 probatio.Required(
                     CONF_TYPES, default=defaults[CONF_TYPES]
                 ): _types_selector(TYPE_OPTIONS),
+                _ha_area_field(defaults.get(CONF_HA_AREA)): AreaSelector(),
+                probatio.Optional(
+                    CONF_CREATE_ZONE, default=defaults.get(CONF_CREATE_ZONE, False)
+                ): BooleanSelector(),
             }
         )
         return self.async_show_form(
@@ -354,11 +410,13 @@ class _SetupSteps:
                         CONF_ITEMS: {},
                         **plan,
                     }
+                    _with_ha_area(self._draft, user_input)
                     return await self._async_next_after_draft()
         defaults = user_input or {
             CONF_NAME: self._commute_name(),
             CONF_CORRIDOR_KM: DEFAULT_CORRIDOR_KM,
             CONF_TYPES: DEFAULT_TYPES,
+            CONF_HA_AREA: self._from.get("ha_area"),
         }
         schema = probatio.Schema(
             {
@@ -369,6 +427,7 @@ class _SetupSteps:
                 probatio.Required(
                     CONF_TYPES, default=defaults[CONF_TYPES]
                 ): _types_selector(TYPE_OPTIONS),
+                _ha_area_field(defaults.get(CONF_HA_AREA)): AreaSelector(),
             }
         )
         return self.async_show_form(
@@ -414,7 +473,10 @@ class _SetupSteps:
                 "key": unique_id,
                 "title": title,
                 "centre": _point(data[CONF_LOCATION]),
+                "ha_area": data.get(CONF_HA_AREA),
             }
+            if self._create_zone:
+                self._zones.append((title, data[CONF_LOCATION], data[CONF_RADIUS_KM]))
             if self._from is None:
                 self._from = area
             else:
@@ -422,7 +484,13 @@ class _SetupSteps:
             return await self._async_area_done(data, title, unique_id)
         return await self._async_commute_done(data, title)
 
+    async def _async_create_zones(self) -> None:
+        for name, location, radius_km in self._zones:
+            await _async_create_zone(self.hass, name, location, radius_km)
+        self._zones = []
+
     _draft_kind: str
+    _create_zone: bool = False
 
 
 class Ontario511ConfigFlow(ConfigFlow, _SetupSteps, domain=DOMAIN):
@@ -441,6 +509,7 @@ class Ontario511ConfigFlow(ConfigFlow, _SetupSteps, domain=DOMAIN):
         self._area_name_default = DEFAULT_AREA_NAME
         self._from = None
         self._to = None
+        self._zones = []
 
     def _client_and_key(self) -> tuple[Ontario511Client, str]:
         return create_client(self.hass, self._api_key), key_id(self._api_key)
@@ -502,6 +571,7 @@ class Ontario511ConfigFlow(ConfigFlow, _SetupSteps, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Create the entry with its first area (and commute)."""
+        await self._async_create_zones()
         return self.async_create_entry(
             title="Ontario 511",
             data={CONF_API_KEY: self._api_key},
@@ -578,6 +648,11 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
                 **subentry.data,
                 CONF_FEEDS: user_input[CONF_FEEDS],
             }
+            _with_ha_area(new_data, user_input)
+            if (ha_area := new_data.get(CONF_HA_AREA)) and ha_area != subentry.data.get(
+                CONF_HA_AREA
+            ):
+                self._assign_area(subentry.subentry_id, ha_area)
             if is_commute:
                 new_data[CONF_CORRIDOR_KM] = round(
                     float(user_input[CONF_CORRIDOR_KM]), 1
@@ -596,6 +671,7 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
             probatio.Required(
                 CONF_FEEDS, default=list(subentry.data.get(CONF_FEEDS, []))
             ): _types_selector([r.value for r in FEED_RESOURCES]),
+            _ha_area_field(subentry.data.get(CONF_HA_AREA)): AreaSelector(),
         }
         if is_commute:
             current = list(subentry.data.get(CONF_SEGMENTS, []))
@@ -623,6 +699,14 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
             data_schema=probatio.Schema(fields),
         )
 
+    def _assign_area(self, subentry_id: str, area_id: str) -> None:
+        """Move every device of an area, commute or item to a Home Assistant area."""
+        entry_id = self._get_entry().entry_id
+        registry = dr.async_get(self.hass)
+        for device in dr.async_entries_for_config_entry(registry, entry_id):
+            if subentry_id in device.config_entries_subentries.get(entry_id, ()):
+                registry.async_update_device(device.id, area_id=area_id)
+
     async def async_step_reconfigure_commute(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
@@ -641,6 +725,7 @@ class AreaSubentryFlow(_EntrySubentryFlow, _SetupSteps):
         self._area_name_default = DEFAULT_NEW_AREA_NAME
         self._from = None
         self._to = None
+        self._zones = []
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -651,6 +736,7 @@ class AreaSubentryFlow(_EntrySubentryFlow, _SetupSteps):
     async def _async_area_done(
         self, data: dict[str, Any], title: str, unique_id: str
     ) -> SubentryFlowResult:
+        await self._async_create_zones()
         return self.async_create_entry(title=title, data=data, unique_id=unique_id)
 
 
@@ -665,6 +751,7 @@ class CommuteSubentryFlow(_EntrySubentryFlow, _SetupSteps):
         self._area_name_default = DEFAULT_DESTINATION_NAME
         self._from = None
         self._to = None
+        self._zones = []
 
     def _areas(self) -> dict[str, dict[str, Any]]:
         """Return the entry's areas by link key."""
@@ -673,6 +760,7 @@ class CommuteSubentryFlow(_EntrySubentryFlow, _SetupSteps):
                 "key": area_key(s),
                 "title": s.title,
                 "centre": _point(s.data[CONF_LOCATION]),
+                "ha_area": s.data.get(CONF_HA_AREA),
             }
             for s in self._get_entry().subentries.values()
             if s.subentry_type == SUBENTRY_AREA
@@ -738,6 +826,7 @@ class CommuteSubentryFlow(_EntrySubentryFlow, _SetupSteps):
         self, data: dict[str, Any], title: str, unique_id: str
     ) -> SubentryFlowResult:
         """Add the new destination area, then continue with the commute."""
+        await self._async_create_zones()
         self.hass.config_entries.async_add_subentry(
             self._get_entry(),
             ConfigSubentry(
@@ -794,10 +883,10 @@ class ItemSubentryFlow(_EntrySubentryFlow):
                 s.unique_id == unique_id for s in self._get_entry().subentries.values()
             ):
                 return self.async_abort(reason="already_configured")
+            data = {CONF_RESOURCE: self._resource.value, CONF_ITEM_ID: item_id}
+            _with_ha_area(data, user_input)
             return self.async_create_entry(
-                title=self._choices[item_id],
-                data={CONF_RESOURCE: self._resource.value, CONF_ITEM_ID: item_id},
-                unique_id=unique_id,
+                title=self._choices[item_id], data=data, unique_id=unique_id
             )
         client, key = self._client_and_key()
         try:
@@ -832,7 +921,8 @@ class ItemSubentryFlow(_EntrySubentryFlow):
                         ],
                         mode=SelectSelectorMode.DROPDOWN,
                     )
-                )
+                ),
+                _ha_area_field(None): AreaSelector(),
             }
         )
         return self.async_show_form(step_id="pick", data_schema=schema)

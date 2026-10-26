@@ -50,6 +50,14 @@ def summary_device_identifier(subentry_id: str) -> str:
     return f"{subentry_id}:summary"
 
 
+def _suggested_area(coordinator: ResourceCoordinator, subentry_id: str) -> str | None:
+    """Return the Home Assistant area chosen for a subentry's devices.
+
+    Home Assistant only applies it when a device is first created.
+    """
+    return coordinator.config_entry.runtime_data.suggested_areas.get(subentry_id)
+
+
 class Ontario511Entity(CoordinatorEntity[ResourceCoordinator]):
     """An entity backed by an Ontario 511 coordinator.
 
@@ -94,6 +102,7 @@ class ItemEntity(Ontario511Entity):
             model=RESOURCE_MODELS[coordinator.resource],
             entry_type=DeviceEntryType.SERVICE,
             configuration_url=SOURCE_URL,
+            suggested_area=_suggested_area(coordinator, subentry_id),
         )
 
     @property
@@ -134,4 +143,5 @@ class SummaryEntity(Ontario511Entity):
             model="Summary",
             entry_type=DeviceEntryType.SERVICE,
             configuration_url=SOURCE_URL,
+            suggested_area=_suggested_area(coordinator, subentry_id),
         )

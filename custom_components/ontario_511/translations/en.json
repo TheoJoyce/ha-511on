@@ -31,13 +31,17 @@
           "name": "Name",
           "location": "Centre and radius",
           "types": "Data to generate",
-          "address": "Address (optional)"
+          "address": "Address (optional)",
+          "ha_area": "Home Assistant area",
+          "create_zone": "Create a matching zone"
         },
         "data_description": {
           "name": "For example Home, Work or Cottage.",
           "location": "Drag the pin to the centre and drag the circle's edge to set the radius, from {min_radius} to {max_radius} metres. You can also type the radius in metres.",
           "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-          "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
+          "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors.",
+          "ha_area": "Every device created for this area goes in this Home Assistant area, such as Outside. You can still move devices one by one.",
+          "create_zone": "Adds a Home Assistant zone with the same centre and radius, for presence automations. The zone is yours to edit or delete: it doesn't change or go away with the area."
         },
         "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
         "title": "Area"
@@ -54,11 +58,13 @@
         "data": {
           "name": "Name",
           "corridor_km": "Corridor width",
-          "types": "Data to generate"
+          "types": "Data to generate",
+          "ha_area": "Home Assistant area"
         },
         "data_description": {
           "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
-          "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones."
+          "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones.",
+          "ha_area": "Every device created for this commute goes in this Home Assistant area. Prefilled from the start area."
         },
         "description": "A commute from {from} to {to}. Up to three sensible highway routes between them are worked out and all used. Its summaries cover both areas and the route between them.",
         "title": "Commute"
@@ -106,13 +112,17 @@
             "name": "Name",
             "location": "Centre and radius",
             "types": "Data to generate",
-            "address": "Address (optional)"
+            "address": "Address (optional)",
+            "ha_area": "Home Assistant area",
+            "create_zone": "Create a matching zone"
           },
           "data_description": {
             "name": "For example Home, Work or Cottage.",
             "location": "Drag the pin to the centre and drag the circle's edge to set the radius, from {min_radius} to {max_radius} metres. You can also type the radius in metres.",
             "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
+            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors.",
+            "ha_area": "Every device created for this area goes in this Home Assistant area, such as Outside. You can still move devices one by one.",
+            "create_zone": "Adds a Home Assistant zone with the same centre and radius, for presence automations. The zone is yours to edit or delete: it doesn't change or go away with the area."
           },
           "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
           "title": "Area"
@@ -124,10 +134,12 @@
         "reconfigure": {
           "data": {
             "name": "Name",
-            "feeds": "Follow"
+            "feeds": "Follow",
+            "ha_area": "Home Assistant area"
           },
           "data_description": {
-            "feeds": "Events, construction and alerts shown for this area."
+            "feeds": "Events, construction and alerts shown for this area.",
+            "ha_area": "Changing it moves every device here to the new Home Assistant area, and new devices go there too."
           },
           "title": "Settings"
         }
@@ -184,13 +196,17 @@
             "name": "Name",
             "location": "Centre and radius",
             "types": "Data to generate",
-            "address": "Address (optional)"
+            "address": "Address (optional)",
+            "ha_area": "Home Assistant area",
+            "create_zone": "Create a matching zone"
           },
           "data_description": {
             "name": "For example Home, Work or Cottage.",
             "location": "Drag the pin to the centre and drag the circle's edge to set the radius, from {min_radius} to {max_radius} metres. You can also type the radius in metres.",
             "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
+            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors.",
+            "ha_area": "Every device created for this area goes in this Home Assistant area, such as Outside. You can still move devices one by one.",
+            "create_zone": "Adds a Home Assistant zone with the same centre and radius, for presence automations. The zone is yours to edit or delete: it doesn't change or go away with the area."
           },
           "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
           "title": "Area"
@@ -199,11 +215,13 @@
           "data": {
             "name": "Name",
             "corridor_km": "Corridor width",
-            "types": "Data to generate"
+            "types": "Data to generate",
+            "ha_area": "Home Assistant area"
           },
           "data_description": {
             "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
-            "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones."
+            "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones.",
+            "ha_area": "Every device created for this commute goes in this Home Assistant area. Prefilled from the start area."
           },
           "description": "A commute from {from} to {to}. Up to three sensible highway routes between them are worked out and all used. Its summaries cover both areas and the route between them.",
           "title": "Commute"
@@ -217,12 +235,14 @@
             "name": "Name",
             "feeds": "Follow",
             "corridor_km": "Corridor width",
-            "segments": "Road segments"
+            "segments": "Road segments",
+            "ha_area": "Home Assistant area"
           },
           "data_description": {
             "feeds": "Events, construction and alerts shown for this commute.",
             "corridor_km": "Anything within this distance of the route counts as on the commute.",
-            "segments": "The road segments the commute uses. Untick any you don't drive, or tick nearby ones you do; added segments count along their full length."
+            "segments": "The road segments the commute uses. Untick any you don't drive, or tick nearby ones you do; added segments count along their full length.",
+            "ha_area": "Changing it moves every device here to the new Home Assistant area, and new devices go there too."
           },
           "title": "Settings"
         }
@@ -250,10 +270,14 @@
         },
         "pick": {
           "data": {
-            "item_id": "Item"
+            "item_id": "Item",
+            "ha_area": "Home Assistant area"
           },
           "description": "Choose the item. The nearest to your home are listed first.",
-          "title": "Add item"
+          "title": "Add item",
+          "data_description": {
+            "ha_area": "The item's device goes in this Home Assistant area."
+          }
         }
       }
     }

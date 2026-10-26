@@ -13,7 +13,11 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import (
+    area_registry as ar,
+    device_registry as dr,
+    entity_registry as er,
+)
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, load_fixture
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
@@ -25,6 +29,7 @@ from custom_components.ontario_511.const import (
     CONF_CORRIDOR_KM,
     CONF_END,
     CONF_FEEDS,
+    CONF_HA_AREA,
     CONF_ITEMS,
     CONF_PENDING,
     CONF_RADIUS_KM,
@@ -257,3 +262,29 @@ async def test_commute_items_take_priority(
     assert set(commute.data[CONF_ITEMS]["cameras"]) == {"455", "456"}
     assert "cameras" not in area.data[CONF_ITEMS]
     assert commute.data[CONF_PENDING] == area.data[CONF_PENDING] == []
+
+
+async def test_new_devices_go_in_the_chosen_ha_area(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_api: AiohttpClientMocker,
+    area_registry: ar.AreaRegistry,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Devices created for an area start in its Home Assistant area."""
+    outside = area_registry.async_create("Outside")
+    mock_config_entry.add_to_hass(hass)
+    subentry = mock_config_entry.subentries[AREA_ID]
+    hass.config_entries.async_update_subentry(
+        mock_config_entry,
+        subentry,
+        data={**subentry.data, CONF_HA_AREA: outside.id},
+    )
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    devices = dr.async_entries_for_config_entry(
+        device_registry, mock_config_entry.entry_id
+    )
+    assert devices
+    assert {d.area_id for d in devices} == {outside.id}

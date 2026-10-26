@@ -6,14 +6,16 @@ import hashlib
 import json
 from typing import Any
 
+from homeassistant.components.zone import ATTR_RADIUS
 from homeassistant.config_entries import (
     SOURCE_USER,
     ConfigSubentry,
     ConfigSubentryDataWithId,
 )
-from homeassistant.const import CONF_API_KEY, CONF_NAME
+from homeassistant.const import ATTR_LATITUDE, CONF_API_KEY, CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import area_registry as ar, device_registry as dr
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
@@ -25,8 +27,10 @@ from custom_components.ontario_511.client import get_rate_limiter
 from custom_components.ontario_511.const import (
     CONF_ADDRESS,
     CONF_CORRIDOR_KM,
+    CONF_CREATE_ZONE,
     CONF_FEEDS,
     CONF_FROM_AREA,
+    CONF_HA_AREA,
     CONF_ITEM_ID,
     CONF_LOCATION,
     CONF_PENDING,
@@ -597,3 +601,74 @@ async def test_address_errors(
     )
     assert result["step_id"] == "area"
     assert result["errors"] == {CONF_ADDRESS: error}
+
+
+@pytest.mark.usefixtures("mock_setup_entry")
+async def test_setup_with_zone_and_ha_area(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    area_registry: ar.AreaRegistry,
+) -> None:
+    """An area can create a matching zone and put its devices in an HA area."""
+    outside = area_registry.async_create("Outside")
+    result = await _start_with_key(hass, aioclient_mock)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {**HOME_INPUT, CONF_HA_AREA: outside.id, CONF_CREATE_ZONE: True},
+    )
+    # The zone is only created once the entry is.
+    assert hass.states.get("zone.home_2") is None
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "finish"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    (area,) = result["result"].subentries.values()
+    assert area.data[CONF_HA_AREA] == outside.id
+    assert CONF_CREATE_ZONE not in area.data
+    await hass.async_block_till_done()
+    zone = hass.states.get("zone.home_2")
+    assert zone.attributes[ATTR_LATITUDE] == WEST_END["latitude"]
+    assert zone.attributes[ATTR_RADIUS] == 12300
+
+
+@pytest.mark.usefixtures("mock_setup_entry")
+async def test_commute_ha_area_defaults_to_start_area(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    area_registry: ar.AreaRegistry,
+) -> None:
+    """The commute's HA area is prefilled from the area it starts in."""
+    outside = area_registry.async_create("Outside")
+    _mock_road_conditions(aioclient_mock)
+    configure = hass.config_entries.flow.async_configure
+    result = await _start_with_key(hass, aioclient_mock)
+    result = await configure(
+        result["flow_id"], {**HOME_INPUT, CONF_HA_AREA: outside.id}
+    )
+    result = await configure(result["flow_id"], {"next_step_id": "destination"})
+    result = await configure(result["flow_id"], WORK_INPUT)
+    schema = {key.schema: key for key in result["data_schema"].schema}
+    assert schema[CONF_HA_AREA].description == {"suggested_value": outside.id}
+
+
+@pytest.mark.parametrize("subentries", [WEST_AREA])
+async def test_reconfigure_moves_devices_to_ha_area(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    area_registry: ar.AreaRegistry,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Choosing an HA area in settings moves every device of the area."""
+    outside = area_registry.async_create("Outside")
+    result = await init_integration.start_subentry_reconfigure_flow(hass, AREA_ID)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {CONF_NAME: "Home", CONF_FEEDS: ["alerts"], CONF_HA_AREA: outside.id},
+    )
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done(wait_background_tasks=True)
+    devices = dr.async_entries_for_config_entry(
+        device_registry, init_integration.entry_id
+    )
+    assert devices
+    assert {d.area_id for d in devices} == {outside.id}

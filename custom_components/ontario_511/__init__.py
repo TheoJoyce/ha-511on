@@ -12,7 +12,11 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import (
+    area_registry as ar,
+    device_registry as dr,
+    entity_registry as er,
+)
 
 from .api import Ontario511Client, Resource
 from .client import create_client, key_id
@@ -20,6 +24,7 @@ from .commute import route_lines
 from .const import (
     CONF_CORRIDOR_KM,
     CONF_FEEDS,
+    CONF_HA_AREA,
     CONF_ITEM_ID,
     CONF_ITEMS,
     CONF_LOCATION,
@@ -64,6 +69,8 @@ class Ontario511Data:
     # Set while generation updates subentries, so those updates don't each
     # trigger a reload.
     generating: bool = field(default=False)
+    # Home Assistant area name per subentry, suggested for its new devices.
+    suggested_areas: dict[str, str] = field(default_factory=dict)
 
 
 type Ontario511ConfigEntry = ConfigEntry[Ontario511Data]
@@ -111,6 +118,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -
     }
     entry.runtime_data = Ontario511Data(client, key, coordinators)
     entry.runtime_data.feeds = FeedIndex(entry)
+    areas = ar.async_get(hass)
+    for subentry in entry.subentries.values():
+        if (area_id := subentry.data.get(CONF_HA_AREA)) and (
+            area := areas.async_get_area(area_id)
+        ):
+            entry.runtime_data.suggested_areas[subentry.subentry_id] = area.name
 
     # Setup waits for one resource, which checks the key and connection; the
     # rest load in the background, because with many resources the rate

@@ -22,6 +22,8 @@ One **config entry** per API key. It holds three kinds of **config subentries**,
 
 Setup chains: API key, then a first area ("Home", 25 km), then optionally a commute, which first adds the area it goes to ("Work").
 
+Areas, commutes and items can name a **Home Assistant area** (`ha_area`). It's passed as each new device's `suggested_area`, which Home Assistant only applies when a device is first created, so users can still move devices individually. Choosing a different one when reconfiguring moves all of that subentry's devices. An area can also **create a matching zone** once, at creation, through the zone integration's storage collection; the zone isn't linked to the area afterwards.
+
 Areas carry a link key as their subentry unique ID; commutes reference their two areas by it. If a linked area is deleted, the commute keeps its corridor.
 
 ### One-time data type selection

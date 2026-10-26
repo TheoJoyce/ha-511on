@@ -98,8 +98,10 @@ Or add it by hand:
 1. Go to **Settings** → **Devices & services**.
 2. Select **Add integration** and search for **Ontario 511**.
 3. Enter your Ontario 511 API key. It's checked with one request before you continue.
-4. Set up your first **area**: a name, the pin and radius circle on the map, and the data types to generate. Instead of dragging the pin you can type an address (see [Address search](#address-search)).
-5. Optionally add a **commute**. It starts by adding the second area it goes to (for example Work), then asks for the corridor width and what to generate. Its routes are worked out automatically; trips that stay on local roads use a corridor around the straight line between the two areas.
+4. Set up your first **area**: a name, the pin and radius circle on the map, and the data types to generate. Instead of dragging the pin you can type an address (see [Address search](#address-search)). Optionally:
+   - choose a **Home Assistant area** (for example *Outside*) for every device the area creates, so you don't have to assign them one by one;
+   - tick **Create a matching zone** to add a Home Assistant zone with the same centre and radius. The zone is yours from then on: it isn't changed or removed with the area.
+5. Optionally add a **commute**. It starts by adding the second area it goes to (for example Work), then asks for the corridor width, what to generate, and a Home Assistant area for its devices (prefilled from the start area). Its routes are worked out automatically; trips that stay on local roads use a corridor around the straight line between the two areas.
 
 The data type checkboxes are only used once, to decide what to generate. If you choose more than 10 types, the rest load about a minute later because of Ontario 511's rate limit.
 
@@ -108,7 +110,7 @@ The data type checkboxes are only used once, to decide what to generate. If you 
 On the integration page:
 
 - **Add area**, **Add commute** or **Add item** to add more. **Add commute** links two areas you already have, or adds a new area to go to. **Add item** adds any single item, chosen from a list sorted by distance from your home.
-- Open an area's or commute's menu (⋮) and select **Reconfigure** to rename it or change which events, construction and alerts it follows. For a commute you can also change the corridor width and which road segments it uses.
+- Open an area's or commute's menu (⋮) and select **Reconfigure** to rename it or change which events, construction and alerts it follows. Choosing a different **Home Assistant area** there moves all of its devices to that area. For a commute you can also change the corridor width and which road segments it uses.
 - Delete an item's device to remove that item.
 
 ### Forcing a refresh
