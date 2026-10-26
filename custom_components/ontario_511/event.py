@@ -16,24 +16,13 @@ from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
 from .api import Resource
 from .const import SUBENTRY_ITEM
 from .coordinator import ResourceCoordinator
-from .entity import ItemEntity, SummaryEntity
-from .models import Alert, TrafficEvent
+from .entity import ItemEntity, SummaryEntity, alert_details, event_details
+from .models import Alert
 
 PARALLEL_UPDATES = 0
 
 EVENT_NEW = "new_event"
 EVENT_NEW_ALERT = "new_alert"
-
-
-def _event_attributes(event: TrafficEvent) -> dict[str, Any]:
-    return {
-        "event_id": event.id,
-        "road": event.road,
-        "direction": event.direction,
-        "type": event.event_type,
-        "description": event.description,
-        "full_closure": event.is_full_closure,
-    }
 
 
 async def async_setup_entry(
@@ -131,7 +120,7 @@ class SegmentNewEvent(_NewItemsMixin, ItemEntity):
         events, _ = self.coordinator.config_entry.runtime_data.feeds.on_segment(
             self.item_id, self.subentry_id
         )
-        return {e.id: _event_attributes(e) for e in events}
+        return {e.id: event_details(e) for e in events}
 
 
 class ScopeNewEvent(_NewItemsMixin, SummaryEntity):
@@ -151,7 +140,7 @@ class ScopeNewEvent(_NewItemsMixin, SummaryEntity):
 
     def _current(self) -> dict[str, dict[str, Any]]:
         scope = self.coordinator.config_entry.runtime_data.feeds.scope(self.subentry_id)
-        return {e.id: _event_attributes(e) for e, _ in scope.events}
+        return {e.id: event_details(e, km) for e, km in scope.events}
 
 
 class ScopeNewAlert(_NewItemsMixin, SummaryEntity):
@@ -171,13 +160,4 @@ class ScopeNewAlert(_NewItemsMixin, SummaryEntity):
 
     def _current(self) -> dict[str, dict[str, Any]]:
         scope = self.coordinator.config_entry.runtime_data.feeds.scope(self.subentry_id)
-        return {
-            a.id: {
-                "alert_id": a.id,
-                "message": a.message,
-                "regions": list(a.regions),
-                "high_importance": a.high_importance,
-            }
-            for a in scope.alerts
-            if isinstance(a, Alert)
-        }
+        return {a.id: alert_details(a) for a in scope.alerts if isinstance(a, Alert)}

@@ -335,17 +335,31 @@
           "wet": "Wet",
           "partly_covered": "Partly covered",
           "covered": "Snow covered",
+          "drifting_snow": "Drifting snow",
           "icy": "Icy",
           "closed": "Closed"
         },
         "state_attributes": {
           "reported": {
             "name": "Reported"
+          },
+          "drifting": {
+            "name": "Drifting snow"
           }
         }
       },
       "visibility": {
-        "name": "Visibility"
+        "name": "Visibility",
+        "state": {
+          "good": "Good",
+          "fair": "Fair",
+          "poor": "Poor"
+        },
+        "state_attributes": {
+          "reported": {
+            "name": "Reported"
+          }
+        }
       },
       "ferry_status": {
         "name": "Status",
@@ -410,6 +424,7 @@
           "wet": "Wet",
           "partly_covered": "Partly covered",
           "covered": "Snow covered",
+          "drifting_snow": "Drifting snow",
           "icy": "Icy",
           "closed": "Closed"
         }
@@ -490,7 +505,16 @@
         "name": "Route"
       },
       "load_status": {
-        "name": "Status"
+        "name": "Status",
+        "state": {
+          "no_restrictions": "No restrictions",
+          "restrictions_in_effect": "Restrictions in effect"
+        },
+        "state_attributes": {
+          "reported": {
+            "name": "Reported"
+          }
+        }
       },
       "load_date": {
         "name": "Date"
@@ -526,6 +550,51 @@
             "name": "Local roads"
           }
         }
+      },
+      "surface_condition": {
+        "name": "Surface condition",
+        "state": {
+          "good": "Bare and dry",
+          "wet": "Wet",
+          "partly_covered": "Partly covered",
+          "covered": "Snow covered",
+          "drifting_snow": "Drifting snow",
+          "icy": "Icy",
+          "closed": "Closed"
+        }
+      },
+      "reported_conditions": {
+        "name": "Reported conditions"
+      },
+      "region": {
+        "name": "Region"
+      },
+      "source_id": {
+        "name": "Source ID"
+      },
+      "sort_order": {
+        "name": "Sort order"
+      },
+      "twitter": {
+        "name": "Twitter"
+      },
+      "rest_area_status": {
+        "name": "Status",
+        "state": {
+          "open": "Open",
+          "closed": "Closed"
+        },
+        "state_attributes": {
+          "reported": {
+            "name": "Reported"
+          }
+        }
+      },
+      "mode": {
+        "name": "Mode"
+      },
+      "title": {
+        "name": "Title"
       }
     },
     "binary_sensor": {
@@ -536,12 +605,7 @@
         "name": "Hazardous"
       },
       "open": {
-        "name": "Open",
-        "state_attributes": {
-          "reported": {
-            "name": "Reported"
-          }
-        }
+        "name": "Open"
       },
       "restricted": {
         "name": "Load restrictions"
@@ -579,7 +643,15 @@
     },
     "camera": {
       "view": {
-        "name": "View {view}"
+        "name": "View {view}",
+        "state_attributes": {
+          "view_id": {
+            "name": "View ID"
+          },
+          "description": {
+            "name": "Description"
+          }
+        }
       }
     },
     "event": {

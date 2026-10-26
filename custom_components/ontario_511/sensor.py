@@ -28,11 +28,14 @@ from .entity import (
     LOCATION_ATTRIBUTES,
     ItemEntity,
     SummaryEntity,
+    alert_details,
+    event_details,
     location_attributes,
 )
 from .feeds import Scope
 from .geo import Point, distance_km
 from .models import (
+    VISIBILITY_OPTIONS,
     Camera as CameraModel,
     CarpoolLot,
     FerryStatus,
@@ -59,20 +62,6 @@ _SCOPE_KEYS = {
     Resource.CONSTRUCTION: "construction",
     Resource.ALERTS: "alerts",
 }
-
-
-def _event_summary(event: TrafficEvent, km: float | None = None) -> dict[str, Any]:
-    summary: dict[str, Any] = {
-        "road": event.road,
-        "direction": event.direction,
-        "type": event.event_type,
-        "description": event.description,
-        "full_closure": event.is_full_closure,
-        "planned_end": event.planned_end.isoformat() if event.planned_end else None,
-    }
-    if km is not None:
-        summary["distance_km"] = round(km, 1)
-    return summary
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -113,8 +102,23 @@ def _text(
     )
 
 
+def _region(resource: Resource, model: type) -> ItemSensorDescription:
+    """Describe the region sensor; regions decide which alerts apply."""
+    return _text("region", resource, model, "region", enabled=False)
+
+
 def _rest_area_sensors(resource: Resource) -> tuple[ItemSensorDescription, ...]:
     return (
+        ItemSensorDescription(
+            key="rest_area_status",
+            resource=resource,
+            model=RestArea,
+            device_class=SensorDeviceClass.ENUM,
+            options=["open", "closed"],
+            value_fn=lambda a: a.status_option,
+            attrs_fn=lambda a: {"reported": a.status_text},
+            main=True,
+        ),
         _text("area_type", resource, RestArea, "area_type"),
         _text("road", resource, RestArea, "road"),
         _text("direction", resource, RestArea, "direction"),
@@ -122,6 +126,8 @@ def _rest_area_sensors(resource: Resource) -> tuple[ItemSensorDescription, ...]:
         _text("season", resource, RestArea, "season"),
         _text("food_services", resource, RestArea, "food_services"),
         _text("comments", resource, RestArea, "comments"),
+        _text("mode", resource, RestArea, "mode", enabled=False),
+        _region(resource, RestArea),
     )
 
 
@@ -133,11 +139,36 @@ ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
         device_class=SensorDeviceClass.ENUM,
         options=CONDITION_OPTIONS,
         value_fn=lambda s: s.condition.option,
-        attrs_fn=lambda s: {"reported": list(s.conditions)},
+        attrs_fn=lambda s: {"reported": list(s.conditions), "drifting": s.drifting},
         main=True,
     ),
-    _text("visibility", Resource.ROAD_CONDITIONS, RoadSegment, "visibility"),
+    ItemSensorDescription(
+        key="surface_condition",
+        resource=Resource.ROAD_CONDITIONS,
+        model=RoadSegment,
+        device_class=SensorDeviceClass.ENUM,
+        options=CONDITION_OPTIONS,
+        value_fn=lambda s: s.surface.option,
+        entity_registry_enabled_default=False,
+    ),
+    ItemSensorDescription(
+        key="reported_conditions",
+        resource=Resource.ROAD_CONDITIONS,
+        model=RoadSegment,
+        value_fn=lambda s: _short("; ".join(s.conditions)),
+        entity_registry_enabled_default=False,
+    ),
+    ItemSensorDescription(
+        key="visibility",
+        resource=Resource.ROAD_CONDITIONS,
+        model=RoadSegment,
+        device_class=SensorDeviceClass.ENUM,
+        options=list(VISIBILITY_OPTIONS),
+        value_fn=lambda s: s.visibility_option,
+        attrs_fn=lambda s: {"reported": s.visibility},
+    ),
     _text("road", Resource.ROAD_CONDITIONS, RoadSegment, "road"),
+    _region(Resource.ROAD_CONDITIONS, RoadSegment),
     ItemSensorDescription(
         key="last_updated",
         resource=Resource.ROAD_CONDITIONS,
@@ -155,6 +186,22 @@ ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
         "source",
         enabled=False,
         category=EntityCategory.DIAGNOSTIC,
+    ),
+    _text(
+        "source_id",
+        Resource.CAMERAS,
+        CameraModel,
+        "source_id",
+        enabled=False,
+        category=EntityCategory.DIAGNOSTIC,
+    ),
+    ItemSensorDescription(
+        key="sort_order",
+        resource=Resource.CAMERAS,
+        model=CameraModel,
+        value_fn=lambda c: c.sort_order,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ItemSensorDescription(
         key="ferry_status",
@@ -184,6 +231,8 @@ ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
     ),
     _text("operated_by", Resource.FERRY_TERMINALS, FerryTerminal, "operated_by"),
     _text("website", Resource.FERRY_TERMINALS, FerryTerminal, "website", enabled=False),
+    _text("twitter", Resource.FERRY_TERMINALS, FerryTerminal, "twitter", enabled=False),
+    _region(Resource.FERRY_TERMINALS, FerryTerminal),
     *_rest_area_sensors(Resource.REST_AREAS),
     *_rest_area_sensors(Resource.TRUCK_REST_AREAS),
     ItemSensorDescription(
@@ -204,8 +253,19 @@ ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
         value_fn=lambda c: c.commercial_parking,
     ),
     _text("website", Resource.SERVICE_CENTRES, ServiceCentre, "website", enabled=False),
+    _text("title", Resource.SERVICE_CENTRES, ServiceCentre, "title", enabled=False),
+    _region(Resource.SERVICE_CENTRES, ServiceCentre),
+    ItemSensorDescription(
+        key="load_status",
+        resource=Resource.SEASONAL_LOADS,
+        model=SeasonalLoad,
+        device_class=SensorDeviceClass.ENUM,
+        options=["no_restrictions", "restrictions_in_effect"],
+        value_fn=lambda s: s.status_option,
+        attrs_fn=lambda s: {"reported": s.status},
+        main=True,
+    ),
     _text("route", Resource.SEASONAL_LOADS, SeasonalLoad, "route"),
-    _text("load_status", Resource.SEASONAL_LOADS, SeasonalLoad, "status"),
     ItemSensorDescription(
         key="load_date",
         resource=Resource.SEASONAL_LOADS,
@@ -229,6 +289,7 @@ ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
     _text("road", Resource.CARPOOL_LOTS, CarpoolLot, "highway"),
     _text("interchange", Resource.CARPOOL_LOTS, CarpoolLot, "interchange"),
     _text("enter_from", Resource.CARPOOL_LOTS, CarpoolLot, "enter_from"),
+    _region(Resource.CARPOOL_LOTS, CarpoolLot),
     ItemSensorDescription(
         key="address",
         resource=Resource.TRANSIT_HUBS,
@@ -237,6 +298,7 @@ ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
         main=True,
     ),
     _text("website", Resource.TRANSIT_HUBS, TransitHub, "website", enabled=False),
+    _region(Resource.TRANSIT_HUBS, TransitHub),
     ItemSensorDescription(
         key="station_location",
         resource=Resource.INSPECTION_STATIONS,
@@ -247,6 +309,7 @@ ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
     _text("road", Resource.INSPECTION_STATIONS, InspectionStation, "highway"),
     _text("direction", Resource.INSPECTION_STATIONS, InspectionStation, "direction"),
     _text("contact", Resource.INSPECTION_STATIONS, InspectionStation, "contact"),
+    _region(Resource.INSPECTION_STATIONS, InspectionStation),
     ItemSensorDescription(
         key="roundabout_type",
         resource=Resource.ROUNDABOUTS,
@@ -255,6 +318,7 @@ ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
         main=True,
     ),
     _text("location", Resource.ROUNDABOUTS, Roundabout, "location"),
+    _region(Resource.ROUNDABOUTS, Roundabout),
     ItemSensorDescription(
         key="hov_road",
         resource=Resource.HOV_LANES,
@@ -262,6 +326,7 @@ ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
         value_fn=lambda h: _short(h.road),
         main=True,
     ),
+    _region(Resource.HOV_LANES, HovLane),
     ItemSensorDescription(
         key="hours",
         resource=Resource.INFORMATION_CENTRES,
@@ -272,6 +337,7 @@ ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
     _text("centre_address", Resource.INFORMATION_CENTRES, InformationCentre, "address"),
     _text("phone", Resource.INFORMATION_CENTRES, InformationCentre, "phone"),
     _text("email", Resource.INFORMATION_CENTRES, InformationCentre, "email"),
+    _region(Resource.INFORMATION_CENTRES, InformationCentre),
 )
 
 
@@ -416,7 +482,7 @@ class SegmentFeedSensor(ItemEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the first few, with their details."""
-        return {"items": [_event_summary(e) for e in self._items()[:MAX_LISTED]]}
+        return {"items": [event_details(e) for e in self._items()[:MAX_LISTED]]}
 
 
 class WorstConditionSensor(SummaryEntity, SensorEntity):
@@ -495,22 +561,13 @@ class ScopeCountSensor(SummaryEntity, SensorEntity):
         scope = self._scope()
         if self.coordinator.resource is Resource.ALERTS:
             alerts = sorted(scope.alerts, key=lambda a: not a.high_importance)
-            return {
-                "items": [
-                    {
-                        "message": a.message,
-                        "regions": list(a.regions),
-                        "high_importance": a.high_importance,
-                    }
-                    for a in alerts[:MAX_LISTED]
-                ]
-            }
+            return {"items": [alert_details(a) for a in alerts[:MAX_LISTED]]}
         pairs = (
             scope.events
             if self.coordinator.resource is Resource.EVENTS
             else scope.construction
         )
-        return {"items": [_event_summary(e, km) for e, km in pairs[:MAX_LISTED]]}
+        return {"items": [event_details(e, km) for e, km in pairs[:MAX_LISTED]]}
 
 
 class NearestEventSensor(SummaryEntity, SensorEntity):
@@ -559,12 +616,7 @@ class NearestEventSensor(SummaryEntity, SensorEntity):
         if (pair := self._event()) is None:
             return {}
         event, km = pair
-        return {
-            "event_id": event.id,
-            **_event_summary(event, km),
-            "lanes_affected": event.lanes_affected,
-            **location_attributes(event.coordinates),
-        }
+        return event_details(event, km)
 
 
 class RouteSensor(SummaryEntity, SensorEntity):

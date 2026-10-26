@@ -15,7 +15,8 @@ Ontario 511 endpoint ──► coordinator ──► parsed items ──┬─�
 1. **One call per resource, never per item.** Each endpoint returns everything Ontario 511 has for the province. Only resources that some area, commute or item needs are fetched.
 2. **One coordinator per resource** keeps the whole parsed response. Every entity of that resource reads from it, so a hundred cameras cost the same one call as one camera.
 3. **Parsing** (`models.py`) turns each API item into a model. It never trusts types: text is trimmed, `"Y"`/`"Yes"`/`"N"`/`"No"` become true or false, numbers in strings become numbers, Unix times become timestamps, and coordinates outside Ontario's bounding box are dropped. A missing or unrecognised value is `None`, which Home Assistant shows as **Unknown**.
-4. **Each resource then plays one of three roles:**
+4. **Every field is exposed, and multi-state values are statuses.** A value with more than two possible states is a status (enum) sensor, never squeezed into a yes/no. Combined statuses (such as **Road condition** including drifting snow) keep each part as its own entity too. The granular and duplicate ones are disabled by default to avoid clutter, so you can turn them on in the entity settings when you want finer control.
+5. **Each resource then plays one of three roles:**
    - **Items** become devices with one entity per field (13 resources).
    - **Feeds** come and go, so they don't become devices. They're counted and listed on the road segments, areas and commutes they fall in (events, construction, alerts).
    - **Road segments** are items too, and also the network that commutes are routed over.
@@ -57,12 +58,12 @@ The chosen items are stored by ID in the area's or commute's settings, so they d
 
 ## Item resources, field by field
 
-Reading the tables:
+Every field of every item resource is exposed as an entity, except the IDs and names that identify the device itself and the polylines (see Geometry below). In the tables:
 
-- **Entity** means the field is that entity's state.
+- An entity in **bold** shows that field as its state. A **status** is an enum sensor: its states are listed, translated in the UI, and anything else is Unknown.
 - **Attribute** means it's a state attribute of the named entity. Attributes only hold what explains a state, plus the location for the map.
-- **Internal** means it's used to work something out but not shown on its own.
-- **Not used** means it's ignored, with the reason given.
+- **Disabled by default** means the entity exists but starts off. Turn it on from the entity's settings.
+- **Internal** means it's used to work something out rather than shown; only polylines are.
 
 Every item's **main entity** (marked ★) carries `latitude` and `longitude` attributes, so the item appears on maps. These are excluded from the recorder because they don't change.
 
@@ -72,18 +73,18 @@ Every item's **main entity** (marked ★) carries `latitude` and `longitude` att
 |---|---|
 | `RoadwayName` | **Road** sensor; part of the device name ("Hwy 401: …") and the segment's ID |
 | `LocationDescription` | Device name; part of the ID (the API has no `Id`) |
-| `Condition` (list of text) | ★ **Road condition** enum sensor: the worst of the list, ranked good, wet, partly covered, covered, icy, closed. Text it doesn't recognise, and "No Report", is Unknown. The original text is in the `reported` attribute |
-| `Visibility` | **Visibility** sensor |
-| `Drifting` | **Drifting snow** binary sensor |
+| `Condition` (list of text) | ★ **Road condition** status: the overall condition, ranked good, wet, partly covered, snow covered, drifting snow, icy, closed. It's the worst of the reported conditions, raised to at least drifting snow while `Drifting` is reported. Text it doesn't recognise, and "No Report", is Unknown. Attributes: `reported` (the original text) and `drifting`. Also **Surface condition** (the same ranking from the reported conditions alone, without drifting snow) and **Reported conditions** (the text itself), both disabled by default |
+| `Visibility` | **Visibility** status: good, fair or poor; anything else is Unknown, with the original text in `reported` |
+| `Drifting` | Part of **Road condition**; also the **Drifting snow** binary sensor (disabled by default) |
 | `LastUpdated` | **Last updated** timestamp sensor (diagnostic) |
-| `Region` | Internal: decides which alerts apply to areas and commutes containing the segment |
+| `Region` | **Region** sensor (disabled by default); decides which alerts apply to areas and commutes containing the segment |
 | `EncodedPolyline` | Internal: thinned to about one point per 250 m. Used for the map location (the point halfway along), for which events are on the segment, for area and corridor matching, and as the road network for routing |
 
 Worked out from those fields:
 
 | Entity | How |
 |---|---|
-| **Hazardous** (binary, safety) | On when the condition is partly covered or worse, drifting snow is reported, or visibility is "Poor" |
+| **Hazardous** (binary, safety) | On when **Road condition** is partly covered or worse (drifting snow included) or visibility is poor |
 | **Events**, **Construction** | Active events and construction projects attached to this segment (see [Feeds](#feeds-events-construction-alerts)), counted, with the first 10 listed in an `items` attribute |
 | **Full closure** (binary, problem) | On while any of those closes all lanes |
 | **New event** (event entity) | Fires when an event appears on the segment |
@@ -102,8 +103,9 @@ Worked out from those fields:
 | `Views[].Url` | The image the camera entity shows (not an API call; cached 60 s) |
 | `Views[].Status` | The view's camera entity is unavailable unless the status is "Enabled" |
 | `Views[].Description` | `description` attribute of that view's camera entity |
-| `Views[].Id` | Internal |
-| `SourceId`, `SortOrder` | Not used: internal identifiers of Ontario 511's source systems and web map |
+| `Views[].Id` | `view_id` attribute of that view's camera entity |
+| `SourceId` | **Source ID** sensor (diagnostic, disabled by default) |
+| `SortOrder` | **Sort order** sensor (diagnostic, disabled by default) |
 
 ### Ferry terminals → Ferry terminal device
 
@@ -117,8 +119,8 @@ Worked out from those fields:
 | `EstimatedOutOfServiceTime` | **Estimated out of service** timestamp sensor (disabled by default) |
 | `OperatedBy` | **Operated by** sensor |
 | `Website` | **Website** sensor (disabled by default) |
-| `Region` | Not shown: its region codes (for example "ON-EC") don't match the alert regions |
-| `Twitter` | Not used: a social media link, not travel data |
+| `Region` | **Region** sensor (disabled by default). Ferry regions are codes (for example "ON-EC") that don't match the alert regions |
+| `Twitter` | **Twitter** sensor (disabled by default) |
 
 ### Rest areas and truck rest areas → Rest area / Truck rest area device
 
@@ -127,7 +129,7 @@ Both endpoints have the same fields and the same entities.
 | API field | Shown as |
 |---|---|
 | `Name` | Device name; part of the ID (the API has no `Id`) |
-| `Status` | ★ **Open** binary sensor (opening): on for "Open", off for "Closed", otherwise Unknown. The original text is in the `reported` attribute |
+| `Status` | ★ **Status** status: open or closed; anything else is Unknown, with the original text in `reported`. Also the **Open** binary sensor (disabled by default) |
 | `TruckParking` | **Truck parking** binary sensor |
 | `Lavatory` | **Washrooms** binary sensor |
 | `Accessible` | **Accessible** binary sensor |
@@ -139,8 +141,8 @@ Both endpoints have the same fields and the same entities.
 | `Open` (dates, for example "May 15 to November 15") | **Season** sensor |
 | `FoodServices` | **Food services** sensor |
 | `Comments` | **Comments** sensor |
-| `Region` | Not shown |
-| `Mode` | Not used: undocumented, and only in some items (for example "Trucker") |
+| `Mode` | **Mode** sensor (disabled by default): Driver, Trucker or Both in current data, and only in some items |
+| `Region` | **Region** sensor (disabled by default) |
 
 ### Service centres → Service centre device
 
@@ -155,15 +157,15 @@ Both endpoints have the same fields and the same entities.
 | `Roadway` | **Road** sensor |
 | `CommercialParking` | **Commercial parking spaces** sensor |
 | `Website` | **Website** sensor (disabled by default) |
-| `Region` | Not shown |
-| `Title` | Not used: a generic label ("service centre") |
+| `Title` | **Title** sensor (disabled by default): a generic label such as "Service Centre" |
+| `Region` | **Region** sensor (disabled by default) |
 
 ### Seasonal load restrictions → Seasonal load segment device
 
 | API field | Shown as |
 |---|---|
 | `SegmentName` | Device name; part of the ID (the API has no `Id`) |
-| `Status` | ★ **Load restrictions** binary sensor (off for "No restrictions…", on for other text mentioning restrictions, otherwise Unknown), and the **Status** sensor with the text itself |
+| `Status` | ★ **Status** status: no restrictions or restrictions in effect (other text mentioning restrictions counts as in effect); anything else is Unknown, with the original text in `reported`. Also the **Load restrictions** binary sensor (disabled by default) |
 | `RouteDescription` | **Route** sensor; part of the ID |
 | `Date` | **Date** sensor (date) |
 | `Latitude`, `Longitude` | ★ Location; part of the ID (one name and route pair appears twice) |
@@ -181,7 +183,7 @@ Both endpoints have the same fields and the same entities.
 | `Bike` | **Bike rack** binary sensor |
 | `Lights` | **Lighting** binary sensor |
 | `Transit` | **Transit connection** binary sensor |
-| `Region` | Not shown |
+| `Region` | **Region** sensor (disabled by default) |
 
 ### Transit hubs → Transit hub device
 
@@ -190,7 +192,7 @@ Both endpoints have the same fields and the same entities.
 | `Id`, `Name` | Device ID and name |
 | `Address` | ★ **Address** sensor |
 | `Website` | **Website** sensor (disabled by default) |
-| `Region` | Not shown |
+| `Region` | **Region** sensor (disabled by default) |
 
 ### Inspection stations → Inspection station device
 
@@ -201,7 +203,7 @@ Both endpoints have the same fields and the same entities.
 | `Highway` | **Road** sensor |
 | `Direction` | **Direction** sensor |
 | `ContactInformation` | **Contact** sensor |
-| `Region` | Not shown |
+| `Region` | **Region** sensor (disabled by default) |
 
 ### Roundabouts → Roundabout device
 
@@ -210,7 +212,7 @@ Both endpoints have the same fields and the same entities.
 | `Name` | Device name; part of the ID (the API has no `Id`) |
 | `Type` | ★ **Type** sensor |
 | `Location` | **Location** sensor; part of the ID |
-| `Region` | Not shown |
+| `Region` | **Region** sensor (disabled by default) |
 
 ### HOT/HOV lanes → HOT/HOV lane device
 
@@ -218,8 +220,8 @@ Both endpoints have the same fields and the same entities.
 |---|---|
 | `Id` | Device ID |
 | `Roadway`, `Name` | Device name ("Highway 403 Eastbound HOV"); `Roadway` is also the ★ **Road** sensor |
-| `EncodedPolyline` | Internal: parsed, but not drawn yet |
-| `Region` | Not shown |
+| `EncodedPolyline` | Internal: parsed, not exposed (see Geometry below) |
+| `Region` | **Region** sensor (disabled by default) |
 
 ### Travel information centres → Travel information centre device
 
@@ -230,9 +232,11 @@ Both endpoints have the same fields and the same entities.
 | `Address` | **Address** sensor |
 | `PhoneNumber` | **Phone** sensor |
 | `Email` | **Email** sensor |
-| `Region` | Not shown |
+| `Region` | **Region** sensor (disabled by default) |
 
-`Region` isn't shown for any item: its only use is matching alerts, which is done through road segments.
+Seasonal load segments and cameras have no `Region` field.
+
+**Geometry** is exposed as each item's location. Polylines (road segments, HOT/HOV lanes, events) aren't attributes, because they're large; commute routes are, on the **Route** sensor for the map card.
 
 ## Feeds: events, construction, alerts
 
@@ -250,44 +254,56 @@ Events and construction projects start and end all the time. Making each one a d
 
 | Entity | Device | Shows |
 |---|---|---|
-| **Events**, **Construction** | Road segment | Count; first 10 in `items` |
+| **Events**, **Construction** | Road segment | Count; the first 10, with every field, in `items` |
 | **Full closure** | Road segment | On while one closes all lanes |
 | **New event** | Road segment | Fires for each new event on the segment |
-| **Events**, **Construction**, **Alerts** | Area or commute summary | Count; first 10 in `items` (alerts with high importance first) |
+| **Events**, **Construction**, **Alerts** | Area or commute summary | Count; the first 10, with every field, in `items` (alerts with high importance first) |
 | **Full closure** | Area or commute summary | On while any event or project in scope closes all lanes |
 | **New event**, **New alert** | Area or commute summary | Fire for each new event or alert in scope |
-| **Nearest event 1** to **3** | Area or commute summary | The three nearest active events (in route order for commutes). State is the description; details and location are attributes, so they show on maps. Unknown when there are fewer than three |
+| **Nearest event 1** to **3** | Area or commute summary | The three nearest active events (in route order for commutes). State is the description; every field is an attribute, including the location, so they show on maps. Unknown when there are fewer than three |
 
 The summary also has **Worst road condition** (the worst condition among its segments, with those segments listed), **Hazardous conditions** (on while any of its segments is hazardous) and, for commutes, **Route** (see [Map card](design.md#map-card)).
 
 ### Event and construction fields
 
-Both endpoints share one model.
+Both endpoints share one model. **Every field is in every event's details:** the `items` lists behind counts, the attributes of **Nearest event N**, and the data of **New event** events. Times are ISO 8601; a missing value is `null`.
 
-| API field | Shown as |
-|---|---|
-| `ID` | `event_id` in lists and new-event data; how "new" is decided |
-| `RoadwayName`, `DirectionOfTravel` | `road`, `direction` in lists, nearest events and new-event data |
-| `Description` | `description` in the same places; the state of **Nearest event N** |
-| `EventType` | `type` in the same places |
-| `IsFullClosure` | `full_closure` in the same places; drives **Full closure** |
-| `PlannedEndDate` | `planned_end` in lists and nearest events; decides whether it's active |
-| `StartDate` | Internal: decides whether it's active |
-| `LanesAffected` | `lanes_affected` on **Nearest event N** |
-| `Latitude`, `Longitude` | Location of **Nearest event N**; distance (`distance_km`); attaching to segments; area and corridor matching |
-| `EventSubType`, `Severity`, `Organization`, `Comment`, `Impact`, `Recurrence`, `Restrictions`, `Reported`, `LastUpdated` | Parsed, but not shown yet |
-| `SourceId`, `LinkId`, `LatitudeSecondary`, `LongitudeSecondary`, `EncodedPolyline`, `RecurrenceSchedules` | Not used: source system identifiers, and geometry that's empty or repeats the location in sample data |
+| API field | Key in the details | Also used for |
+|---|---|---|
+| `ID` | `event_id` | Deciding what's new |
+| `SourceId` | `source_id` | |
+| `Organization` | `organization` | |
+| `RoadwayName` | `road` | |
+| `DirectionOfTravel` | `direction` | |
+| `EventType`, `EventSubType` | `type`, `subtype` | |
+| `Severity` | `severity` | |
+| `Description` | `description` | State of **Nearest event N** |
+| `LanesAffected` | `lanes_affected` | |
+| `IsFullClosure` | `full_closure` | **Full closure** |
+| `Impact`, `Comment` | `impact`, `comment` | |
+| `Restrictions` | `restrictions` (only the limits that are set) | |
+| `Recurrence`, `RecurrenceSchedules` | `recurrence`, `recurrence_schedules` | |
+| `StartDate`, `PlannedEndDate` | `start`, `planned_end` | Deciding whether it's active |
+| `Reported`, `LastUpdated` | `reported`, `last_updated` | |
+| `LinkId` | `link_id` | |
+| `Latitude`, `Longitude` | `latitude`, `longitude`, and `distance_km` from the area or along the commute | Maps, attaching to segments, area and corridor matching |
+| `LatitudeSecondary`, `LongitudeSecondary` | `secondary_latitude`, `secondary_longitude` | |
+| `EncodedPolyline` | Not exposed (see Geometry above) | |
 
 ### Alert fields
 
-| API field | Shown as |
-|---|---|
-| `Id` | How "new" is decided |
-| `Message` | `message` in the **Alerts** list and new-alert data |
-| `Regions` | `regions` in the list; decides where it applies |
-| `HighImportance` | `high_importance` in the list; high-importance alerts are listed first |
-| `Notes`, `StartTime`, `EndTime` | Parsed, but not shown yet. Every alert the feed returns is treated as current |
-| `LastUpdated`, `SendNotification` | Not used |
+**Every field is in every alert's details:** the **Alerts** `items` list and the data of **New alert** events.
+
+| API field | Key in the details | Also used for |
+|---|---|---|
+| `Id` | `alert_id` | Deciding what's new |
+| `Message` | `message` | |
+| `Notes` | `notes` | |
+| `Regions` | `regions` | Deciding where it applies |
+| `HighImportance` | `high_importance` | High-importance alerts are listed first |
+| `SendNotification` | `send_notification` | |
+| `StartTime`, `EndTime` | `start`, `end` | Not used to filter: every alert the feed returns counts as current |
+| `LastUpdated` | `last_updated` | |
 
 ## Location data that isn't from Ontario 511
 

@@ -4,11 +4,13 @@
 //   npm run test:e2e              run, then remove what it created
 //   npm run test:e2e -- --keep    leave the entry and dashboard to look at
 //
-// It logs in with config/.dev_credentials, sets the integration up with the
-// development key (dev-cache: saved responses, no API calls), adds an area, a
-// second area and a commute, puts the map card on a dashboard and checks in
-// headless Chromium that the route is drawn, markers appear, map tiles load
-// and a marker opens its entity. Screenshots go to config/e2e/.
+// It logs in with config/.dev_credentials and uses the development key
+// (dev-cache: saved responses, no API calls). If an entry with that key exists
+// it adds an area, a second area and a commute to it, and removes only those
+// afterwards; otherwise it sets one up and removes it afterwards. It then
+// puts the map card on a dashboard and checks in headless Chromium that the
+// route is drawn, markers appear, map tiles load and a marker opens its
+// entity. Screenshots go to config/e2e/.
 //
 // Chromium comes from Playwright's cache; set PLAYWRIGHT_CHROMIUM to use
 // another build.
@@ -124,7 +126,30 @@ const waitFor = async (what, fn, timeoutMs = 120_000) => {
   throw new Error(`Timed out waiting for ${what}`);
 };
 
-const setUp = async (token) => {
+const AREA_INPUT = {
+  name: "E2E Home",
+  location: HOME,
+  types: ["event", "alerts", "roadconditions", "cameras"],
+};
+const WORK_INPUT = { name: "E2E Work", location: WORK, types: ["event"] };
+const COMMUTE_INPUT = { name: "E2E commute", corridor_km: 5, types: ["event", "cameras"] };
+
+// Returns the entry that uses the development key, if there is one.
+const findDevEntry = async (token) => {
+  const entries = await request("/api/config/config_entries/entry?domain=ontario_511", {
+    token,
+  });
+  for (const entry of entries.filter((e) => e.state === "loaded")) {
+    const diagnostics = await request(`/api/diagnostics/config_entry/${entry.entry_id}`, {
+      token,
+    });
+    if (diagnostics.data.entry.uses_development_key) return entry.entry_id;
+  }
+  return null;
+};
+
+// Sets up a new entry with the development key: key, area, second area, commute.
+const createEntry = async (token) => {
   const step = (flowId, input) =>
     request(`/api/config/config_entries/flow/${flowId}`, { token, body: input });
   let flow = await request("/api/config/config_entries/flow", {
@@ -132,38 +157,53 @@ const setUp = async (token) => {
     body: { handler: "ontario_511" },
   });
   flow = await step(flow.flow_id, { api_key: DEV_KEY });
-  if (flow.type === "abort" && flow.reason === "already_configured") {
-    throw new Error(
-      "A dev-cache entry already exists in this Home Assistant. Remove it, " +
-        "or this check would change it."
-    );
-  }
   check("Development key accepted without an API call", flow.step_id === "area");
-  flow = await step(flow.flow_id, {
-    name: "E2E Home",
-    location: HOME,
-    types: ["event", "alerts", "roadconditions", "cameras"],
-  });
+  flow = await step(flow.flow_id, AREA_INPUT);
   check("Area saved in one step", flow.step_id === "add_commute");
   flow = await step(flow.flow_id, { next_step_id: "destination" });
-  flow = await step(flow.flow_id, {
-    name: "E2E Work",
-    location: WORK,
-    types: ["event"],
-  });
-  flow = await step(flow.flow_id, {
-    name: "E2E commute",
-    corridor_km: 5,
-    types: ["event", "cameras"],
-  });
+  flow = await step(flow.flow_id, WORK_INPUT);
+  flow = await step(flow.flow_id, COMMUTE_INPUT);
   check("Entry created with a commute", flow.type === "create_entry");
   return flow.result.entry_id;
 };
 
-const findCommute = async (ws, token, entryId) => {
+// Adds an area, and a commute to a new area, to an existing entry; returns
+// the IDs of the subentries it added.
+const addToEntry = async (ws, token, entryId) => {
+  const listed = async () =>
+    (await ws.call({ type: "config_entries/subentries/list", entry_id: entryId }));
+  const before = new Set((await listed()).map((s) => s.subentry_id));
+  const start = (type) =>
+    request("/api/config/config_entries/subentries/flow", {
+      token,
+      body: { handler: [entryId, type] },
+    });
+  const step = (flowId, input) =>
+    request(`/api/config/config_entries/subentries/flow/${flowId}`, {
+      token,
+      body: input,
+    });
+  let flow = await start("area");
+  flow = await step(flow.flow_id, AREA_INPUT);
+  check("Area added to the existing development entry", flow.type === "create_entry");
+  const home = (await listed()).find((s) => !before.has(s.subentry_id));
+  flow = await start("commute");
+  flow = await step(flow.flow_id, { next_step_id: "new_area" });
+  flow = await step(flow.flow_id, { from_area: home.unique_id });
+  flow = await step(flow.flow_id, WORK_INPUT);
+  flow = await step(flow.flow_id, COMMUTE_INPUT);
+  check("Commute added to the existing development entry", flow.type === "create_entry");
+  return (await listed()).filter((s) => !before.has(s.subentry_id)).map((s) => s.subentry_id);
+};
+
+const findCommute = async (ws, token, entryId, subentryIds) => {
   const route = await waitFor("the commute's Route sensor", async () => {
     const entities = await ws.call({ type: "config/entity_registry/list" });
-    const ours = entities.filter((e) => e.config_entry_id === entryId);
+    const ours = entities.filter(
+      (e) =>
+        e.config_entry_id === entryId &&
+        (!subentryIds || subentryIds.includes(e.config_subentry_id))
+    );
     const states = await request("/api/states", { token });
     const byId = Object.fromEntries(states.map((s) => [s.entity_id, s]));
     const found = ours.find((e) => byId[e.entity_id]?.attributes.route);
@@ -317,10 +357,20 @@ const main = async () => {
   const token = tokens.access_token;
   const ws = await connect(token);
   let entryId;
+  let created = false;
+  let subentryIds;
   let dashboardId;
   try {
-    entryId = await setUp(token);
-    const entities = await findCommute(ws, token, entryId);
+    // Use the development key's entry if there is one, adding to it and
+    // removing only what this check adds.
+    entryId = await findDevEntry(token);
+    if (entryId) {
+      subentryIds = await addToEntry(ws, token, entryId);
+    } else {
+      entryId = await createEntry(token);
+      created = true;
+    }
+    const entities = await findCommute(ws, token, entryId, subentryIds);
     const dashboard = await ws.call({
       type: "lovelace/dashboards/create",
       url_path: DASHBOARD,
@@ -352,10 +402,17 @@ const main = async () => {
       if (dashboardId) {
         await ws.call({ type: "lovelace/dashboards/delete", dashboard_id: dashboardId });
       }
-      if (entryId) {
+      if (created) {
         await request(`/api/config/config_entries/entry/${entryId}`, {
           token,
           method: "DELETE",
+        });
+      }
+      for (const subentryId of subentryIds ?? []) {
+        await ws.call({
+          type: "config_entries/subentries/delete",
+          entry_id: entryId,
+          subentry_id: subentryId,
         });
       }
     }

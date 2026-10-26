@@ -39,26 +39,28 @@ For example: *when "Hazardous conditions" on your commute turns on, send a notif
 
 Each generated item is a device, grouped under the area or commute that generated it on the integration page.
 
-| Device | Entities |
+| Device | Entities (in brackets: disabled by default) |
 |---|---|
-| Road segment | Road condition, Visibility, Road, Drifting snow, Hazardous, Events, Construction, Full closure, New event, Last updated (diagnostic) |
-| Traffic camera | One camera per view (images cached for a minute), Road, Direction, Source (diagnostic, disabled by default) |
-| Ferry terminal | Status, Details, Estimated return to service, Operated by, Estimated out of service and Website (disabled by default) |
-| Rest area, truck rest area | Open, Truck parking, Washrooms, Accessible, Fuel, Type, Road, Direction, Location, Season, Food services, Comments |
-| Service centre | Fuel, Food services, Amenities, Access, Road, Commercial parking spaces, Website (disabled by default) |
-| Seasonal load segment | Load restrictions, Status, Route, Date |
-| Carpool lot | Parking spaces, Accessible parking spaces, Road, Interchange, Entrance, Bike rack, Lighting, Transit connection |
-| Transit hub | Address, Website (disabled by default) |
-| Inspection station | Location, Road, Direction, Contact |
-| Roundabout | Type, Location |
-| HOT/HOV lane | Road |
-| Travel information centre | Hours, Address, Phone, Email |
+| Road segment | Road condition, Visibility, Road, Hazardous, Events, Construction, Full closure, New event, Last updated (diagnostic) [Surface condition, Reported conditions, Drifting snow, Region] |
+| Traffic camera | One camera per view (images cached for a minute), Road, Direction [Source, Source ID, Sort order] |
+| Ferry terminal | Status, Details, Estimated return to service, Operated by [Estimated out of service, Website, Twitter, Region] |
+| Rest area, truck rest area | Status, Truck parking, Washrooms, Accessible, Fuel, Type, Road, Direction, Location, Season, Food services, Comments [Open, Mode, Region] |
+| Service centre | Fuel, Food services, Amenities, Access, Road, Commercial parking spaces [Website, Title, Region] |
+| Seasonal load segment | Status, Route, Date [Load restrictions] |
+| Carpool lot | Parking spaces, Accessible parking spaces, Road, Interchange, Entrance, Bike rack, Lighting, Transit connection [Region] |
+| Transit hub | Address [Website, Region] |
+| Inspection station | Location, Road, Direction, Contact [Region] |
+| Roundabout | Type, Location [Region] |
+| HOT/HOV lane | Road [Region] |
+| Travel information centre | Hours, Address, Phone, Email [Region] |
 | Area or commute summary | Worst road condition, Hazardous conditions, Full closure, Events, Construction, Alerts, New event, New alert, Nearest event 1 to 3, and for commutes Route (for the [map card](#map-card)) |
 
-Each piece of Ontario 511's data is its own entity, so you can use it in automations, dashboards and templates. [docs/api-mapping.md](docs/api-mapping.md) lists every field Ontario 511 publishes and where it ends up. Attributes are kept for what explains a state, such as the feed's own text in `reported`, and for the location the map needs.
+Every field Ontario 511 publishes is available, so you can use any of it in automations, dashboards and templates. [docs/api-mapping.md](docs/api-mapping.md) lists every field and where it ends up.
 
-- **Hazardous** means worse than wet (partly covered or worse), drifting snow, or poor visibility.
-- A road condition or ferry status shows **Unknown** when Ontario 511 has no report for it; the feed's own text is in the `reported` attribute.
+- **Statuses, not just on/off:** values with more than two states are status sensors you can pick from in automations. **Road condition** is the overall condition: bare and dry, wet, partly covered, snow covered, drifting snow, icy or closed. Its parts are separate entities too (Surface condition, Drifting snow, Reported conditions), disabled by default to avoid clutter; turn them on from the entity's settings for finer control.
+- **Events and alerts** carry every field (severity, lanes affected, impact, times, restrictions and more) in the `items` lists behind each count, on **Nearest event** entities, and in the data of **New event** and **New alert** events.
+- **Hazardous** means partly covered or worse (drifting snow included), or poor visibility.
+- A status shows **Unknown** when Ontario 511 has no report or sends a value it doesn't know; the feed's own text is in the `reported` attribute.
 - A segment's events, construction and full closure only count what's inside the area or commute corridor it belongs to.
 - Events count as active once they've started and until their planned end. Planned future events aren't counted.
 - **Alerts** count when they list the region the area or commute is in.

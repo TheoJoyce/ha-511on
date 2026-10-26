@@ -22,6 +22,7 @@
       'data': dict({
         'api_key': '**REDACTED**',
       }),
+      'uses_development_key': False,
     }),
     'rate_limit': dict({
       'calls': 10,

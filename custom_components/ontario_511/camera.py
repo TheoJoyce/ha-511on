@@ -72,7 +72,7 @@ async def async_setup_entry(
 class TrafficCamera(ItemEntity, Camera):
     """One view of a traffic camera."""
 
-    _unrecorded_attributes = LOCATION_ATTRIBUTES | {"description"}
+    _unrecorded_attributes = LOCATION_ATTRIBUTES | {"view_id", "description"}
 
     def __init__(
         self,
@@ -111,7 +111,10 @@ class TrafficCamera(ItemEntity, Camera):
         """
         camera = self.item
         view = self._view()
-        attrs: dict[str, Any] = {"description": view.description if view else None}
+        attrs: dict[str, Any] = {
+            "view_id": view.id if view else None,
+            "description": view.description if view else None,
+        }
         if self._index == 0 and camera is not None:
             attrs |= location_attributes(camera.coordinates)
         return attrs

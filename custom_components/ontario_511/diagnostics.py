@@ -9,7 +9,7 @@ from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant
 
 from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
-from .client import get_rate_limiter
+from .client import DEV_API_KEY, get_rate_limiter
 from .const import CONF_PENDING
 
 TO_REDACT = {CONF_API_KEY}
@@ -25,7 +25,10 @@ async def async_get_config_entry_diagnostics(
     """
     limiter = get_rate_limiter(hass)
     return {
-        "entry": {"data": async_redact_data(dict(entry.data), TO_REDACT)},
+        "entry": {
+            "data": async_redact_data(dict(entry.data), TO_REDACT),
+            "uses_development_key": entry.data[CONF_API_KEY] == DEV_API_KEY,
+        },
         "subentries": [
             {
                 "type": subentry.subentry_type,

@@ -17,6 +17,7 @@ from custom_components.ontario_511.models import FerryStatus
         pytest.param("Partly snow covered", RoadCondition.PARTLY_COVERED, id="partly"),
         pytest.param("Snow packed", RoadCondition.COVERED, id="snow_packed"),
         pytest.param("snow covered", RoadCondition.COVERED, id="documented_snow"),
+        pytest.param("Drifting snow", RoadCondition.DRIFTING_SNOW, id="drifting"),
         pytest.param("Ice covered", RoadCondition.ICY, id="ice"),
         pytest.param("Road closed", RoadCondition.CLOSED, id="closed"),
         pytest.param("Something new", RoadCondition.UNKNOWN, id="unrecognised"),
@@ -62,6 +63,7 @@ def test_no_report_is_home_assistants_unknown() -> None:
         "wet",
         "partly_covered",
         "covered",
+        "drifting_snow",
         "icy",
         "closed",
     ]

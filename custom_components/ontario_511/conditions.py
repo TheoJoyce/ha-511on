@@ -24,8 +24,9 @@ class RoadCondition(IntEnum):
     WET = 1
     PARTLY_COVERED = 2
     COVERED = 3
-    ICY = 4
-    CLOSED = 5
+    DRIFTING_SNOW = 4
+    ICY = 5
+    CLOSED = 6
 
     @property
     def option(self) -> str | None:
@@ -51,6 +52,7 @@ class RoadCondition(IntEnum):
 _KEYWORDS: tuple[tuple[tuple[str, ...], RoadCondition], ...] = (
     (("closed",), RoadCondition.CLOSED),
     (("ice", "icy"), RoadCondition.ICY),
+    (("drift",), RoadCondition.DRIFTING_SNOW),
     (
         ("partly", "partially", "slush", "patches", "spots"),
         RoadCondition.PARTLY_COVERED,

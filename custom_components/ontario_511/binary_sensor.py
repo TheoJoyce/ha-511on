@@ -56,14 +56,14 @@ def _rest_area_binary_sensors(
     resource: Resource,
 ) -> tuple[ItemBinaryDescription, ...]:
     return (
+        # The Status sensor carries the same; this is for simple on/off use.
         ItemBinaryDescription(
             key="open",
             resource=resource,
             model=RestArea,
             device_class=BinarySensorDeviceClass.OPENING,
             value_fn=lambda a: a.is_open,
-            attrs_fn=lambda a: {"reported": a.status_text},
-            main=True,
+            entity_registry_enabled_default=False,
         ),
         _flag("truck_parking", resource, RestArea, "truck_parking"),
         _flag("washrooms", resource, RestArea, "lavatory"),
@@ -73,11 +73,13 @@ def _rest_area_binary_sensors(
 
 
 ITEM_BINARY_SENSORS: tuple[ItemBinaryDescription, ...] = (
+    # Also part of Road condition ("Drifting snow"), so off by default.
     ItemBinaryDescription(
         key="drifting",
         resource=Resource.ROAD_CONDITIONS,
         model=RoadSegment,
         value_fn=lambda s: s.drifting,
+        entity_registry_enabled_default=False,
     ),
     ItemBinaryDescription(
         key="hazardous",
@@ -93,7 +95,7 @@ ITEM_BINARY_SENSORS: tuple[ItemBinaryDescription, ...] = (
         resource=Resource.SEASONAL_LOADS,
         model=SeasonalLoad,
         value_fn=lambda s: s.restricted,
-        main=True,
+        entity_registry_enabled_default=False,
     ),
     _flag("bike_rack", Resource.CARPOOL_LOTS, CarpoolLot, "bike_rack"),
     _flag("lights", Resource.CARPOOL_LOTS, CarpoolLot, "lights"),

@@ -354,3 +354,39 @@ async def test_late_events_data_does_not_fire_new_event(
     assert hass.states.get("sensor.home_events").state == "3"
     assert hass.states.get("event.home_new_event").state == STATE_UNKNOWN
     assert hass.states.get("event.hwy_401_west_new_event").state == STATE_UNKNOWN
+
+
+@pytest.mark.usefixtures("loaded")
+@pytest.mark.parametrize(
+    "entity_id",
+    [
+        # Also part of Road condition ("Drifting snow").
+        "binary_sensor.hwy_401_west_drifting_snow",
+        "sensor.hwy_401_west_surface_condition",
+        "sensor.hwy_401_west_reported_conditions",
+        "sensor.hwy_401_west_region",
+        # Also part of the rest area's and seasonal load's Status.
+        "binary_sensor.hearst_open",
+        "binary_sensor.highway_589_load_restrictions",
+        "sensor.highway_407_east_of_bethesda_source_id",
+        "sensor.wolfe_island_ferry_kingston_marysville_twitter",
+    ],
+)
+async def test_granular_entities_disabled_by_default(
+    entity_registry: er.EntityRegistry, entity_id: str
+) -> None:
+    """Granular data points exist but start disabled, to avoid clutter."""
+    entry = entity_registry.async_get(entity_id)
+    assert entry is not None
+    assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+
+@pytest.mark.usefixtures("loaded")
+async def test_statuses_enabled(hass: HomeAssistant) -> None:
+    """Multi-state data is a status sensor, enabled by default."""
+    assert hass.states.get("sensor.hwy_401_west_road_condition").state == "good"
+    assert hass.states.get("sensor.hwy_401_west_visibility").state == "good"
+    assert hass.states.get("sensor.hearst_status").state == "open"
+    assert (
+        hass.states.get("sensor.highway_589_status").state == "restrictions_in_effect"
+    )

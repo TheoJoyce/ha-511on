@@ -16,10 +16,13 @@ from custom_components.ontario_511.coordinator import parse_items
 from custom_components.ontario_511.models import (
     FerryTerminal,
     Item,
+    RestArea,
     RoadSegment,
     SeasonalLoad,
     TrafficEvent,
 )
+
+from .common import road_condition
 
 # Geometry is checked separately; snapshotting every polyline point would make
 # the snapshots unreadable.
@@ -111,3 +114,76 @@ def test_event_activity() -> None:
     assert event.is_active(event.start)
     assert event.is_active(event.planned_end)
     assert not event.is_active(event.planned_end + timedelta(seconds=1))
+
+
+@pytest.mark.parametrize(
+    ("condition", "drifting", "visibility", "expected", "surface", "seen"),
+    [
+        pytest.param(
+            "Bare and dry road", "No", "Good", "good", "good", "good", id="clear"
+        ),
+        # Drifting snow shows in the overall condition; the surface is kept apart.
+        pytest.param(
+            "Bare and dry road",
+            "Yes",
+            "Good",
+            "drifting_snow",
+            "good",
+            "good",
+            id="drifting",
+        ),
+        # Worse than drifting snow stays as it is.
+        pytest.param("Ice covered", "Yes", "Fair", "icy", "icy", "fair", id="icy"),
+        pytest.param(
+            "No Report", "Yes", "Poor", "drifting_snow", None, "poor", id="no_report"
+        ),
+        pytest.param("No Report", None, "Murky", None, None, None, id="unknown"),
+    ],
+)
+def test_road_segment_statuses(
+    condition: str,
+    drifting: str | None,
+    visibility: str,
+    expected: str | None,
+    surface: str | None,
+    seen: str | None,
+) -> None:
+    """The overall condition includes drifting snow; each part stays available."""
+    segment = RoadSegment.from_api(
+        road_condition("Test", [(43.7, -79.6), (43.7, -79.5)], condition=condition)
+        | {"Drifting": drifting, "Visibility": visibility}
+    )
+    assert segment.condition.option == expected
+    assert segment.surface.option == surface
+    assert segment.visibility_option == seen
+    assert segment.visibility == visibility
+
+
+@pytest.mark.parametrize(
+    ("status", "option"),
+    [
+        pytest.param("Open", "open", id="open"),
+        pytest.param("Closed", "closed", id="closed"),
+        pytest.param("Seasonal", None, id="unrecognised"),
+    ],
+)
+def test_rest_area_status(status: str, option: str | None) -> None:
+    """Rest area statuses become options; anything else is Unknown."""
+    item = {**load_json_array_fixture("allrestareas.json")[0], "Status": status}
+    assert RestArea.from_api(item).status_option == option
+
+
+@pytest.mark.parametrize(
+    ("status", "option"),
+    [
+        pytest.param("No Restrictions ", "no_restrictions", id="none"),
+        pytest.param(
+            "Restrictions in effect", "restrictions_in_effect", id="in_effect"
+        ),
+        pytest.param("Under review", None, id="unrecognised"),
+    ],
+)
+def test_seasonal_load_status(status: str, option: str | None) -> None:
+    """Seasonal load statuses become options; anything else is Unknown."""
+    item = {**load_json_array_fixture("seasonalloadapi.json")[0], "Status": status}
+    assert SeasonalLoad.from_api(item).status_option == option

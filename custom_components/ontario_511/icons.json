@@ -8,6 +8,7 @@
           "wet": "mdi:weather-pouring",
           "partly_covered": "mdi:weather-snowy",
           "covered": "mdi:snowflake",
+          "drifting_snow": "mdi:weather-snowy-heavy",
           "icy": "mdi:snowflake-alert",
           "closed": "mdi:sign-caution"
         }
@@ -19,11 +20,18 @@
           "wet": "mdi:weather-pouring",
           "partly_covered": "mdi:weather-snowy",
           "covered": "mdi:snowflake",
+          "drifting_snow": "mdi:weather-snowy-heavy",
           "icy": "mdi:snowflake-alert",
           "closed": "mdi:sign-caution"
         }
       },
-      "visibility": { "default": "mdi:eye-outline" },
+      "visibility": {
+        "default": "mdi:eye-outline",
+        "state": {
+          "fair": "mdi:eye-minus-outline",
+          "poor": "mdi:eye-off-outline"
+        }
+      },
       "ferry_status": {
         "default": "mdi:ferry",
         "state": {
@@ -64,7 +72,13 @@
       "amenities": { "default": "mdi:storefront-outline" },
       "commercial_parking": { "default": "mdi:truck-trailer" },
       "route": { "default": "mdi:map-marker-path" },
-      "load_status": { "default": "mdi:clipboard-text-outline" },
+      "load_status": {
+        "default": "mdi:clipboard-text-outline",
+        "state": {
+          "no_restrictions": "mdi:truck-check",
+          "restrictions_in_effect": "mdi:weight"
+        }
+      },
       "load_date": { "default": "mdi:calendar" },
       "accessible_spaces": { "default": "mdi:wheelchair" },
       "interchange": { "default": "mdi:call-split" },
@@ -72,7 +86,30 @@
       "contact": { "default": "mdi:card-account-phone-outline" },
       "centre_address": { "default": "mdi:home-map-marker" },
       "phone": { "default": "mdi:phone" },
-      "email": { "default": "mdi:email-outline" }
+      "email": { "default": "mdi:email-outline" },
+      "surface_condition": {
+        "default": "mdi:road",
+        "state": {
+          "good": "mdi:road",
+          "wet": "mdi:weather-pouring",
+          "partly_covered": "mdi:weather-snowy",
+          "covered": "mdi:snowflake",
+          "drifting_snow": "mdi:weather-snowy-heavy",
+          "icy": "mdi:snowflake-alert",
+          "closed": "mdi:sign-caution"
+        }
+      },
+      "reported_conditions": { "default": "mdi:text-box-search-outline" },
+      "region": { "default": "mdi:map-outline" },
+      "source_id": { "default": "mdi:identifier" },
+      "sort_order": { "default": "mdi:sort-numeric-ascending" },
+      "twitter": { "default": "mdi:twitter" },
+      "rest_area_status": {
+        "default": "mdi:table-picnic",
+        "state": { "closed": "mdi:close-circle-outline" }
+      },
+      "mode": { "default": "mdi:account-switch-outline" },
+      "title": { "default": "mdi:tag-outline" }
     },
     "binary_sensor": {
       "drifting": {

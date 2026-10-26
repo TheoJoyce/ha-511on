@@ -23,7 +23,7 @@ npm test                  # unit tests, with a fake MapLibre
 npm run test:e2e          # end to end, against scripts/develop
 ```
 
-The end-to-end check needs `scripts/develop` running and saved responses in `.dev-cache/api/`. It logs in with the dev account, sets up the integration with the development key (below), adds an area, a second area and a commute along Highway 401, puts the map card on a temporary dashboard and checks in headless Chromium that the route and local roads are drawn, markers appear, the map tiles load and a marker opens its details. It removes what it created; add `-- --keep` to leave them. Screenshots go to `config/e2e/`. It uses Playwright's cached Chromium (`npx playwright-core install chromium-headless-shell` if you have none) or `PLAYWRIGHT_CHROMIUM`.
+The end-to-end check needs `scripts/develop` running and saved responses in `.dev-cache/api/`. It logs in with the dev account and uses the development key (below). If you already have an entry with that key, it adds an area, a second area and a commute along Highway 401 to it, and afterwards removes only those; otherwise it creates an entry and removes it afterwards. It puts the map card on a temporary dashboard and checks in headless Chromium that the route and local roads are drawn, markers appear, the map tiles load and a marker opens its details. Add `-- --keep` to leave what it added. Screenshots go to `config/e2e/`. It uses Playwright's cached Chromium (`npx playwright-core install chromium-headless-shell` if you have none) or `PLAYWRIGHT_CHROMIUM`.
 
 ## Development key
 
@@ -31,6 +31,7 @@ Enter `dev-cache` as the API key to use the saved responses in `.dev-cache/api/`
 
 - It works in any Home Assistant that runs this checkout's `custom_components/` through a symlink (as `scripts/develop` does, with or without `--live`), as long as `.dev-cache/api/` holds all 16 resources. Refresh them with `uv run python -m scripts.record_fixtures .dev-cache/api`.
 - The saved files are found next to `custom_components/` (two levels above the integration's code). In a Home Assistant that has a copy of the integration, put a `.dev-cache/api/` folder in its config directory to use the key there. Elsewhere it's refused with "That's the development key…".
+- Only one entry can use the development key; add as many areas, commutes and items to it as you like. Diagnostics show `uses_development_key` for it.
 - The data doesn't change, and the rate limiter isn't involved because no call is made. To test changing data or the rate limit, use the fake API below.
 
 ## Fake Ontario 511 API
