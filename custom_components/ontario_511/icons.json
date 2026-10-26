@@ -46,7 +46,32 @@
       "events": { "default": "mdi:car-emergency" },
       "construction": { "default": "mdi:excavator" },
       "alerts": { "default": "mdi:alert-decagram-outline" },
-      "nearest_event": { "default": "mdi:map-marker-alert" }
+      "nearest_event": { "default": "mdi:map-marker-alert" },
+      "road": { "default": "mdi:highway" },
+      "last_updated": { "default": "mdi:update" },
+      "direction": { "default": "mdi:compass-outline" },
+      "source": { "default": "mdi:domain" },
+      "details": { "default": "mdi:text-box-outline" },
+      "operated_by": { "default": "mdi:office-building-outline" },
+      "website": { "default": "mdi:web" },
+      "area_type": { "default": "mdi:shape-outline" },
+      "location": { "default": "mdi:map-marker-outline" },
+      "season": { "default": "mdi:calendar-range" },
+      "food_services": { "default": "mdi:silverware-fork-knife" },
+      "comments": { "default": "mdi:comment-text-outline" },
+      "access_via": { "default": "mdi:sign-direction" },
+      "amenities": { "default": "mdi:storefront-outline" },
+      "commercial_parking": { "default": "mdi:truck-trailer" },
+      "route": { "default": "mdi:map-marker-path" },
+      "load_status": { "default": "mdi:clipboard-text-outline" },
+      "load_date": { "default": "mdi:calendar" },
+      "accessible_spaces": { "default": "mdi:wheelchair" },
+      "interchange": { "default": "mdi:call-split" },
+      "enter_from": { "default": "mdi:location-enter" },
+      "contact": { "default": "mdi:card-account-phone-outline" },
+      "centre_address": { "default": "mdi:home-map-marker" },
+      "phone": { "default": "mdi:phone" },
+      "email": { "default": "mdi:email-outline" }
     },
     "binary_sensor": {
       "drifting": {
@@ -76,6 +101,25 @@
       "closure": {
         "default": "mdi:road-variant",
         "state": { "on": "mdi:sign-caution" }
+      },
+      "truck_parking": {
+        "default": "mdi:truck",
+        "state": { "off": "mdi:truck-remove" }
+      },
+      "washrooms": { "default": "mdi:toilet" },
+      "accessible": { "default": "mdi:wheelchair-accessibility" },
+      "fuel": {
+        "default": "mdi:gas-station",
+        "state": { "off": "mdi:gas-station-off" }
+      },
+      "bike_rack": { "default": "mdi:bike" },
+      "lights": {
+        "default": "mdi:lightbulb-on-outline",
+        "state": { "off": "mdi:lightbulb-off-outline" }
+      },
+      "transit": {
+        "default": "mdi:bus",
+        "state": { "off": "mdi:bus-stop" }
       }
     },
     "camera": {

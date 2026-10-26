@@ -41,17 +41,24 @@ Each generated item is a device, grouped under the area or commute that generate
 
 | Device | Entities |
 |---|---|
-| Road segment | Road condition, Visibility, Drifting snow, Hazardous, Events, Construction, Full closure, New event |
-| Traffic camera | One camera per view (images cached for a minute) |
-| Ferry terminal | Status, Estimated return to service, Estimated out of service (disabled by default) |
-| Rest area, truck rest area | Open, with amenities as attributes |
-| Service centre | Fuel, with amenities as attributes |
-| Seasonal load segment | Load restrictions |
-| Carpool lot, transit hub, inspection station, roundabout, HOT/HOV lane, travel information centre | One sensor with the most useful field (for example parking spaces), other details as attributes |
-| Area or commute summary | Worst road condition, Hazardous conditions, Full closure, Events, Construction, Alerts, New event, New alert, Nearest event 1…N |
+| Road segment | Road condition, Visibility, Road, Drifting snow, Hazardous, Events, Construction, Full closure, New event, Last updated (diagnostic) |
+| Traffic camera | One camera per view (images cached for a minute), Road, Direction, Source (diagnostic, disabled by default) |
+| Ferry terminal | Status, Details, Estimated return to service, Operated by, Estimated out of service and Website (disabled by default) |
+| Rest area, truck rest area | Open, Truck parking, Washrooms, Accessible, Fuel, Type, Road, Direction, Location, Season, Food services, Comments |
+| Service centre | Fuel, Food services, Amenities, Access, Road, Commercial parking spaces, Website (disabled by default) |
+| Seasonal load segment | Load restrictions, Status, Route, Date |
+| Carpool lot | Parking spaces, Accessible parking spaces, Road, Interchange, Entrance, Bike rack, Lighting, Transit connection |
+| Transit hub | Address, Website (disabled by default) |
+| Inspection station | Location, Road, Direction, Contact |
+| Roundabout | Type, Location |
+| HOT/HOV lane | Road |
+| Travel information centre | Hours, Address, Phone, Email |
+| Area or commute summary | Worst road condition, Hazardous conditions, Full closure, Events, Construction, Alerts, New event, New alert, Nearest event 1 to 3 |
+
+Each piece of Ontario 511's data is its own entity, so you can use it in automations, dashboards and templates. Attributes are kept for what explains a state, such as the feed's own text in `reported`, and for the location the map needs.
 
 - **Hazardous** means worse than wet (partly covered or worse), drifting snow, or poor visibility.
-- A road condition or ferry status shows **Unknown** when Ontario 511 has no report for it; the feed's own text is in the `reported` attribute for roads.
+- A road condition or ferry status shows **Unknown** when Ontario 511 has no report for it; the feed's own text is in the `reported` attribute.
 - A segment's events, construction and full closure only count what's inside the area or commute corridor it belongs to.
 - Events count as active once they've started and until their planned end. Planned future events aren't counted.
 - **Alerts** count when they list the region the area or commute is in.

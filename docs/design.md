@@ -43,20 +43,21 @@ Measured with live data (October 2026), a 50 km radius holds at most 27 road seg
 
 ## Devices and entities
 
-Home Assistant defines a device as "a physical device … or a service". Each generated item is a **service device**, and each area and commute has a **summary device**. Devices belong to the subentry that generated them, so the integration page shows them under that area or commute.
+Home Assistant defines a device as "a physical device … or a service". Each generated item is a **service device**, and each area and commute has a **summary device**. Devices belong to the subentry that generated them, so the integration page shows them under that area or commute. Service is the right type: the integration reads a remote data service and controls nothing, and Core's Trafikverket integrations (Sweden's equivalent of Ontario 511: cameras, weather stations, ferries) use it too. The frontend draws the same icon for every service device row on the integration page, and there's no per-device icon to change that.
 
-Values that change get their own entities. Details go in attributes; lists in attributes are capped and excluded from the recorder.
+**Each piece of data is its own entity**, following Home Assistant's guidance that attributes only further explain the state and shouldn't hold static information. This follows the Trafikverket camera's pattern: a camera entity plus one sensor per field on the same device, with less useful fields disabled by default. Attributes are kept for what explains a state (the feed's own text in `reported`, a view's description, the capped list of events behind a count) and the location the map needs. Static attributes such as locations are excluded from the recorder.
 
 | Device | Entities |
 |---|---|
-| Road segment | Road condition (ranked enum), Visibility, Drifting, Events (count; list in attributes), Construction (count; list in attributes), Full closure (binary), New event (event entity) |
-| Camera | One camera entity per view |
-| Ferry terminal | Status, Estimated return to service (timestamp) |
-| Rest area, truck rest area | Status (open or closed) |
-| Service centre | Fuel (the field can include times fuel isn't available) |
-| Seasonal load | Restriction status |
-| Carpool lot, transit hub, inspection station, roundabout, HOV lane, travel info centre | One entity whose state is the most useful field (for example a carpool lot's parking spaces), other fields as attributes |
-| Area or commute summary | Worst road condition, Hazardous conditions (binary), Full closure (binary), Events, Construction, New event, Nearest event 1…N, Alerts for their region and New alert |
+| Road segment | Road condition (ranked enum), Visibility, Road, Drifting, Hazardous, Events (count; list in attributes), Construction (count; list in attributes), Full closure (binary), New event (event entity), Last updated (diagnostic) |
+| Camera | One camera entity per view, Road, Direction, Source (diagnostic, disabled) |
+| Ferry terminal | Status, Details, Estimated return to service, Operated by, Estimated out of service (disabled), Website (disabled) |
+| Rest area, truck rest area | Open, Truck parking, Washrooms, Accessible, Fuel, Type, Road, Direction, Location, Season, Food services, Comments |
+| Service centre | Fuel (the field can include times fuel isn't available), Food services, Amenities, Access, Road, Commercial parking spaces, Website (disabled) |
+| Seasonal load | Load restrictions, Status, Route, Date |
+| Carpool lot | Parking spaces, Accessible parking spaces, Road, Interchange, Entrance, Bike rack, Lighting, Transit connection |
+| Transit hub, inspection station, roundabout, HOV lane, travel info centre | Every field the feed has, one entity each |
+| Area or commute summary | Worst road condition, Hazardous conditions (binary), Full closure (binary), Events, Construction, New event, Nearest event 1 to 3, Alerts for their region and New alert |
 
 - **Event entities** fire when something new appears (a new event on a segment, a new alert). They are stable entities whose state is the time of the last event.
 - **Attaching events to segments:** each event or construction project is assigned to the nearest road segment within 2 km of it. Live data puts 95% of events within 150 m of a segment. Anything further away counts only towards the area or commute summary.

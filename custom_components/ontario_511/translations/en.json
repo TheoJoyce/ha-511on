@@ -340,9 +340,6 @@
         "state_attributes": {
           "reported": {
             "name": "Reported"
-          },
-          "last_updated": {
-            "name": "Last updated"
           }
         }
       },
@@ -355,6 +352,11 @@
           "in_service": "In service",
           "in_service_off_schedule": "In service, off schedule",
           "not_in_service": "Not in service"
+        },
+        "state_attributes": {
+          "reported": {
+            "name": "Reported"
+          }
         }
       },
       "return_to_service": {
@@ -437,6 +439,81 @@
       },
       "nearest_event": {
         "name": "Nearest event {slot}"
+      },
+      "road": {
+        "name": "Road"
+      },
+      "last_updated": {
+        "name": "Last updated"
+      },
+      "direction": {
+        "name": "Direction"
+      },
+      "source": {
+        "name": "Source"
+      },
+      "details": {
+        "name": "Details"
+      },
+      "operated_by": {
+        "name": "Operated by"
+      },
+      "website": {
+        "name": "Website"
+      },
+      "area_type": {
+        "name": "Type"
+      },
+      "location": {
+        "name": "Location"
+      },
+      "season": {
+        "name": "Season"
+      },
+      "food_services": {
+        "name": "Food services"
+      },
+      "comments": {
+        "name": "Comments"
+      },
+      "access_via": {
+        "name": "Access"
+      },
+      "amenities": {
+        "name": "Amenities"
+      },
+      "commercial_parking": {
+        "name": "Commercial parking spaces"
+      },
+      "route": {
+        "name": "Route"
+      },
+      "load_status": {
+        "name": "Status"
+      },
+      "load_date": {
+        "name": "Date"
+      },
+      "accessible_spaces": {
+        "name": "Accessible parking spaces"
+      },
+      "interchange": {
+        "name": "Interchange"
+      },
+      "enter_from": {
+        "name": "Entrance"
+      },
+      "contact": {
+        "name": "Contact"
+      },
+      "centre_address": {
+        "name": "Address"
+      },
+      "phone": {
+        "name": "Phone"
+      },
+      "email": {
+        "name": "Email"
       }
     },
     "binary_sensor": {
@@ -447,7 +524,12 @@
         "name": "Hazardous"
       },
       "open": {
-        "name": "Open"
+        "name": "Open",
+        "state_attributes": {
+          "reported": {
+            "name": "Reported"
+          }
+        }
       },
       "restricted": {
         "name": "Load restrictions"
@@ -460,6 +542,27 @@
       },
       "closure": {
         "name": "Full closure"
+      },
+      "truck_parking": {
+        "name": "Truck parking"
+      },
+      "washrooms": {
+        "name": "Washrooms"
+      },
+      "accessible": {
+        "name": "Accessible"
+      },
+      "fuel": {
+        "name": "Fuel"
+      },
+      "bike_rack": {
+        "name": "Bike rack"
+      },
+      "lights": {
+        "name": "Lighting"
+      },
+      "transit": {
+        "name": "Transit connection"
       }
     },
     "camera": {

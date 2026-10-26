@@ -18,8 +18,13 @@ from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
 from .api import Resource
 from .const import SUBENTRY_ITEM
 from .coordinator import ResourceCoordinator
-from .entity import ItemEntity, SummaryEntity, location_attributes
-from .models import RestArea, RoadSegment, SeasonalLoad
+from .entity import (
+    LOCATION_ATTRIBUTES,
+    ItemEntity,
+    SummaryEntity,
+    location_attributes,
+)
+from .models import CarpoolLot, RestArea, RoadSegment, SeasonalLoad
 
 PARALLEL_UPDATES = 0
 
@@ -35,20 +40,36 @@ class ItemBinaryDescription(BinarySensorEntityDescription):
     main: bool = False
 
 
-def _rest_area_attrs(area: RestArea) -> dict[str, Any]:
-    return {
-        "type": area.area_type,
-        "road": area.road,
-        "direction": area.direction,
-        "location": area.location,
-        "season": area.season,
-        "truck_parking": area.truck_parking,
-        "lavatory": area.lavatory,
-        "accessible": area.accessible,
-        "food_services": area.food_services,
-        "fuel": area.fuel,
-        "comments": area.comments,
-    }
+def _flag(
+    key: str, resource: Resource, model: type, field: str
+) -> ItemBinaryDescription:
+    """Describe a binary sensor showing one yes/no field of an item."""
+    return ItemBinaryDescription(
+        key=key,
+        resource=resource,
+        model=model,
+        value_fn=lambda item: getattr(item, field),
+    )
+
+
+def _rest_area_binary_sensors(
+    resource: Resource,
+) -> tuple[ItemBinaryDescription, ...]:
+    return (
+        ItemBinaryDescription(
+            key="open",
+            resource=resource,
+            model=RestArea,
+            device_class=BinarySensorDeviceClass.OPENING,
+            value_fn=lambda a: a.is_open,
+            attrs_fn=lambda a: {"reported": a.status_text},
+            main=True,
+        ),
+        _flag("truck_parking", resource, RestArea, "truck_parking"),
+        _flag("washrooms", resource, RestArea, "lavatory"),
+        _flag("accessible", resource, RestArea, "accessible"),
+        _flag("fuel", resource, RestArea, "fuel"),
+    )
 
 
 ITEM_BINARY_SENSORS: tuple[ItemBinaryDescription, ...] = (
@@ -65,26 +86,18 @@ ITEM_BINARY_SENSORS: tuple[ItemBinaryDescription, ...] = (
         device_class=BinarySensorDeviceClass.SAFETY,
         value_fn=lambda s: s.is_hazardous,
     ),
-    *(
-        ItemBinaryDescription(
-            key="open",
-            resource=resource,
-            model=RestArea,
-            device_class=BinarySensorDeviceClass.OPENING,
-            value_fn=lambda a: a.is_open,
-            attrs_fn=_rest_area_attrs,
-            main=True,
-        )
-        for resource in (Resource.REST_AREAS, Resource.TRUCK_REST_AREAS)
-    ),
+    *_rest_area_binary_sensors(Resource.REST_AREAS),
+    *_rest_area_binary_sensors(Resource.TRUCK_REST_AREAS),
     ItemBinaryDescription(
         key="restricted",
         resource=Resource.SEASONAL_LOADS,
         model=SeasonalLoad,
         value_fn=lambda s: s.restricted,
-        attrs_fn=lambda s: {"route": s.route, "status": s.status, "date": s.date},
         main=True,
     ),
+    _flag("bike_rack", Resource.CARPOOL_LOTS, CarpoolLot, "bike_rack"),
+    _flag("lights", Resource.CARPOOL_LOTS, CarpoolLot, "lights"),
+    _flag("transit", Resource.CARPOOL_LOTS, CarpoolLot, "transit"),
 )
 
 
@@ -139,6 +152,8 @@ async def async_setup_entry(
 
 class ItemBinarySensor(ItemEntity, BinarySensorEntity):
     """A yes/no fact about an item."""
+
+    _unrecorded_attributes = LOCATION_ATTRIBUTES
 
     entity_description: ItemBinaryDescription
 

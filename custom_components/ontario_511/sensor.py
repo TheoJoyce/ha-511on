@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -12,6 +12,7 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
 )
+from homeassistant.const import MAX_LENGTH_STATE_STATE, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -21,17 +22,25 @@ from .api import Resource
 from .conditions import RoadCondition
 from .const import NEAREST_EVENTS, SUBENTRY_ITEM
 from .coordinator import ResourceCoordinator
-from .entity import ItemEntity, SummaryEntity, location_attributes
+from .entity import (
+    LOCATION_ATTRIBUTES,
+    ItemEntity,
+    SummaryEntity,
+    location_attributes,
+)
 from .feeds import Scope
 from .models import (
+    Camera as CameraModel,
     CarpoolLot,
     FerryStatus,
     FerryTerminal,
     HovLane,
     InformationCentre,
     InspectionStation,
+    RestArea,
     RoadSegment,
     Roundabout,
+    SeasonalLoad,
     ServiceCentre,
     TrafficEvent,
     TransitHub,
@@ -68,141 +77,199 @@ class ItemSensorDescription(SensorEntityDescription):
     """Describes a sensor showing one field of an item."""
 
     resource: Resource
-    value_fn: Callable[[Any], StateType | datetime]
+    model: type
+    value_fn: Callable[[Any], StateType | date | datetime]
+    # Only for values that explain the state, such as the feed's own text.
     attrs_fn: Callable[[Any], dict[str, Any]] = lambda item: {}
     # The main entity carries the item's location for the map.
     main: bool = False
+
+
+def _short(value: str | None) -> str | None:
+    """Return text that fits in a state."""
+    return value[:MAX_LENGTH_STATE_STATE] if value else None
+
+
+def _text(
+    key: str,
+    resource: Resource,
+    model: type,
+    field: str,
+    *,
+    enabled: bool = True,
+    category: EntityCategory | None = None,
+) -> ItemSensorDescription:
+    """Describe a sensor showing one text field of an item."""
+    return ItemSensorDescription(
+        key=key,
+        resource=resource,
+        model=model,
+        value_fn=lambda item: _short(getattr(item, field)),
+        entity_registry_enabled_default=enabled,
+        entity_category=category,
+    )
+
+
+def _rest_area_sensors(resource: Resource) -> tuple[ItemSensorDescription, ...]:
+    return (
+        _text("area_type", resource, RestArea, "area_type"),
+        _text("road", resource, RestArea, "road"),
+        _text("direction", resource, RestArea, "direction"),
+        _text("location", resource, RestArea, "location"),
+        _text("season", resource, RestArea, "season"),
+        _text("food_services", resource, RestArea, "food_services"),
+        _text("comments", resource, RestArea, "comments"),
+    )
 
 
 ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
     ItemSensorDescription(
         key="condition",
         resource=Resource.ROAD_CONDITIONS,
+        model=RoadSegment,
         device_class=SensorDeviceClass.ENUM,
         options=CONDITION_OPTIONS,
         value_fn=lambda s: s.condition.option,
-        attrs_fn=lambda s: {
-            "reported": list(s.conditions),
-            "region": s.region,
-            "last_updated": s.last_updated.isoformat() if s.last_updated else None,
-        },
+        attrs_fn=lambda s: {"reported": list(s.conditions)},
         main=True,
     ),
+    _text("visibility", Resource.ROAD_CONDITIONS, RoadSegment, "visibility"),
+    _text("road", Resource.ROAD_CONDITIONS, RoadSegment, "road"),
     ItemSensorDescription(
-        key="visibility",
+        key="last_updated",
         resource=Resource.ROAD_CONDITIONS,
-        value_fn=lambda s: s.visibility,
+        model=RoadSegment,
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: s.last_updated,
+    ),
+    _text("road", Resource.CAMERAS, CameraModel, "road"),
+    _text("direction", Resource.CAMERAS, CameraModel, "direction"),
+    _text(
+        "source",
+        Resource.CAMERAS,
+        CameraModel,
+        "source",
+        enabled=False,
+        category=EntityCategory.DIAGNOSTIC,
     ),
     ItemSensorDescription(
         key="ferry_status",
         resource=Resource.FERRY_TERMINALS,
+        model=FerryTerminal,
         device_class=SensorDeviceClass.ENUM,
         options=list(FerryStatus.OPTIONS),
         value_fn=lambda f: f.status,
-        attrs_fn=lambda f: {
-            "details": f.details,
-            "operated_by": f.operated_by,
-            "website": f.website,
-        },
+        attrs_fn=lambda f: {"reported": f.status_text},
         main=True,
     ),
+    _text("details", Resource.FERRY_TERMINALS, FerryTerminal, "details"),
     ItemSensorDescription(
         key="return_to_service",
         resource=Resource.FERRY_TERMINALS,
+        model=FerryTerminal,
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda f: f.return_to_service,
     ),
     ItemSensorDescription(
         key="out_of_service",
         resource=Resource.FERRY_TERMINALS,
+        model=FerryTerminal,
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda f: f.out_of_service,
         entity_registry_enabled_default=False,
     ),
+    _text("operated_by", Resource.FERRY_TERMINALS, FerryTerminal, "operated_by"),
+    _text("website", Resource.FERRY_TERMINALS, FerryTerminal, "website", enabled=False),
+    *_rest_area_sensors(Resource.REST_AREAS),
+    *_rest_area_sensors(Resource.TRUCK_REST_AREAS),
     ItemSensorDescription(
         key="fuel",
         resource=Resource.SERVICE_CENTRES,
-        value_fn=lambda c: c.fuel,
-        attrs_fn=lambda c: {
-            "road": c.road,
-            "access_via": c.access_via,
-            "food_services": c.food_services,
-            "amenities": c.amenities,
-            "commercial_parking": c.commercial_parking,
-            "website": c.website,
-        },
+        model=ServiceCentre,
+        value_fn=lambda c: _short(c.fuel),
         main=True,
+    ),
+    _text("road", Resource.SERVICE_CENTRES, ServiceCentre, "road"),
+    _text("access_via", Resource.SERVICE_CENTRES, ServiceCentre, "access_via"),
+    _text("food_services", Resource.SERVICE_CENTRES, ServiceCentre, "food_services"),
+    _text("amenities", Resource.SERVICE_CENTRES, ServiceCentre, "amenities"),
+    ItemSensorDescription(
+        key="commercial_parking",
+        resource=Resource.SERVICE_CENTRES,
+        model=ServiceCentre,
+        value_fn=lambda c: c.commercial_parking,
+    ),
+    _text("website", Resource.SERVICE_CENTRES, ServiceCentre, "website", enabled=False),
+    _text("route", Resource.SEASONAL_LOADS, SeasonalLoad, "route"),
+    _text("load_status", Resource.SEASONAL_LOADS, SeasonalLoad, "status"),
+    ItemSensorDescription(
+        key="load_date",
+        resource=Resource.SEASONAL_LOADS,
+        model=SeasonalLoad,
+        device_class=SensorDeviceClass.DATE,
+        value_fn=lambda s: s.date,
     ),
     ItemSensorDescription(
         key="parking_spaces",
         resource=Resource.CARPOOL_LOTS,
+        model=CarpoolLot,
         value_fn=lambda c: c.parking_spaces,
-        attrs_fn=lambda c: {
-            "accessible_spaces": c.accessible_spaces,
-            "interchange": c.interchange,
-            "enter_from": c.enter_from,
-            "bike_rack": c.bike_rack,
-            "lights": c.lights,
-            "transit": c.transit,
-        },
         main=True,
     ),
+    ItemSensorDescription(
+        key="accessible_spaces",
+        resource=Resource.CARPOOL_LOTS,
+        model=CarpoolLot,
+        value_fn=lambda c: c.accessible_spaces,
+    ),
+    _text("road", Resource.CARPOOL_LOTS, CarpoolLot, "highway"),
+    _text("interchange", Resource.CARPOOL_LOTS, CarpoolLot, "interchange"),
+    _text("enter_from", Resource.CARPOOL_LOTS, CarpoolLot, "enter_from"),
     ItemSensorDescription(
         key="address",
         resource=Resource.TRANSIT_HUBS,
-        value_fn=lambda h: h.address,
-        attrs_fn=lambda h: {"website": h.website},
+        model=TransitHub,
+        value_fn=lambda h: _short(h.address),
         main=True,
     ),
+    _text("website", Resource.TRANSIT_HUBS, TransitHub, "website", enabled=False),
     ItemSensorDescription(
         key="station_location",
         resource=Resource.INSPECTION_STATIONS,
-        value_fn=lambda s: s.location,
-        attrs_fn=lambda s: {
-            "highway": s.highway,
-            "direction": s.direction,
-            "contact": s.contact,
-        },
+        model=InspectionStation,
+        value_fn=lambda s: _short(s.location),
         main=True,
     ),
+    _text("road", Resource.INSPECTION_STATIONS, InspectionStation, "highway"),
+    _text("direction", Resource.INSPECTION_STATIONS, InspectionStation, "direction"),
+    _text("contact", Resource.INSPECTION_STATIONS, InspectionStation, "contact"),
     ItemSensorDescription(
         key="roundabout_type",
         resource=Resource.ROUNDABOUTS,
-        value_fn=lambda r: r.roundabout_type,
-        attrs_fn=lambda r: {"location": r.location},
+        model=Roundabout,
+        value_fn=lambda r: _short(r.roundabout_type),
         main=True,
     ),
+    _text("location", Resource.ROUNDABOUTS, Roundabout, "location"),
     ItemSensorDescription(
         key="hov_road",
         resource=Resource.HOV_LANES,
-        value_fn=lambda h: h.road,
+        model=HovLane,
+        value_fn=lambda h: _short(h.road),
         main=True,
     ),
     ItemSensorDescription(
         key="hours",
         resource=Resource.INFORMATION_CENTRES,
-        value_fn=lambda c: c.hours,
-        attrs_fn=lambda c: {
-            "address": c.address,
-            "phone": c.phone,
-            "email": c.email,
-        },
+        model=InformationCentre,
+        value_fn=lambda c: _short(c.hours),
         main=True,
     ),
+    _text("centre_address", Resource.INFORMATION_CENTRES, InformationCentre, "address"),
+    _text("phone", Resource.INFORMATION_CENTRES, InformationCentre, "phone"),
+    _text("email", Resource.INFORMATION_CENTRES, InformationCentre, "email"),
 )
-
-# Checked so a description can't be paired with the wrong model.
-_MODELS: dict[Resource, type] = {
-    Resource.ROAD_CONDITIONS: RoadSegment,
-    Resource.FERRY_TERMINALS: FerryTerminal,
-    Resource.SERVICE_CENTRES: ServiceCentre,
-    Resource.CARPOOL_LOTS: CarpoolLot,
-    Resource.TRANSIT_HUBS: TransitHub,
-    Resource.INSPECTION_STATIONS: InspectionStation,
-    Resource.ROUNDABOUTS: Roundabout,
-    Resource.HOV_LANES: HovLane,
-    Resource.INFORMATION_CENTRES: InformationCentre,
-}
 
 
 async def async_setup_entry(
@@ -265,6 +332,8 @@ def _summary_sensors(
 class ItemSensor(ItemEntity, SensorEntity):
     """One field of an item."""
 
+    _unrecorded_attributes = LOCATION_ATTRIBUTES
+
     entity_description: ItemSensorDescription
 
     def __init__(
@@ -283,11 +352,11 @@ class ItemSensor(ItemEntity, SensorEntity):
     def available(self) -> bool:
         """Return whether the item is published and of the expected type."""
         return super().available and isinstance(
-            self.item, _MODELS[self.entity_description.resource]
+            self.item, self.entity_description.model
         )
 
     @property
-    def native_value(self) -> StateType | datetime:
+    def native_value(self) -> StateType | date | datetime:
         """Return the field's value."""
         return self.entity_description.value_fn(self.item)
 

@@ -32,6 +32,10 @@ RESOURCE_MODELS: dict[Resource, str] = {
 }
 
 
+# Items don't move, so their location is kept out of the recorder.
+LOCATION_ATTRIBUTES = frozenset({ATTR_LATITUDE, ATTR_LONGITUDE})
+
+
 def location_attributes(point: Point | None) -> dict[str, Any]:
     """Return map attributes for a location (the map card shows any entity
     with numeric latitude and longitude)."""

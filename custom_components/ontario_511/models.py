@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 import hashlib
 import math
 from typing import Any, Self
@@ -35,6 +35,21 @@ def _text(value: Any) -> str | None:
     if isinstance(value, str) and (collapsed := " ".join(value.split())):
         return collapsed
     return None
+
+
+def _date(value: Any) -> date | None:
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value.strip())
+        except ValueError:
+            return None
+    return None
+
+
+def _direction(value: Any) -> str | None:
+    """Return a direction of travel; the feed's "Unknown" is no value."""
+    text = _text(value)
+    return None if text is None or text.lower() == "unknown" else text
 
 
 def _int(value: Any) -> int | None:
@@ -326,7 +341,7 @@ class Camera(Item):
             name=_text(item.get("Location")) or f"Camera {item['Id']}",
             coordinates=_coordinates(item),
             road=_text(item.get("Roadway")),
-            direction=_text(item.get("Direction")),
+            direction=_direction(item.get("Direction")),
             source=_text(item.get("Source")),
             views=tuple(
                 CameraView(
@@ -424,7 +439,7 @@ class RestArea(Item):
             coordinates=_coordinates(item),
             region=_text(item.get("Region")),
             road=_text(item.get("Roadway")),
-            direction=_text(item.get("Direction")),
+            direction=_direction(item.get("Direction")),
             location=_text(item.get("Location")),
             area_type=_text(item.get("Type")),
             is_open=True
@@ -480,7 +495,7 @@ class SeasonalLoad(Item):
     route: str | None
     status: str | None
     restricted: bool | None
-    date: str | None
+    date: date | None
 
     @classmethod
     def from_api(cls, item: dict[str, Any]) -> Self:
@@ -506,7 +521,7 @@ class SeasonalLoad(Item):
                 if "restriction" in lowered
                 else None
             ),
-            date=_text(item.get("Date")),
+            date=_date(item.get("Date")),
         )
 
 
@@ -582,7 +597,7 @@ class InspectionStation(Item):
             coordinates=_coordinates(item),
             region=_text(item.get("Region")),
             highway=_text(item.get("Highway")),
-            direction=_text(item.get("Direction")),
+            direction=_direction(item.get("Direction")),
             location=_text(item.get("Location")),
             contact=_text(item.get("ContactInformation")),
         )
