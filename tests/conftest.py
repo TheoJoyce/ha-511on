@@ -18,9 +18,11 @@ from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, load_fixture
+from pytest_homeassistant_custom_component.syrupy import HomeAssistantSnapshotExtension
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
+from syrupy.assertion import SnapshotAssertion
 
 from custom_components.ontario_511.api import RateLimiter, Resource
 from custom_components.ontario_511.client import RATE_LIMITER
@@ -56,6 +58,17 @@ def area_data(**overrides: Any) -> dict[str, Any]:
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Enable loading custom integrations in every test."""
+
+
+@pytest.fixture
+def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
+    """Return snapshots that use Home Assistant's format and tests/snapshots/.
+
+    The Home Assistant test plugin also overrides syrupy's fixture, but which
+    of the two plugins wins depends on the order they load in, which differs
+    between systems. A conftest fixture always wins.
+    """
+    return snapshot.use_extension(HomeAssistantSnapshotExtension)
 
 
 @pytest.fixture(autouse=True)
