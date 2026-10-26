@@ -66,6 +66,7 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 ## Versioning and releases
 
 - Versions follow [SemVer](https://semver.org/). Pre-releases use `X.Y.Z-alpha.N`, `X.Y.Z-beta.N` and `X.Y.Z-rc.N`. HACS compares versions with AwesomeVersion, which orders these correctly.
+- **Until the first stable release, every release is a pre-release.** HACS ignores pre-releases for a repository whose **Pre-release** switch is off, and with no stable release it falls back to the latest commit on `main`, shown as a commit hash. That can't be changed from this repository (`hide_default_branch` only hides `main` in the version picker); the README's install steps explain the switch.
 - Each release is developed on a branch named `dev/<version>`, for example `dev/0.1.0-alpha.1`. On that branch, set the same version (without a `v`) in `custom_components/ontario_511/manifest.json` and `pyproject.toml`; `tests/test_manifest.py` checks they match.
 - `main` is the default branch. Never commit directly to it; changes reach it only by merging a reviewed pull request.
 - `main` is protected by the GitHub ruleset "Protect main": changes only through a pull request with resolved conversations, the `checks`, `hassfest` and `hacs` checks passing on an up-to-date branch, and no force pushes or deletion. No approvals are required, because GitHub doesn't let the sole maintainer approve their own pull request. The required checks are matched by job name: if a workflow job is renamed, update the ruleset too, or merges will wait for a check that never reports.
@@ -79,6 +80,8 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 5. **Merge:** a human reviews and approves the PR, including its release notes, then merges it. A merge means that version is official, and publishes it (step 7).
 6. **Delete the branch:** the branch is always deleted after merging. GitHub does this automatically (the repository has "Automatically delete head branches" turned on).
 7. **Release:** automatic. On every push to `main`, `.github/workflows/release.yml` tags the merge commit `v<version>` (from `manifest.json`) and publishes a GitHub release with that version's `CHANGELOG.md` section as its notes. Alpha, beta and rc versions are marked as pre-releases, because HACS only offers those to users who turn on beta versions. If the tag already exists, it publishes nothing, so a merge that doesn't bump the version releases nothing. Don't tag or publish releases by hand.
+
+**Hotfixes** to a released version go on `hotfix/<version>` from `main`, through a PR like any other change. A fix to the integration itself is released as the next version, with its `CHANGELOG.md` section, and the open `dev/<version>` branch moves to the one after (AwesomeVersion, which HACS uses, doesn't order versions such as `0.1.0-alpha.2.1` or `0.1.0-alpha.2-1` between alpha.2 and alpha.3). A docs-only hotfix keeps the version, so merging publishes nothing (the tag exists). Afterwards, merge `main` into the open `dev/<version>` branch.
 
 ## Git Commit Guidelines
 
@@ -135,4 +138,4 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 
 ## AI policy
 
-Autonomous contributions are not accepted: a human must review, understand, and be able to explain every change before it is merged. Agents may push commits to `dev/*` branches and open draft pull requests as described in [Workflow](#workflow), but never merge, approve, mark a pull request ready for review, or publish a release without the user's go-ahead. Do not open issues, and do not post comments on behalf of a user without their review.
+Autonomous contributions are not accepted: a human must review, understand, and be able to explain every change before it is merged. Agents may push commits to `dev/*` and `hotfix/*` branches and open draft pull requests as described in [Workflow](#workflow), but never merge, approve, mark a pull request ready for review, or publish a release without the user's go-ahead. Do not open issues, and do not post comments on behalf of a user without their review.
