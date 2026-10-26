@@ -89,8 +89,11 @@ Or add it by hand:
 1. In Home Assistant, open **HACS**.
 2. Open the menu (⋮) in the top right and select **Custom repositories**.
 3. Enter `https://github.com/TheoJoyce/ha-511on`, choose the type **Integration**, and select **Add**.
-4. Search for **Ontario 511** in HACS, open it, and select **Download**.
+4. Search for **Ontario 511** in HACS, open it, and select **Download**. Until a stable version is out, every release is a pre-release: expand **Need a different version?**, choose the newest version (marked *pre-release*), then select **Download**.
 5. Restart Home Assistant.
+6. Turn on pre-releases, so HACS offers the next ones as updates: go to **Settings** → **Devices & services** → **HACS**, open the **Ontario 511** device, enable its **Pre-release** switch (it's disabled by default), and turn it on.
+
+Without the **Pre-release** switch, HACS can't see pre-releases. Until a stable version is out, it then offers the latest commit instead, shown as a code such as `ad00b1d` rather than a version number, and its release link doesn't open.
 
 ### Manual
 
