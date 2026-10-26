@@ -12,26 +12,35 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import (
+    area_registry as ar,
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+    issue_registry as ir,
+)
+from homeassistant.helpers.typing import ConfigType
 
 from .api import Ontario511Client, Resource
+from .card import async_register_card
 from .client import create_client, key_id
-from .commute import route_lines
+from .commute import generation_lines, generation_segments
 from .const import (
     CONF_CORRIDOR_KM,
-    CONF_EVENT_SLOTS,
     CONF_FEEDS,
+    CONF_HA_AREA,
     CONF_ITEM_ID,
     CONF_ITEMS,
     CONF_LOCATION,
     CONF_PENDING,
     CONF_RADIUS_KM,
     CONF_RESOURCE,
-    CONF_SEGMENTS,
+    CONF_ROUTING,
     DEFAULT_AREA_NAME,
-    DEFAULT_EVENT_SLOTS,
     DEFAULT_RADIUS_KM,
     DOMAIN,
+    NEAREST_EVENTS,
+    REPLAN_ISSUE,
     SUBENTRY_AREA,
     SUBENTRY_COMMUTE,
     SUBENTRY_ITEM,
@@ -43,6 +52,8 @@ from .generation import generate_for_area, generate_for_commute
 from .models import Item
 
 _LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
@@ -65,6 +76,8 @@ class Ontario511Data:
     # Set while generation updates subentries, so those updates don't each
     # trigger a reload.
     generating: bool = field(default=False)
+    # Home Assistant area name per subentry, suggested for its new devices.
+    suggested_areas: dict[str, str] = field(default_factory=dict)
 
 
 type Ontario511ConfigEntry = ConfigEntry[Ontario511Data]
@@ -102,6 +115,12 @@ def resources_in_use(entry: ConfigEntry) -> set[Resource]:
     return needed
 
 
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Serve the map card."""
+    await async_register_card(hass)
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -> bool:
     """Set up Ontario 511 from a config entry."""
     client = create_client(hass, entry.data[CONF_API_KEY])
@@ -112,6 +131,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -
     }
     entry.runtime_data = Ontario511Data(client, key, coordinators)
     entry.runtime_data.feeds = FeedIndex(entry)
+    areas = ar.async_get(hass)
+    for subentry in entry.subentries.values():
+        if (area_id := subentry.data.get(CONF_HA_AREA)) and (
+            area := areas.async_get_area(area_id)
+        ):
+            entry.runtime_data.suggested_areas[subentry.subentry_id] = area.name
+    _async_update_replan_issues(hass, entry)
 
     # Setup waits for one resource, which checks the key and connection; the
     # rest load in the background, because with many resources the rate
@@ -135,6 +161,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove the entry's repair issues."""
+    _async_update_replan_issues(hass, entry, removed=True)
+
+
+def _async_update_replan_issues(
+    hass: HomeAssistant, entry: ConfigEntry, *, removed: bool = False
+) -> None:
+    """Ask for commutes planned before routes followed roads to be planned again.
+
+    Planning sends the start and end to OpenStreetMap, so it's left to the
+    user rather than done in the background.
+    """
+    wanted = {
+        f"{REPLAN_ISSUE}_{s.subentry_id}": s
+        for s in entry.subentries.values()
+        if not removed
+        and s.subentry_type == SUBENTRY_COMMUTE
+        and CONF_ROUTING not in s.data
+    }
+    registry = ir.async_get(hass)
+    for domain, issue_id in list(registry.issues):
+        issue = registry.issues[(domain, issue_id)]
+        if (
+            domain == DOMAIN
+            and issue_id.startswith(f"{REPLAN_ISSUE}_")
+            and (issue.data or {}).get("entry_id") == entry.entry_id
+            and issue_id not in wanted
+        ):
+            ir.async_delete_issue(hass, DOMAIN, issue_id)
+    for issue_id, commute in wanted.items():
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=REPLAN_ISSUE,
+            translation_placeholders={"commute": commute.title},
+            data={"entry_id": entry.entry_id, "subentry_id": commute.subentry_id},
+        )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -> bool:
@@ -214,8 +283,8 @@ def _plan_generation(
                 generated = generate_for_commute(
                     resource,
                     items,
-                    subentry.data[CONF_SEGMENTS],
-                    route_lines(subentry.data),
+                    generation_segments(subentry.data),
+                    generation_lines(subentry.data),
                     subentry.data[CONF_CORRIDOR_KM],
                     exclude,
                 )
@@ -238,11 +307,18 @@ def _plan_generation(
     return updates
 
 
+# Subentry data key for the configurable nearest event slots of 0.1.0-alpha.1.
+_LEGACY_EVENT_SLOTS = "event_slots"
+
+
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Migrate entries from the first alpha builds.
+    """Migrate entries from earlier alpha builds.
 
     Version 1 had a radius option around home and only followed events and
     alerts. It becomes a "Home" area with the same radius and feeds.
+
+    Version 2.1 let each area and commute choose how many nearest event slots
+    to show. Version 2.2 always shows NEAREST_EVENTS, so extra slots go.
     """
     if entry.version > 2:
         return False
@@ -262,7 +338,6 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         CONF_FEEDS: [Resource.EVENTS.value, Resource.ALERTS.value],
                         CONF_PENDING: [],
                         CONF_ITEMS: {},
-                        CONF_EVENT_SLOTS: DEFAULT_EVENT_SLOTS,
                     }
                 ),
                 subentry_type=SUBENTRY_AREA,
@@ -270,7 +345,29 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 unique_id=None,
             ),
         )
-        hass.config_entries.async_update_entry(entry, options={}, version=2)
+        hass.config_entries.async_update_entry(
+            entry, options={}, version=2, minor_version=2
+        )
+    if entry.minor_version < 2:
+        registry = er.async_get(hass)
+        for subentry in list(entry.subentries.values()):
+            if _LEGACY_EVENT_SLOTS not in subentry.data:
+                continue
+            slots = int(subentry.data[_LEGACY_EVENT_SLOTS])
+            for slot in range(NEAREST_EVENTS + 1, slots + 1):
+                unique_id = f"{subentry.subentry_id}:nearest_event_{slot}"
+                if entity_id := registry.async_get_entity_id(
+                    Platform.SENSOR, DOMAIN, unique_id
+                ):
+                    registry.async_remove(entity_id)
+            hass.config_entries.async_update_subentry(
+                entry,
+                subentry,
+                data={
+                    k: v for k, v in subentry.data.items() if k != _LEGACY_EVENT_SLOTS
+                },
+            )
+        hass.config_entries.async_update_entry(entry, minor_version=2)
     return True
 
 

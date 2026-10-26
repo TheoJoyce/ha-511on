@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 import tomllib
 
 from awesomeversion import AwesomeVersion, AwesomeVersionStrategy
@@ -28,3 +29,13 @@ def test_versions_match_and_are_semver() -> None:
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     assert manifest_version == project["version"]
     assert AwesomeVersion(manifest_version).strategy is AwesomeVersionStrategy.SEMVER
+
+
+def test_changelog_has_the_version() -> None:
+    """Merging into main publishes the release with this section as its notes."""
+    version = json.loads(MANIFEST.read_text())["version"]
+    sections = re.split(
+        r"^## ", (ROOT / "CHANGELOG.md").read_text(), flags=re.MULTILINE
+    )
+    (section,) = [s for s in sections if s.startswith(f"[{version}]")]
+    assert section.split("\n", 1)[1].strip()

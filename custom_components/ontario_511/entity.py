@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
@@ -12,7 +13,7 @@ from .api import Resource
 from .const import ATTRIBUTION, DOMAIN, SOURCE_URL
 from .coordinator import ResourceCoordinator
 from .geo import Point
-from .models import Item
+from .models import Alert, Item, TrafficEvent
 
 # Device model names, shown on each device's page.
 RESOURCE_MODELS: dict[Resource, str] = {
@@ -32,12 +33,77 @@ RESOURCE_MODELS: dict[Resource, str] = {
 }
 
 
+# Items don't move, so their location is kept out of the recorder.
+LOCATION_ATTRIBUTES = frozenset({ATTR_LATITUDE, ATTR_LONGITUDE})
+
+
 def location_attributes(point: Point | None) -> dict[str, Any]:
     """Return map attributes for a location (the map card shows any entity
     with numeric latitude and longitude)."""
     if point is None:
         return {}
     return {ATTR_LATITUDE: point[0], ATTR_LONGITUDE: point[1]}
+
+
+def _iso(value: datetime | None) -> str | None:
+    return value.isoformat() if value else None
+
+
+def event_details(event: TrafficEvent, km: float | None = None) -> dict[str, Any]:
+    """Return every field of an event or construction project.
+
+    Used for the lists behind counts, nearest events and new-event data, so
+    automations can use any of them.
+    """
+    details: dict[str, Any] = {
+        "event_id": event.id,
+        "source_id": event.source_id,
+        "organization": event.organization,
+        "road": event.road,
+        "direction": event.direction,
+        "type": event.event_type,
+        "subtype": event.event_subtype,
+        "severity": event.severity,
+        "description": event.description,
+        "lanes_affected": event.lanes_affected,
+        "full_closure": event.is_full_closure,
+        "impact": event.impact,
+        "comment": event.comment,
+        "restrictions": event.restrictions,
+        "recurrence": event.recurrence,
+        "recurrence_schedules": event.recurrence_schedules,
+        "start": _iso(event.start),
+        "planned_end": _iso(event.planned_end),
+        "reported": _iso(event.reported),
+        "last_updated": _iso(event.last_updated),
+        "link_id": event.link_id,
+        "latitude": event.coordinates[0] if event.coordinates else None,
+        "longitude": event.coordinates[1] if event.coordinates else None,
+        "secondary_latitude": (
+            event.secondary_coordinates[0] if event.secondary_coordinates else None
+        ),
+        "secondary_longitude": (
+            event.secondary_coordinates[1] if event.secondary_coordinates else None
+        ),
+    }
+    if km is not None:
+        details["distance_km"] = round(km, 1)
+    return details
+
+
+def alert_details(alert: Alert) -> dict[str, Any]:
+    """Return every field of an alert."""
+    return {
+        "alert_id": alert.id,
+        "message": alert.message,
+        "notes": alert.notes,
+        "regions": list(alert.regions),
+        "high_importance": alert.high_importance,
+        "send_notification": alert.send_notification,
+        "start": _iso(alert.start),
+        "end": _iso(alert.end),
+        "last_updated": _iso(alert.last_updated),
+    }
 
 
 def item_device_identifier(subentry_id: str, resource: Resource, item_id: str) -> str:
@@ -48,6 +114,14 @@ def item_device_identifier(subentry_id: str, resource: Resource, item_id: str) -
 def summary_device_identifier(subentry_id: str) -> str:
     """Return the device identifier for an area or commute summary."""
     return f"{subentry_id}:summary"
+
+
+def _suggested_area(coordinator: ResourceCoordinator, subentry_id: str) -> str | None:
+    """Return the Home Assistant area chosen for a subentry's devices.
+
+    Home Assistant only applies it when a device is first created.
+    """
+    return coordinator.config_entry.runtime_data.suggested_areas.get(subentry_id)
 
 
 class Ontario511Entity(CoordinatorEntity[ResourceCoordinator]):
@@ -94,6 +168,7 @@ class ItemEntity(Ontario511Entity):
             model=RESOURCE_MODELS[coordinator.resource],
             entry_type=DeviceEntryType.SERVICE,
             configuration_url=SOURCE_URL,
+            suggested_area=_suggested_area(coordinator, subentry_id),
         )
 
     @property
@@ -134,4 +209,5 @@ class SummaryEntity(Ontario511Entity):
             model="Summary",
             entry_type=DeviceEntryType.SERVICE,
             configuration_url=SOURCE_URL,
+            suggested_area=_suggested_area(coordinator, subentry_id),
         )

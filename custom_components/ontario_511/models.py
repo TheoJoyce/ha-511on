@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 import hashlib
 import math
 from typing import Any, Self
@@ -35,6 +35,21 @@ def _text(value: Any) -> str | None:
     if isinstance(value, str) and (collapsed := " ".join(value.split())):
         return collapsed
     return None
+
+
+def _date(value: Any) -> date | None:
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value.strip())
+        except ValueError:
+            return None
+    return None
+
+
+def _direction(value: Any) -> str | None:
+    """Return a direction of travel; the feed's "Unknown" is no value."""
+    text = _text(value)
+    return None if text is None or text.lower() == "unknown" else text
 
 
 def _int(value: Any) -> int | None:
@@ -91,6 +106,9 @@ def _api_id(item: dict[str, Any], name: str = "Id") -> str:
         raise KeyError(name)
     return str(value)
 
+
+# Visibility values seen in the feed and its documentation.
+VISIBILITY_OPTIONS = ("good", "fair", "poor")
 
 # Polylines are thinned to roughly one point per this distance. Matching items
 # to roads within a kilometre or two doesn't need more, and it keeps memory low
@@ -162,6 +180,10 @@ class TrafficEvent(Item):
     planned_end: datetime | None
     reported: datetime | None
     last_updated: datetime | None
+    source_id: str | None
+    link_id: str | None
+    recurrence_schedules: str | None
+    secondary_coordinates: Point | None
 
     @classmethod
     def from_api(cls, item: dict[str, Any]) -> Self:
@@ -196,6 +218,12 @@ class TrafficEvent(Item):
             planned_end=_timestamp(item.get("PlannedEndDate")),
             reported=_timestamp(item.get("Reported")),
             last_updated=_timestamp(item.get("LastUpdated")),
+            source_id=_text(item.get("SourceId")),
+            link_id=_text(item.get("LinkId")),
+            recurrence_schedules=_text(item.get("RecurrenceSchedules")),
+            secondary_coordinates=_in_ontario(
+                item.get("LatitudeSecondary"), item.get("LongitudeSecondary")
+            ),
         )
 
     def is_active(self, now: datetime) -> bool:
@@ -213,8 +241,10 @@ class Alert(Item):
     notes: str | None
     regions: tuple[str, ...]
     high_importance: bool
+    send_notification: bool
     start: datetime | None
     end: datetime | None
+    last_updated: datetime | None
 
     @classmethod
     def from_api(cls, item: dict[str, Any]) -> Self:
@@ -231,8 +261,10 @@ class Alert(Item):
             if isinstance(regions, list)
             else (),
             high_importance=item.get("HighImportance") is True,
+            send_notification=item.get("SendNotification") is True,
             start=_timestamp(item.get("StartTime")),
             end=_timestamp(item.get("EndTime")),
+            last_updated=_timestamp(item.get("LastUpdated")),
         )
 
 
@@ -243,6 +275,9 @@ class RoadSegment(Item):
     road: str | None
     description: str | None
     conditions: tuple[str, ...]
+    # The surface alone, and the overall condition, which drifting snow
+    # raises to at least DRIFTING_SNOW.
+    surface: RoadCondition
     condition: RoadCondition
     visibility: str | None
     drifting: bool | None
@@ -264,6 +299,8 @@ class RoadSegment(Item):
         lines = _lines(item.get("EncodedPolyline"))
         points = [p for line in lines for p in line]
         label = f"Hwy {road}" if road and road.isdigit() else road
+        surface = worst(conditions)
+        drifting = _flag(item.get("Drifting"))
         return cls(
             id=_derived_id(road, description),
             name=": ".join(p for p in (label, description) if p) or "Road segment",
@@ -272,22 +309,28 @@ class RoadSegment(Item):
             road=road,
             description=description,
             conditions=conditions,
-            condition=worst(conditions),
+            surface=surface,
+            condition=max(surface, RoadCondition.DRIFTING_SNOW)
+            if drifting
+            else surface,
             visibility=_text(item.get("Visibility")),
-            drifting=_flag(item.get("Drifting")),
+            drifting=drifting,
             last_updated=_timestamp(item.get("LastUpdated")),
             lines=lines,
             bbox=BoundingBox(points) if points else None,
         )
 
     @property
+    def visibility_option(self) -> str | None:
+        """Return the visibility as an enum option, or None if unrecognised."""
+        text = (self.visibility or "").lower()
+        return text if text in VISIBILITY_OPTIONS else None
+
+    @property
     def is_hazardous(self) -> bool:
-        """Return whether conditions, visibility or drifting make driving risky."""
-        return (
-            self.condition.is_hazardous
-            or self.drifting is True
-            or (self.visibility or "").lower() == "poor"
-        )
+        """Return whether conditions (including drifting snow) or visibility make
+        driving risky."""
+        return self.condition.is_hazardous or self.visibility_option == "poor"
 
 
 def _midpoint(lines: tuple[tuple[Point, ...], ...]) -> Point | None:
@@ -315,6 +358,8 @@ class Camera(Item):
     road: str | None
     direction: str | None
     source: str | None
+    source_id: str | None
+    sort_order: int | None
     views: tuple[CameraView, ...]
 
     @classmethod
@@ -326,8 +371,10 @@ class Camera(Item):
             name=_text(item.get("Location")) or f"Camera {item['Id']}",
             coordinates=_coordinates(item),
             road=_text(item.get("Roadway")),
-            direction=_text(item.get("Direction")),
+            direction=_direction(item.get("Direction")),
             source=_text(item.get("Source")),
+            source_id=_text(item.get("SourceId")),
+            sort_order=_int(item.get("SortOrder")),
             views=tuple(
                 CameraView(
                     id=str(view["Id"]),
@@ -372,6 +419,7 @@ class FerryTerminal(Item):
     details: str | None
     operated_by: str | None
     website: str | None
+    twitter: str | None
     out_of_service: datetime | None
     return_to_service: datetime | None
 
@@ -388,6 +436,7 @@ class FerryTerminal(Item):
             details=_text(item.get("Details")),
             operated_by=_text(item.get("OperatedBy")),
             website=_text(item.get("Website")),
+            twitter=_text(item.get("Twitter")),
             out_of_service=_timestamp(item.get("EstimatedOutOfServiceTime")),
             return_to_service=_timestamp(item.get("EstimatedReturnToServiceTime")),
         )
@@ -410,6 +459,14 @@ class RestArea(Item):
     food_services: str | None
     fuel: bool | None
     comments: str | None
+    mode: str | None
+
+    @property
+    def status_option(self) -> str | None:
+        """Return the status as an enum option, or None if unrecognised."""
+        if self.is_open is None:
+            return None
+        return "open" if self.is_open else "closed"
 
     @classmethod
     def from_api(cls, item: dict[str, Any]) -> Self:
@@ -424,7 +481,7 @@ class RestArea(Item):
             coordinates=_coordinates(item),
             region=_text(item.get("Region")),
             road=_text(item.get("Roadway")),
-            direction=_text(item.get("Direction")),
+            direction=_direction(item.get("Direction")),
             location=_text(item.get("Location")),
             area_type=_text(item.get("Type")),
             is_open=True
@@ -440,6 +497,7 @@ class RestArea(Item):
             food_services=_text(item.get("FoodServices")),
             fuel=_flag(item.get("Fuel")),
             comments=_text(item.get("Comments")),
+            mode=_text(item.get("Mode")),
         )
 
 
@@ -454,6 +512,7 @@ class ServiceCentre(Item):
     fuel: str | None
     commercial_parking: int | None
     website: str | None
+    title: str | None
 
     @classmethod
     def from_api(cls, item: dict[str, Any]) -> Self:
@@ -470,6 +529,7 @@ class ServiceCentre(Item):
             fuel=_text(item.get("FuelProvider")),
             commercial_parking=_int(item.get("CommercialParking")),
             website=_text(item.get("Website")),
+            title=_text(item.get("Title")),
         )
 
 
@@ -480,7 +540,14 @@ class SeasonalLoad(Item):
     route: str | None
     status: str | None
     restricted: bool | None
-    date: str | None
+    date: date | None
+
+    @property
+    def status_option(self) -> str | None:
+        """Return the status as an enum option, or None if unrecognised."""
+        if self.restricted is None:
+            return None
+        return "restrictions_in_effect" if self.restricted else "no_restrictions"
 
     @classmethod
     def from_api(cls, item: dict[str, Any]) -> Self:
@@ -506,7 +573,7 @@ class SeasonalLoad(Item):
                 if "restriction" in lowered
                 else None
             ),
-            date=_text(item.get("Date")),
+            date=_date(item.get("Date")),
         )
 
 
@@ -582,7 +649,7 @@ class InspectionStation(Item):
             coordinates=_coordinates(item),
             region=_text(item.get("Region")),
             highway=_text(item.get("Highway")),
-            direction=_text(item.get("Direction")),
+            direction=_direction(item.get("Direction")),
             location=_text(item.get("Location")),
             contact=_text(item.get("ContactInformation")),
         )

@@ -25,3 +25,6 @@ htmlcov/
 
 # Local development cache of full API responses (reference only, never used by tests)
 .dev-cache/
+
+# Node (frontend tests)
+node_modules/

@@ -1,0 +1,2 @@
+# Vendored MapLibre GL build, kept byte-for-byte as published to npm.
+custom_components/ontario_511/frontend/maplibre-gl* linguist-vendored -diff

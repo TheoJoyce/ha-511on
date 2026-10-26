@@ -13,7 +13,10 @@
       "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
       "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
       "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
-      "outside_ontario": "That address isn't in Ontario."
+      "outside_ontario": "That address isn't in Ontario.",
+      "dev_cache_missing": "That's the development key, which only works in a development checkout with saved responses in .dev-cache/api. Enter your own API key.",
+      "radius_too_large": "The radius can be at most {max_radius} metres.",
+      "zone_needs_radius": "A zone needs a radius. Make the circle larger, or untick Create a matching zone."
     },
     "step": {
       "user": {
@@ -30,15 +33,17 @@
           "name": "Name",
           "location": "Centre and radius",
           "types": "Data to generate",
-          "event_slots": "Nearest event slots",
-          "address": "Address (optional)"
+          "address": "Address (optional)",
+          "ha_area": "Area (optional)",
+          "create_zone": "Create a matching zone"
         },
         "data_description": {
           "name": "For example Home, Work or Cottage.",
-          "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
+          "location": "Drag the pin to the centre and drag the circle's edge to set the radius, up to {max_radius} metres. You can also type it in metres. A small radius, even 0, is fine if you only need the area as the start or end of a commute.",
           "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-          "event_slots": "How many of the nearest events to show on the map.",
-          "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
+          "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors.",
+          "ha_area": "Optional. Every device created for this area goes in this Home Assistant area, such as Outside. You can still move devices one by one.",
+          "create_zone": "Adds a Home Assistant zone with the same centre and radius, for presence automations. The zone is yours to edit or delete: it doesn't change or go away with the area."
         },
         "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
         "title": "Area"
@@ -56,14 +61,14 @@
           "name": "Name",
           "corridor_km": "Corridor width",
           "types": "Data to generate",
-          "event_slots": "Nearest event slots"
+          "ha_area": "Area (optional)"
         },
         "data_description": {
-          "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
+          "corridor_km": "Anything within this distance of the commute's route counts as on the commute, including nearby roads.",
           "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones.",
-          "event_slots": "How many of the nearest events to show on the map."
+          "ha_area": "Optional. Every device created for this commute goes in this Home Assistant area. Prefilled from the start area."
         },
-        "description": "A commute from {from} to {to}. Up to three sensible highway routes between them are worked out and all used. Its summaries cover both areas and the route between them.",
+        "description": "A commute from {from} to {to}. Routes along the roads between them are found by OpenStreetMap's routing service (OSRM): the two areas' centres are sent to OpenStreetMap. Up to three sensible routes are found: items along all of them are generated, and the fastest is the commute's route, which its summaries follow along with both areas. Routes © OpenStreetMap contributors.",
         "title": "Commute"
       },
       "slow_import": {
@@ -80,15 +85,21 @@
         "description": "Ontario 511 rejected the saved API key. Enter a valid key.",
         "title": "Re-authenticate Ontario 511"
       },
-      "area_radius": {
-        "data": {
-          "radius_km": "Radius"
+      "routing_unavailable": {
+        "description": "Road routing is switched off right now, so routes along every road can't be found. You can route over Ontario 511's highways only, with straight lines to and from them, and plan the route again later from the commute's settings.",
+        "menu_options": {
+          "commute_retry": "Try again",
+          "commute_highways": "Use Ontario 511's highways only (local roads become straight lines)"
         },
-        "data_description": {
-          "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
+        "title": "Routes"
+      },
+      "routing_failed": {
+        "description": "Couldn't reach OpenStreetMap's routing, or it found no route between the two areas. Try again, or route over Ontario 511's highways only, with straight lines to and from them, and plan the route again later from the commute's settings.",
+        "menu_options": {
+          "commute_retry": "Try again",
+          "commute_highways": "Use Ontario 511's highways only (local roads become straight lines)"
         },
-        "description": "Confirm the radius of {name}.",
-        "title": "Radius"
+        "title": "Routes"
       }
     }
   },
@@ -107,7 +118,9 @@
         "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
         "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
         "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
-        "outside_ontario": "That address isn't in Ontario."
+        "outside_ontario": "That address isn't in Ontario.",
+        "radius_too_large": "The radius can be at most {max_radius} metres.",
+        "zone_needs_radius": "A zone needs a radius. Make the circle larger, or untick Create a matching zone."
       },
       "abort": {
         "reconfigure_successful": "Settings saved."
@@ -118,28 +131,20 @@
             "name": "Name",
             "location": "Centre and radius",
             "types": "Data to generate",
-            "event_slots": "Nearest event slots",
-            "address": "Address (optional)"
+            "address": "Address (optional)",
+            "ha_area": "Area (optional)",
+            "create_zone": "Create a matching zone"
           },
           "data_description": {
             "name": "For example Home, Work or Cottage.",
-            "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
+            "location": "Drag the pin to the centre and drag the circle's edge to set the radius, up to {max_radius} metres. You can also type it in metres. A small radius, even 0, is fine if you only need the area as the start or end of a commute.",
             "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-            "event_slots": "How many of the nearest events to show on the map.",
-            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
+            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors.",
+            "ha_area": "Optional. Every device created for this area goes in this Home Assistant area, such as Outside. You can still move devices one by one.",
+            "create_zone": "Adds a Home Assistant zone with the same centre and radius, for presence automations. The zone is yours to edit or delete: it doesn't change or go away with the area."
           },
           "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
           "title": "Area"
-        },
-        "area_radius": {
-          "data": {
-            "radius_km": "Radius"
-          },
-          "data_description": {
-            "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
-          },
-          "description": "Confirm the radius of {name}.",
-          "title": "Radius"
         },
         "slow_import": {
           "description": "You chose {count} data types. Ontario 511 allows {fast} requests a minute, so the first {fast} load now and the rest about a minute later. Their entities appear when the data arrives.",
@@ -149,10 +154,11 @@
           "data": {
             "name": "Name",
             "feeds": "Follow",
-            "event_slots": "Nearest event slots"
+            "ha_area": "Area (optional)"
           },
           "data_description": {
-            "feeds": "Events, construction and alerts shown for this area."
+            "feeds": "Events, construction and alerts shown for this area.",
+            "ha_area": "Optional. Changing it moves every device here to this Home Assistant area, and new devices go there too."
           },
           "title": "Settings"
         }
@@ -173,7 +179,11 @@
         "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
         "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
         "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
-        "outside_ontario": "That address isn't in Ontario."
+        "outside_ontario": "That address isn't in Ontario.",
+        "radius_too_large": "The radius can be at most {max_radius} metres.",
+        "zone_needs_radius": "A zone needs a radius. Make the circle larger, or untick Create a matching zone.",
+        "routing_unavailable": "Road routing is switched off right now. Untick Plan the route again to keep the current route.",
+        "routing_failed": "Couldn't reach OpenStreetMap's routing, or it found no route. Try again later."
       },
       "abort": {
         "reconfigure_successful": "Settings saved.",
@@ -208,42 +218,34 @@
             "name": "Name",
             "location": "Centre and radius",
             "types": "Data to generate",
-            "event_slots": "Nearest event slots",
-            "address": "Address (optional)"
+            "address": "Address (optional)",
+            "ha_area": "Area (optional)",
+            "create_zone": "Create a matching zone"
           },
           "data_description": {
             "name": "For example Home, Work or Cottage.",
-            "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
+            "location": "Drag the pin to the centre and drag the circle's edge to set the radius, up to {max_radius} metres. You can also type it in metres. A small radius, even 0, is fine if you only need the area as the start or end of a commute.",
             "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-            "event_slots": "How many of the nearest events to show on the map.",
-            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
+            "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors.",
+            "ha_area": "Optional. Every device created for this area goes in this Home Assistant area, such as Outside. You can still move devices one by one.",
+            "create_zone": "Adds a Home Assistant zone with the same centre and radius, for presence automations. The zone is yours to edit or delete: it doesn't change or go away with the area."
           },
           "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
           "title": "Area"
-        },
-        "area_radius": {
-          "data": {
-            "radius_km": "Radius"
-          },
-          "data_description": {
-            "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
-          },
-          "description": "Confirm the radius of {name}.",
-          "title": "Radius"
         },
         "commute": {
           "data": {
             "name": "Name",
             "corridor_km": "Corridor width",
             "types": "Data to generate",
-            "event_slots": "Nearest event slots"
+            "ha_area": "Area (optional)"
           },
           "data_description": {
-            "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
+            "corridor_km": "Anything within this distance of the commute's route counts as on the commute, including nearby roads.",
             "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones.",
-            "event_slots": "How many of the nearest events to show on the map."
+            "ha_area": "Optional. Every device created for this commute goes in this Home Assistant area. Prefilled from the start area."
           },
-          "description": "A commute from {from} to {to}. Up to three sensible highway routes between them are worked out and all used. Its summaries cover both areas and the route between them.",
+          "description": "A commute from {from} to {to}. Routes along the roads between them are found by OpenStreetMap's routing service (OSRM): the two areas' centres are sent to OpenStreetMap. Up to three sensible routes are found: items along all of them are generated, and the fastest is the commute's route, which its summaries follow along with both areas. Routes © OpenStreetMap contributors.",
           "title": "Commute"
         },
         "slow_import": {
@@ -254,16 +256,35 @@
           "data": {
             "name": "Name",
             "feeds": "Follow",
-            "event_slots": "Nearest event slots",
             "corridor_km": "Corridor width",
-            "segments": "Road segments"
+            "segments": "Road segments",
+            "ha_area": "Area (optional)",
+            "replan": "Plan the route again"
           },
           "data_description": {
             "feeds": "Events, construction and alerts shown for this commute.",
-            "corridor_km": "Anything within this distance of the route counts as on the commute.",
-            "segments": "The road segments the commute uses. Untick any you don't drive, or tick nearby ones you do; added segments count along their full length."
+            "corridor_km": "Anything within this distance of the commute's route counts as on the commute.",
+            "segments": "The road segments the commute's route uses, which its summary follows. Untick any you don't drive, or tick nearby ones you do; added segments count along their full length.",
+            "ha_area": "Optional. Changing it moves every device here to this Home Assistant area, and new devices go there too.",
+            "replan": "Finds routes along the roads again, between the two areas' current centres, which are sent to OpenStreetMap. Items along the new routes are added; existing items stay, and you can delete any you don't need. Replaces the road segments chosen above."
           },
           "title": "Settings"
+        },
+        "routing_unavailable": {
+          "description": "Road routing is switched off right now, so routes along every road can't be found. You can route over Ontario 511's highways only, with straight lines to and from them, and plan the route again later from the commute's settings.",
+          "menu_options": {
+            "commute_retry": "Try again",
+            "commute_highways": "Use Ontario 511's highways only (local roads become straight lines)"
+          },
+          "title": "Routes"
+        },
+        "routing_failed": {
+          "description": "Couldn't reach OpenStreetMap's routing, or it found no route between the two areas. Try again, or route over Ontario 511's highways only, with straight lines to and from them, and plan the route again later from the commute's settings.",
+          "menu_options": {
+            "commute_retry": "Try again",
+            "commute_highways": "Use Ontario 511's highways only (local roads become straight lines)"
+          },
+          "title": "Routes"
         }
       }
     },
@@ -277,7 +298,8 @@
         "cannot_connect": "Failed to connect to Ontario 511.",
         "invalid_auth": "Ontario 511 rejected the API key.",
         "rate_limited": "Ontario 511 is limiting requests. Wait a minute and try again.",
-        "no_items": "Ontario 511 has no items of this type with a location."
+        "no_items": "Ontario 511 has no items of this type with a location.",
+        "reconfigure_successful": "Settings saved."
       },
       "step": {
         "user": {
@@ -289,10 +311,23 @@
         },
         "pick": {
           "data": {
-            "item_id": "Item"
+            "item_id": "Item",
+            "ha_area": "Area (optional)"
           },
           "description": "Choose the item. The nearest to your home are listed first.",
-          "title": "Add item"
+          "title": "Add item",
+          "data_description": {
+            "ha_area": "Optional. The item's device goes in this Home Assistant area."
+          }
+        },
+        "reconfigure": {
+          "data": {
+            "ha_area": "Area (optional)"
+          },
+          "data_description": {
+            "ha_area": "Optional. Changing it moves the item's device to this Home Assistant area."
+          },
+          "title": "Settings"
         }
       }
     }
@@ -306,6 +341,28 @@
     },
     "rate_limited": {
       "message": "Ontario 511 is limiting requests; the next update will try again."
+    }
+  },
+  "issues": {
+    "replan_commute": {
+      "title": "Plan the {commute} commute's route again",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Plan the {commute} commute's route again",
+            "description": "The {commute} commute was planned by an earlier version, which only knew Ontario 511's highways: its route uses straight lines between them, the start and the end, and doesn't follow the roads you drive. Its corridor, and the events, conditions and closures its summary shows, can be off as a result.\n\nSelect **Submit** to find up to three routes along the roads between its two areas' centres, which are sent to OpenStreetMap's routing service. The fastest becomes the commute's route, and items along all three are added. Existing items stay; delete any you don't need from the integration page. Routes © OpenStreetMap contributors."
+          }
+        },
+        "error": {
+          "cannot_connect": "Failed to connect to Ontario 511.",
+          "routing_unavailable": "Road routing is switched off right now. Try again later.",
+          "routing_failed": "Couldn't reach OpenStreetMap's routing, or it found no route. Try again later."
+        },
+        "abort": {
+          "commute_removed": "The commute no longer exists.",
+          "not_loaded": "The Ontario 511 integration isn't loaded. Check that it's set up and try again."
+        }
+      }
     }
   },
   "selector": {
@@ -339,6 +396,7 @@
           "wet": "Wet",
           "partly_covered": "Partly covered",
           "covered": "Snow covered",
+          "drifting_snow": "Drifting snow",
           "icy": "Icy",
           "closed": "Closed"
         },
@@ -346,13 +404,23 @@
           "reported": {
             "name": "Reported"
           },
-          "last_updated": {
-            "name": "Last updated"
+          "drifting": {
+            "name": "Drifting snow"
           }
         }
       },
       "visibility": {
-        "name": "Visibility"
+        "name": "Visibility",
+        "state": {
+          "good": "Good",
+          "fair": "Fair",
+          "poor": "Poor"
+        },
+        "state_attributes": {
+          "reported": {
+            "name": "Reported"
+          }
+        }
       },
       "ferry_status": {
         "name": "Status",
@@ -360,6 +428,11 @@
           "in_service": "In service",
           "in_service_off_schedule": "In service, off schedule",
           "not_in_service": "Not in service"
+        },
+        "state_attributes": {
+          "reported": {
+            "name": "Reported"
+          }
         }
       },
       "return_to_service": {
@@ -412,6 +485,7 @@
           "wet": "Wet",
           "partly_covered": "Partly covered",
           "covered": "Snow covered",
+          "drifting_snow": "Drifting snow",
           "icy": "Icy",
           "closed": "Closed"
         }
@@ -442,6 +516,146 @@
       },
       "nearest_event": {
         "name": "Nearest event {slot}"
+      },
+      "road": {
+        "name": "Road"
+      },
+      "last_updated": {
+        "name": "Last updated"
+      },
+      "direction": {
+        "name": "Direction"
+      },
+      "source": {
+        "name": "Source"
+      },
+      "details": {
+        "name": "Details"
+      },
+      "operated_by": {
+        "name": "Operated by"
+      },
+      "website": {
+        "name": "Website"
+      },
+      "area_type": {
+        "name": "Type"
+      },
+      "location": {
+        "name": "Location"
+      },
+      "season": {
+        "name": "Season"
+      },
+      "food_services": {
+        "name": "Food services"
+      },
+      "comments": {
+        "name": "Comments"
+      },
+      "access_via": {
+        "name": "Access"
+      },
+      "amenities": {
+        "name": "Amenities"
+      },
+      "commercial_parking": {
+        "name": "Commercial parking spaces"
+      },
+      "route": {
+        "name": "Route"
+      },
+      "load_status": {
+        "name": "Status",
+        "state": {
+          "no_restrictions": "No restrictions",
+          "restrictions_in_effect": "Restrictions in effect"
+        },
+        "state_attributes": {
+          "reported": {
+            "name": "Reported"
+          }
+        }
+      },
+      "load_date": {
+        "name": "Date"
+      },
+      "accessible_spaces": {
+        "name": "Accessible parking spaces"
+      },
+      "interchange": {
+        "name": "Interchange"
+      },
+      "enter_from": {
+        "name": "Entrance"
+      },
+      "contact": {
+        "name": "Contact"
+      },
+      "centre_address": {
+        "name": "Address"
+      },
+      "phone": {
+        "name": "Phone"
+      },
+      "email": {
+        "name": "Email"
+      },
+      "commute_route": {
+        "name": "Route",
+        "state_attributes": {
+          "route": {
+            "name": "Route"
+          },
+          "local": {
+            "name": "Local roads"
+          }
+        }
+      },
+      "surface_condition": {
+        "name": "Surface condition",
+        "state": {
+          "good": "Bare and dry",
+          "wet": "Wet",
+          "partly_covered": "Partly covered",
+          "covered": "Snow covered",
+          "drifting_snow": "Drifting snow",
+          "icy": "Icy",
+          "closed": "Closed"
+        }
+      },
+      "reported_conditions": {
+        "name": "Reported conditions"
+      },
+      "region": {
+        "name": "Region"
+      },
+      "source_id": {
+        "name": "Source ID"
+      },
+      "sort_order": {
+        "name": "Sort order"
+      },
+      "twitter": {
+        "name": "Twitter"
+      },
+      "rest_area_status": {
+        "name": "Status",
+        "state": {
+          "open": "Open",
+          "closed": "Closed"
+        },
+        "state_attributes": {
+          "reported": {
+            "name": "Reported"
+          }
+        }
+      },
+      "mode": {
+        "name": "Mode"
+      },
+      "title": {
+        "name": "Title"
       }
     },
     "binary_sensor": {
@@ -465,11 +679,40 @@
       },
       "closure": {
         "name": "Full closure"
+      },
+      "truck_parking": {
+        "name": "Truck parking"
+      },
+      "washrooms": {
+        "name": "Washrooms"
+      },
+      "accessible": {
+        "name": "Accessible"
+      },
+      "fuel": {
+        "name": "Fuel"
+      },
+      "bike_rack": {
+        "name": "Bike rack"
+      },
+      "lights": {
+        "name": "Lighting"
+      },
+      "transit": {
+        "name": "Transit connection"
       }
     },
     "camera": {
       "view": {
-        "name": "View {view}"
+        "name": "View {view}",
+        "state_attributes": {
+          "view_id": {
+            "name": "View ID"
+          },
+          "description": {
+            "name": "Description"
+          }
+        }
       }
     },
     "event": {

@@ -21,10 +21,11 @@
 - [ ] No API key in code, fixtures, logs or diagnostics
 - [ ] Every entity has the OGL–Ontario attribution
 - [ ] README updated for user-facing changes
+- [ ] `CHANGELOG.md` has this version's section (it becomes the release notes)
 - [ ] Tried in a real Home Assistant instance
 
 ## After merging
 
-- [ ] Branch deleted
-- [ ] Tag `v<version>` on the merge commit
-- [ ] GitHub release published from the tag (marked pre-release for alpha, beta and rc)
+Merging publishes the release: the branch is deleted, and the Release workflow tags the merge commit `v<version>` and publishes this version's `CHANGELOG.md` section (as a pre-release for alpha, beta and rc).
+
+- [ ] Release workflow succeeded and the release is on GitHub

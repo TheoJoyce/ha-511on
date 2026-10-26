@@ -8,6 +8,7 @@ involved here.
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from itertools import pairwise
 import math
 
 type Point = tuple[float, float]
@@ -99,6 +100,49 @@ def distance_to_line_km(point: Point, line: Sequence[Point]) -> float:
 def distance_to_lines_km(point: Point, lines: Iterable[Sequence[Point]]) -> float:
     """Return the shortest distance from a point to any of several polylines."""
     return min((distance_to_line_km(point, line) for line in lines), default=math.inf)
+
+
+def line_km(line: Sequence[Point]) -> float:
+    """Return the length of a polyline."""
+    return sum(distance_km(a, b) for a, b in pairwise(line))
+
+
+def densify(line: Sequence[Point], step_km: float) -> list[Point]:
+    """Return the line with points added so none are over ``step_km`` apart.
+
+    Routes have long straight stretches between points.
+    """
+    points = list(line[:1])
+    for a, b in pairwise(line):
+        extra = int(distance_km(a, b) / step_km)
+        for i in range(1, extra + 1):
+            t = i / (extra + 1)
+            points.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+        points.append(b)
+    return points
+
+
+def simplify(line: Sequence[Point], tolerance_km: float) -> list[Point]:
+    """Return the line without points that barely change its shape.
+
+    Douglas-Peucker: points within ``tolerance_km`` of the simplified line go.
+    """
+    if len(line) < 3:
+        return list(line)
+    keep = [False] * len(line)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(line) - 1)]
+    while stack:
+        first, last = stack.pop()
+        best, index = 0.0, 0
+        for i in range(first + 1, last):
+            km = distance_to_line_km(line[i], (line[first], line[last]))
+            if km > best:
+                best, index = km, i
+        if best > tolerance_km:
+            keep[index] = True
+            stack.extend(((first, index), (index, last)))
+    return [point for point, kept in zip(line, keep, strict=True) if kept]
 
 
 class BoundingBox:

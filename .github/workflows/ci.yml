@@ -33,3 +33,15 @@ jobs:
 
       - name: Pytest
         run: uv run pytest
+
+      - name: Install Node
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install card test dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Map card tests
+        run: npm test

@@ -17,15 +17,16 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 - **Disclaimer:** keep the "as is" data disclaimer in the README.
 - **Tests:** tests never call the live API. Use recorded JSON fixtures.
 
-## Address search (OpenStreetMap Nominatim)
+## OpenStreetMap services: address search and road routing
 
-`geocode.py` looks up addresses typed in the area form. The [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) applies to the integration as a whole, so these rules are not negotiable:
+`geocode.py` looks up addresses typed in the area form with OpenStreetMap Nominatim. `directions.py` finds commute routes along roads with OSRM on the FOSSGIS server (`routing.openstreetmap.de`). `osm.py` holds what they share. The [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) and the [FOSSGIS routing policy](https://routing.openstreetmap.de/about.html) apply to the integration as a whole, so these rules are not negotiable:
 
-- Never add autocomplete, periodic, background or bulk lookups. Only a user submitting a form may trigger one.
-- Keep the one-request-per-second spacing, the result cache, and the integration's own User-Agent.
-- Keep the remote switch: `geocoding.json` on `main` must stay in the repository. Lookups must stay refused when it says off or can't be read. To switch address search off for everyone (for example if OpenStreetMap asks), set `"enabled": false` there.
-- Keep the attribution and the note that the address is sent to OpenStreetMap on the form, and in the README.
-- In development, `scripts/develop` points lookups at the fake API (`ONTARIO_511_GEOCODING_BASE`), so test addresses never reach OpenStreetMap. Tests mock both URLs.
+- Never add autocomplete, periodic, background or bulk requests. Only a user submitting a form (or a repair) may trigger one. Old commutes get a repair asking to plan them again; never re-plan in the background.
+- Keep the one-request-per-second spacing per service, the result caches, and the integration's own User-Agent.
+- Keep the remote switch: `geocoding.json` on `main` must stay in the repository. Each service has its own key: `enabled` for address search (which 0.1.0-alpha.1 reads) and `routing` for routing. A service must stay refused when its key isn't `true` or the file can't be read. To switch one off for everyone (for example if OpenStreetMap or FOSSGIS asks), set its key to `false` there.
+- When routing is off or fails, commutes fall back to Ontario 511's highway network (`routing.py`), and the form says so and offers to try again.
+- Keep the attribution and the note that the address, or the commute's start and end, are sent to OpenStreetMap on the forms, and in the README.
+- In development, `scripts/develop` points both services at the fake API (`ONTARIO_511_OSM_BASE`), so test addresses never reach OpenStreetMap. Routes it hasn't saved are fetched once from the routing server and kept in `.dev-cache/routing/`. Tests mock every URL.
 
 ## Rate limits
 
@@ -34,6 +35,7 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 - **The limiter** (`api.RateLimiter`) is a sliding window of 10 calls per 61 seconds (the extra second absorbs clock and network skew). `acquire()` waits for a free slot instead of failing. `Ontario511Client.async_get` acquires a slot before every request, so no code path can skip it.
 - **Polling budget:** fixed intervals live in `const.UPDATE_INTERVALS`. Their combined calls per minute must stay at or under `const.POLL_BUDGET_PER_MINUTE`, which must stay at or under a fifth of the limit. `tests/test_rate_limits.py` enforces both; when adding a polled resource, give it an interval, a fixture, and keep the budget test passing.
 - **Throttled responses:** an HTTP 429 raises `Ontario511RateLimitError`. Coordinators turn it into `UpdateFailed` and wait for the next scheduled poll; never retry immediately.
+- **Development key:** the key `dev-cache` (`client.DEV_API_KEY`) makes `create_client` return a `DevCacheClient`, which reads `.dev-cache/api/` next to `custom_components/` and never calls the API, so it doesn't use the limiter. Without that directory the key is refused (`dev_cache_missing`). Never let it fall back to the real API. Tests point `client.DEV_CACHE_DIR` at copies of the fixtures, never at `.dev-cache`.
 - **Live calls during development:** anything that calls the real API must go through `RateLimiter` (use `Ontario511Client`). Record fixtures with `uv run python -m scripts.record_fixtures OUT_DIR [RESOURCE ...]`: all 16 resources take about a minute because of the limiter. Don't run it while a development Home Assistant instance uses the same key, because they don't share a limiter.
 - **Fixtures vs the dev cache:** `tests/fixtures/` is the source of truth for tests. It holds the documented sample response for every resource, plus real items where live data differs from the docs (see `tests/fixtures/README.md`). `.dev-cache/api/` is a gitignored local copy of full responses from every resource, for browsing real data during development; it may be stale and tests must never read it. Refresh it with `uv run python -m scripts.record_fixtures .dev-cache/api`.
 - **Testing the limiter:** tests freeze time, which also freezes `time.monotonic`, so an unpatched limiter would wait forever once more than 10 resources are in use. `tests/conftest.py` installs the instance-wide limiter with a `SimulatedClock` in every test: the limit is still enforced, the wait is simulated and recorded (`limiter_clock.waits`). Unit tests inject their own fake clock. Integration tests use `aioclient_mock` with the real client, and assert on `limiter.available`, `call_count` and the recorded waits.
@@ -42,7 +44,7 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 
 ## Architecture
 
-See `docs/design.md` for the data model (areas, commutes, items, devices and entities).
+See `docs/design.md` for the data model (areas, commutes, items, devices and entities) and `docs/api-mapping.md` for where every API field ends up. Keep `api-mapping.md` up to date when a field's handling changes.
 
 - `api.py`: the API client, `Resource` enum, errors and `RateLimiter`. No Home Assistant imports. Every resource is under `/api/v2/get/` except `roadconditions`, which is under `/api/v3/get/`. Error messages never contain the request URL, because it carries the key.
 - `client.py`: Home Assistant glue: the instance-wide limiter and client creation (shared aiohttp session; `lang=fr` when Home Assistant's language is French).
@@ -50,10 +52,11 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 - `coordinator.py`: `ResourceCoordinator`, one per resource in use. It caches the whole parsed response; every entity of that resource reads from it. A forced refresh ("Update entity") reuses the cache inside the freshness window and is debounced. Parsing runs in the executor, because decoding road polylines is slow on small hardware.
 - `models.py`: frozen dataclasses for all 16 resources, all sharing `id`, `name`, `coordinates` and `region`. Resources without an `Id` field get a derived ID from stable fields. Coordinates outside Ontario's bounding box are treated as missing. Road segment polylines are thinned to about one point per 250 m to save memory.
 - `conditions.py`: ranks free-text road conditions; unrecognised text is unknown (never assumed safe) and logged once.
-- `geo.py`: polyline decoding and distances. `scope.py`: which items fall in a radius or commute corridor, and attaching events to their nearest road segment (within 2 km).
+- `geo.py`: polyline decoding, distances and line simplification. `scope.py`: which items fall in a radius or commute corridor, and attaching events to their nearest road segment (within 2 km).
 - `__init__.py`: works out the resources in use from the subentries, creates their coordinators, waits for one (to check the key and connection) and loads the rest in the background, runs the one-time generation for new areas and commutes, and handles deleting an item's device.
 - `generation.py`: chooses generated items (commute corridor first, then nearest to an area's centre, within per-type caps). Pure functions; heavy work runs in the executor.
-- `routing.py`: routes commutes over the road segment network (segments split where others join them partway; Dijkstra; up to three routes within 30% of the best). `commute.py` plans a commute and reads its stored route: the segments used and the stretches actually driven, so corridors follow the trip rather than whole segments. Trips where local roads beat any highway route use the straight start-to-end line.
+- `commute.py` plans a commute and reads its stored routes. Up to three routes along roads (`directions.py`): the service's own alternatives, plus routes through the highway routes it missed, within 30% of the fastest's time. Each is matched to the road segments it runs along. The fastest is the main route: its pieces are the corridor and its segments the summary's. The other routes only add generated items. `routing.py` is the fallback when routing isn't available: it routes over the road segment network (segments split where others join them partway; Dijkstra), with straight lines to and from it.
+- `repairs.py`: the repair that plans commutes from before 0.1.0-alpha.2 (no `routing` in their data) again, along roads.
 - `config_flow.py`: initial setup (key, first area, optional commute) and the area, commute and item subentry flows.
 - `client.py` also holds the instance-wide response cache, so reloading an entry (which happens whenever a subentry changes) reuses fetched data.
 - `feeds.py`: `FeedIndex`, rebuilt only when data changes: active events and construction attached to their road segment, and each area's or commute's scope (events, construction, segments, regions, alerts).
@@ -69,13 +72,13 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 
 ### Workflow
 
-1. **Branch:** create `dev/<version>` from `main` and bump the version.
+1. **Branch:** create `dev/<version>` from `main`, bump the version, and add a `## [<version>] - <date>` section at the top of `CHANGELOG.md` (`tests/test_manifest.py` checks it exists). Write it for users: what's new, what to do when upgrading, and known limitations, under `###` headings like earlier versions. The release adds the not-affiliated notice and the OGL–Ontario attribution itself.
 2. **Push every commit** to the branch on GitHub.
 3. **Draft PR:** if the branch has no pull request yet, open a **draft** PR into `main` using the PR template. Fill in the version, the goals, and a task checklist for the release.
 4. **Work in the PR:** all commits, reviews and checklists for that version live in its PR. Tick tasks as they're done and add new ones as they come up. Mark the PR ready for review when the tasks are done.
-5. **Merge:** a human reviews and approves the PR, then merges it. A merge means that version is official.
+5. **Merge:** a human reviews and approves the PR, including its release notes, then merges it. A merge means that version is official, and publishes it (step 7).
 6. **Delete the branch:** the branch is always deleted after merging. GitHub does this automatically (the repository has "Automatically delete head branches" turned on).
-7. **Release:** tag the merge commit `v<version>` and publish a GitHub release from the tag. Mark alpha, beta and rc versions as pre-releases: HACS only offers pre-releases to users who turn on beta versions. `.github/workflows/release.yml` fails if the tag doesn't match the manifest version or the pre-release flag is wrong.
+7. **Release:** automatic. On every push to `main`, `.github/workflows/release.yml` tags the merge commit `v<version>` (from `manifest.json`) and publishes a GitHub release with that version's `CHANGELOG.md` section as its notes. Alpha, beta and rc versions are marked as pre-releases, because HACS only offers those to users who turn on beta versions. If the tag already exists, it publishes nothing, so a merge that doesn't bump the version releases nothing. Don't tag or publish releases by hand.
 
 ## Git Commit Guidelines
 
@@ -90,12 +93,14 @@ See `docs/design.md` for the data model (areas, commutes, items, devices and ent
 
 - Run `uv sync` to set up the virtual environment with all development dependencies. If uv reports that no download was found for the required Python version, uv is outdated; upgrade it and run `uv sync` again.
 - Use `uv run` so the project's virtual environment and Python version are used.
-- After finishing a code session, run `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` and `uv run pytest`. CI also runs hassfest (`hassfest.yml`) and HACS validation (`hacs.yml`) as separate workflows.
+- After finishing a code session, run `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` and `uv run pytest`, and `npm test` if the map card changed (`npm ci --ignore-scripts` once first). CI also runs hassfest (`hassfest.yml`) and HACS validation (`hacs.yml`) as separate workflows.
 - **Local Home Assistant:** `scripts/develop` runs a dev instance at http://localhost:8123 against a fake Ontario 511 API (`scripts/fake_511.py`) that serves `.dev-cache/api/`, enforces the real rate limit, and accepts data injection. See `docs/development.md`. The integration only talks to the fake API when `ONTARIO_511_API_BASE` is set; normal installs never set it.
 - Run hassfest locally with the same image CI uses: `docker run --rm -v "$PWD"://github/workspace ghcr.io/home-assistant/hassfest`. Its current release rejects the manifest `categories` field, so leave it out until hassfest accepts it; HACS only warns that it's missing.
 - Home Assistant 2026.10 uses `probatio` in place of `voluptuous`; import `probatio` the way Core does.
 - **Icons:** hassfest doesn't check icon names, and a name that doesn't exist shows no icon. Run `uv run --group run python -m scripts.check_icons` after changing `icons.json`. Give each entity its own icon, with state icons where the state changes what matters (for example a snowflake for snow-covered roads).
 - **Follow Home Assistant's conventions for states and naming; check the developer docs (or Home Assistant's source) before choosing.** Where Ontario 511's values don't map onto a Home Assistant convention, use the Home Assistant one. In particular, when the feed has no value (road conditions "No Report", ferries "No Status Available"), return `None`: Home Assistant shows its standard, translated Unknown state and skips the enum option check. Never add an enum option for "no value", and never use `unknown` or `unavailable` as option names. Keep the feed's raw text in an attribute (such as `reported`) instead.
+- **Full data, statuses rather than yes/no:** expose every API field (see `docs/api-mapping.md`, and keep it up to date). A value with more than two states is an enum status sensor, never a binary sensor; a combined status (such as Road condition including drifting snow) keeps each part as its own entity. Disable granular and duplicate entities by default (`entity_registry_enabled_default=False`) instead of leaving data out. Events and alerts carry every field through `entity.event_details` and `entity.alert_details`.
+- **Map card:** `frontend/ontario-511-map-card.js` has no build step. `npm test` runs its unit tests (`tests/frontend/`, Node's test runner with happy-dom and a fake MapLibre beside a copy of the card). `npm run test:e2e` checks it end to end against a running `scripts/develop`: it uses the development key's entry (adding an area and commute to an existing one, and removing only those, or creating one and removing it), adds the card to a dashboard and checks it in headless Chromium (screenshots in `config/e2e/`). Run both after changing the card. Home Assistant 2026.10 replaces `window.customElements` after loading extra modules, so the card registers only once the frontend's `home-assistant` element exists.
 - Pin GitHub Actions to tags that exist. Some actions (for example `astral-sh/setup-uv`) no longer publish major-only tags such as `v10`; use the full version.
 
 ## Python Syntax Notes

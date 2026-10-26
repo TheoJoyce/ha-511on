@@ -20,7 +20,7 @@ from homeassistant.util import dt as dt_util
 from . import Ontario511ConfigEntry, subentry_items
 from .api import REQUEST_TIMEOUT, Resource
 from .coordinator import ResourceCoordinator
-from .entity import ItemEntity, location_attributes
+from .entity import LOCATION_ATTRIBUTES, ItemEntity, location_attributes
 from .models import Camera as CameraModel, CameraView
 from .policy import CAMERA_IMAGE_CACHE
 
@@ -72,6 +72,8 @@ async def async_setup_entry(
 class TrafficCamera(ItemEntity, Camera):
     """One view of a traffic camera."""
 
+    _unrecorded_attributes = LOCATION_ATTRIBUTES | {"view_id", "description"}
+
     def __init__(
         self,
         coordinator: ResourceCoordinator,
@@ -103,13 +105,15 @@ class TrafficCamera(ItemEntity, Camera):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the view's details; the first view carries the location."""
+        """Return what the view shows; the first view carries the location.
+
+        The camera's road and direction are sensors on the same device.
+        """
         camera = self.item
         view = self._view()
         attrs: dict[str, Any] = {
+            "view_id": view.id if view else None,
             "description": view.description if view else None,
-            "road": camera.road if isinstance(camera, CameraModel) else None,
-            "direction": camera.direction if isinstance(camera, CameraModel) else None,
         }
         if self._index == 0 and camera is not None:
             attrs |= location_attributes(camera.coordinates)

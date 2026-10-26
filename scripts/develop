@@ -40,4 +40,4 @@ fake=$!
 trap 'kill "$fake" 2>/dev/null' EXIT
 echo "Fake Ontario 511 API on http://127.0.0.1:8511 (any key works except \"invalid\")."
 run_hass env ONTARIO_511_API_BASE=http://127.0.0.1:8511 \
-  ONTARIO_511_GEOCODING_BASE=http://127.0.0.1:8511/_geo uv run hass -c config
+  ONTARIO_511_OSM_BASE=http://127.0.0.1:8511/_osm uv run hass -c config

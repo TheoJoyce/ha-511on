@@ -42,6 +42,29 @@ def road_condition(
 
 # Roughly Highway 401 across north Toronto, split into west and east parts,
 # plus a segment far away in Kenora.
-WEST_401 = road_condition("West", [(43.715, -79.60), (43.725, -79.50), (43.73, -79.44)])
-EAST_401 = road_condition("East", [(43.73, -79.44), (43.745, -79.40), (43.77, -79.25)])
+WEST_401_POINTS = [(43.715, -79.60), (43.725, -79.50), (43.73, -79.44)]
+EAST_401_POINTS = [(43.73, -79.44), (43.745, -79.40), (43.77, -79.25)]
+WEST_401 = road_condition("West", WEST_401_POINTS)
+EAST_401 = road_condition("East", EAST_401_POINTS)
 KENORA = road_condition("Kenora", [(49.77, -94.5), (49.78, -94.4)], road="17")
+# A road route along the whole of it, as the routing service returns it.
+ALONG_401 = [*WEST_401_POINTS, *EAST_401_POINTS[1:]]
+
+
+def osrm_response(
+    routes: Sequence[tuple[Sequence[tuple[float, float]], float]],
+) -> dict[str, Any]:
+    """Return an OSRM route response for (line, minutes) routes."""
+    return {
+        "code": "Ok",
+        "routes": [
+            {
+                "geometry": encode_polyline(line),
+                # Only used to compare routes, so roughly is fine.
+                "distance": 1000.0 * len(line),
+                "duration": 60.0 * minutes,
+            }
+            for line, minutes in routes
+        ],
+        "waypoints": [],
+    }

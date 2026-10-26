@@ -15,6 +15,25 @@ Home Assistant runs at http://localhost:8123 with its config in `config/` (gitig
 - With the fake API, any key works except `invalid`, which is rejected the way Ontario 511 rejects a bad key (useful for testing re-authentication).
 - Don't use `--live` while another Home Assistant uses the same key: they don't share a rate limiter.
 
+## Testing the map card
+
+```bash
+npm ci --ignore-scripts   # once: pinned test dependencies
+npm test                  # unit tests, with a fake MapLibre
+npm run test:e2e          # end to end, against scripts/develop
+```
+
+The end-to-end check needs `scripts/develop` running and saved responses in `.dev-cache/api/`. It logs in with the dev account and uses the development key (below). If you already have an entry with that key, it adds an area, a second area and a commute along Highway 401 to it, and afterwards removes only those; otherwise it creates an entry and removes it afterwards. It puts the map card on a temporary dashboard and checks in headless Chromium that the route is drawn along roads (with no straight stand-ins), markers appear, the map tiles load and a marker opens its details. Add `-- --keep` to leave what it added. Screenshots go to `config/e2e/`. It uses Playwright's cached Chromium (`npx playwright-core install chromium-headless-shell` if you have none) or `PLAYWRIGHT_CHROMIUM`.
+
+## Development key
+
+Enter `dev-cache` as the API key to use the saved responses in `.dev-cache/api/` instead of Ontario 511. Nothing is requested and no real key is involved, so you can add as many areas, commutes and items as you like, then add a second entry with your own key when you want live, end-to-end tests.
+
+- It works in any Home Assistant that runs this checkout's `custom_components/` through a symlink (as `scripts/develop` does, with or without `--live`), as long as `.dev-cache/api/` holds all 16 resources. Refresh them with `uv run python -m scripts.record_fixtures .dev-cache/api`.
+- The saved files are found next to `custom_components/` (two levels above the integration's code). In a Home Assistant that has a copy of the integration, put a `.dev-cache/api/` folder in its config directory to use the key there. Elsewhere it's refused with "That's the development key…".
+- Only one entry can use the development key; add as many areas, commutes and items to it as you like. Diagnostics show `uses_development_key` for it.
+- The data doesn't change, and the rate limiter isn't involved because no call is made. To test changing data or the rate limit, use the fake API below.
+
 ## Fake Ontario 511 API
 
 `scripts/fake_511.py` serves the full responses saved in `.dev-cache/api/` (refresh them with `uv run python -m scripts.record_fixtures .dev-cache/api`). It runs on http://127.0.0.1:8511 and:
@@ -63,6 +82,13 @@ curl -s localhost:8511/_dev/state
 # ottawa, kingston, sudbury) are found, "vancouver" is outside Ontario, anything
 # else isn't found. Switch it off to test the remote switch:
 curl -s -X POST localhost:8511/_dev/geocoding -H 'Content-Type: application/json' -d '{"enabled": false}'
+
+# Commute routing: routes are served from .dev-cache/routing/. One that isn't
+# saved yet is fetched once from OpenStreetMap's routing server (at most once a
+# second) and saved, so you see real routes. Switch routing off, or make it
+# fail, to test the fallback to highways only:
+curl -s -X POST localhost:8511/_dev/routing -H 'Content-Type: application/json' -d '{"enabled": false}'
+curl -s -X POST localhost:8511/_dev/routing -H 'Content-Type: application/json' -d '{"fail": true}'
 
 # Back to the saved responses
 curl -s -X POST localhost:8511/_dev/reset

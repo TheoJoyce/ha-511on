@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -12,26 +12,46 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
 )
+from homeassistant.const import MAX_LENGTH_STATE_STATE, EntityCategory, UnitOfLength
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
 from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
 from .api import Resource
+from .commute import alternative_pieces, route_pieces
 from .conditions import RoadCondition
-from .const import CONF_EVENT_SLOTS, SUBENTRY_ITEM
+from .const import (
+    CONF_ROUTING,
+    NEAREST_EVENTS,
+    ROUTING_ROADS,
+    SUBENTRY_COMMUTE,
+    SUBENTRY_ITEM,
+)
 from .coordinator import ResourceCoordinator
-from .entity import ItemEntity, SummaryEntity, location_attributes
+from .entity import (
+    LOCATION_ATTRIBUTES,
+    ItemEntity,
+    SummaryEntity,
+    alert_details,
+    event_details,
+    location_attributes,
+)
 from .feeds import Scope
+from .geo import Point, line_km
 from .models import (
+    VISIBILITY_OPTIONS,
+    Camera as CameraModel,
     CarpoolLot,
     FerryStatus,
     FerryTerminal,
     HovLane,
     InformationCentre,
     InspectionStation,
+    RestArea,
     RoadSegment,
     Roundabout,
+    SeasonalLoad,
     ServiceCentre,
     TrafficEvent,
     TransitHub,
@@ -49,160 +69,281 @@ _SCOPE_KEYS = {
 }
 
 
-def _event_summary(event: TrafficEvent, km: float | None = None) -> dict[str, Any]:
-    summary: dict[str, Any] = {
-        "road": event.road,
-        "direction": event.direction,
-        "type": event.event_type,
-        "description": event.description,
-        "full_closure": event.is_full_closure,
-        "planned_end": event.planned_end.isoformat() if event.planned_end else None,
-    }
-    if km is not None:
-        summary["distance_km"] = round(km, 1)
-    return summary
-
-
 @dataclass(frozen=True, kw_only=True)
 class ItemSensorDescription(SensorEntityDescription):
     """Describes a sensor showing one field of an item."""
 
     resource: Resource
-    value_fn: Callable[[Any], StateType | datetime]
+    model: type
+    value_fn: Callable[[Any], StateType | date | datetime]
+    # Only for values that explain the state, such as the feed's own text.
     attrs_fn: Callable[[Any], dict[str, Any]] = lambda item: {}
     # The main entity carries the item's location for the map.
     main: bool = False
+
+
+def _short(value: str | None) -> str | None:
+    """Return text that fits in a state."""
+    return value[:MAX_LENGTH_STATE_STATE] if value else None
+
+
+def _text(
+    key: str,
+    resource: Resource,
+    model: type,
+    field: str,
+    *,
+    enabled: bool = True,
+    category: EntityCategory | None = None,
+) -> ItemSensorDescription:
+    """Describe a sensor showing one text field of an item."""
+    return ItemSensorDescription(
+        key=key,
+        resource=resource,
+        model=model,
+        value_fn=lambda item: _short(getattr(item, field)),
+        entity_registry_enabled_default=enabled,
+        entity_category=category,
+    )
+
+
+def _region(resource: Resource, model: type) -> ItemSensorDescription:
+    """Describe the region sensor; regions decide which alerts apply."""
+    return _text("region", resource, model, "region", enabled=False)
+
+
+def _rest_area_sensors(resource: Resource) -> tuple[ItemSensorDescription, ...]:
+    return (
+        ItemSensorDescription(
+            key="rest_area_status",
+            resource=resource,
+            model=RestArea,
+            device_class=SensorDeviceClass.ENUM,
+            options=["open", "closed"],
+            value_fn=lambda a: a.status_option,
+            attrs_fn=lambda a: {"reported": a.status_text},
+            main=True,
+        ),
+        _text("area_type", resource, RestArea, "area_type"),
+        _text("road", resource, RestArea, "road"),
+        _text("direction", resource, RestArea, "direction"),
+        _text("location", resource, RestArea, "location"),
+        _text("season", resource, RestArea, "season"),
+        _text("food_services", resource, RestArea, "food_services"),
+        _text("comments", resource, RestArea, "comments"),
+        _text("mode", resource, RestArea, "mode", enabled=False),
+        _region(resource, RestArea),
+    )
 
 
 ITEM_SENSORS: tuple[ItemSensorDescription, ...] = (
     ItemSensorDescription(
         key="condition",
         resource=Resource.ROAD_CONDITIONS,
+        model=RoadSegment,
         device_class=SensorDeviceClass.ENUM,
         options=CONDITION_OPTIONS,
         value_fn=lambda s: s.condition.option,
-        attrs_fn=lambda s: {
-            "reported": list(s.conditions),
-            "region": s.region,
-            "last_updated": s.last_updated.isoformat() if s.last_updated else None,
-        },
+        attrs_fn=lambda s: {"reported": list(s.conditions), "drifting": s.drifting},
         main=True,
+    ),
+    ItemSensorDescription(
+        key="surface_condition",
+        resource=Resource.ROAD_CONDITIONS,
+        model=RoadSegment,
+        device_class=SensorDeviceClass.ENUM,
+        options=CONDITION_OPTIONS,
+        value_fn=lambda s: s.surface.option,
+        entity_registry_enabled_default=False,
+    ),
+    ItemSensorDescription(
+        key="reported_conditions",
+        resource=Resource.ROAD_CONDITIONS,
+        model=RoadSegment,
+        value_fn=lambda s: _short("; ".join(s.conditions)),
+        entity_registry_enabled_default=False,
     ),
     ItemSensorDescription(
         key="visibility",
         resource=Resource.ROAD_CONDITIONS,
-        value_fn=lambda s: s.visibility,
+        model=RoadSegment,
+        device_class=SensorDeviceClass.ENUM,
+        options=list(VISIBILITY_OPTIONS),
+        value_fn=lambda s: s.visibility_option,
+        attrs_fn=lambda s: {"reported": s.visibility},
+    ),
+    _text("road", Resource.ROAD_CONDITIONS, RoadSegment, "road"),
+    _region(Resource.ROAD_CONDITIONS, RoadSegment),
+    ItemSensorDescription(
+        key="last_updated",
+        resource=Resource.ROAD_CONDITIONS,
+        model=RoadSegment,
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: s.last_updated,
+    ),
+    _text("road", Resource.CAMERAS, CameraModel, "road"),
+    _text("direction", Resource.CAMERAS, CameraModel, "direction"),
+    _text(
+        "source",
+        Resource.CAMERAS,
+        CameraModel,
+        "source",
+        enabled=False,
+        category=EntityCategory.DIAGNOSTIC,
+    ),
+    _text(
+        "source_id",
+        Resource.CAMERAS,
+        CameraModel,
+        "source_id",
+        enabled=False,
+        category=EntityCategory.DIAGNOSTIC,
+    ),
+    ItemSensorDescription(
+        key="sort_order",
+        resource=Resource.CAMERAS,
+        model=CameraModel,
+        value_fn=lambda c: c.sort_order,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ItemSensorDescription(
         key="ferry_status",
         resource=Resource.FERRY_TERMINALS,
+        model=FerryTerminal,
         device_class=SensorDeviceClass.ENUM,
         options=list(FerryStatus.OPTIONS),
         value_fn=lambda f: f.status,
-        attrs_fn=lambda f: {
-            "details": f.details,
-            "operated_by": f.operated_by,
-            "website": f.website,
-        },
+        attrs_fn=lambda f: {"reported": f.status_text},
         main=True,
     ),
+    _text("details", Resource.FERRY_TERMINALS, FerryTerminal, "details"),
     ItemSensorDescription(
         key="return_to_service",
         resource=Resource.FERRY_TERMINALS,
+        model=FerryTerminal,
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda f: f.return_to_service,
     ),
     ItemSensorDescription(
         key="out_of_service",
         resource=Resource.FERRY_TERMINALS,
+        model=FerryTerminal,
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda f: f.out_of_service,
         entity_registry_enabled_default=False,
     ),
+    _text("operated_by", Resource.FERRY_TERMINALS, FerryTerminal, "operated_by"),
+    _text("website", Resource.FERRY_TERMINALS, FerryTerminal, "website", enabled=False),
+    _text("twitter", Resource.FERRY_TERMINALS, FerryTerminal, "twitter", enabled=False),
+    _region(Resource.FERRY_TERMINALS, FerryTerminal),
+    *_rest_area_sensors(Resource.REST_AREAS),
+    *_rest_area_sensors(Resource.TRUCK_REST_AREAS),
     ItemSensorDescription(
         key="fuel",
         resource=Resource.SERVICE_CENTRES,
-        value_fn=lambda c: c.fuel,
-        attrs_fn=lambda c: {
-            "road": c.road,
-            "access_via": c.access_via,
-            "food_services": c.food_services,
-            "amenities": c.amenities,
-            "commercial_parking": c.commercial_parking,
-            "website": c.website,
-        },
+        model=ServiceCentre,
+        value_fn=lambda c: _short(c.fuel),
         main=True,
+    ),
+    _text("road", Resource.SERVICE_CENTRES, ServiceCentre, "road"),
+    _text("access_via", Resource.SERVICE_CENTRES, ServiceCentre, "access_via"),
+    _text("food_services", Resource.SERVICE_CENTRES, ServiceCentre, "food_services"),
+    _text("amenities", Resource.SERVICE_CENTRES, ServiceCentre, "amenities"),
+    ItemSensorDescription(
+        key="commercial_parking",
+        resource=Resource.SERVICE_CENTRES,
+        model=ServiceCentre,
+        value_fn=lambda c: c.commercial_parking,
+    ),
+    _text("website", Resource.SERVICE_CENTRES, ServiceCentre, "website", enabled=False),
+    _text("title", Resource.SERVICE_CENTRES, ServiceCentre, "title", enabled=False),
+    _region(Resource.SERVICE_CENTRES, ServiceCentre),
+    ItemSensorDescription(
+        key="load_status",
+        resource=Resource.SEASONAL_LOADS,
+        model=SeasonalLoad,
+        device_class=SensorDeviceClass.ENUM,
+        options=["no_restrictions", "restrictions_in_effect"],
+        value_fn=lambda s: s.status_option,
+        attrs_fn=lambda s: {"reported": s.status},
+        main=True,
+    ),
+    _text("route", Resource.SEASONAL_LOADS, SeasonalLoad, "route"),
+    ItemSensorDescription(
+        key="load_date",
+        resource=Resource.SEASONAL_LOADS,
+        model=SeasonalLoad,
+        device_class=SensorDeviceClass.DATE,
+        value_fn=lambda s: s.date,
     ),
     ItemSensorDescription(
         key="parking_spaces",
         resource=Resource.CARPOOL_LOTS,
+        model=CarpoolLot,
         value_fn=lambda c: c.parking_spaces,
-        attrs_fn=lambda c: {
-            "accessible_spaces": c.accessible_spaces,
-            "interchange": c.interchange,
-            "enter_from": c.enter_from,
-            "bike_rack": c.bike_rack,
-            "lights": c.lights,
-            "transit": c.transit,
-        },
         main=True,
     ),
+    ItemSensorDescription(
+        key="accessible_spaces",
+        resource=Resource.CARPOOL_LOTS,
+        model=CarpoolLot,
+        value_fn=lambda c: c.accessible_spaces,
+    ),
+    _text("road", Resource.CARPOOL_LOTS, CarpoolLot, "highway"),
+    _text("interchange", Resource.CARPOOL_LOTS, CarpoolLot, "interchange"),
+    _text("enter_from", Resource.CARPOOL_LOTS, CarpoolLot, "enter_from"),
+    _region(Resource.CARPOOL_LOTS, CarpoolLot),
     ItemSensorDescription(
         key="address",
         resource=Resource.TRANSIT_HUBS,
-        value_fn=lambda h: h.address,
-        attrs_fn=lambda h: {"website": h.website},
+        model=TransitHub,
+        value_fn=lambda h: _short(h.address),
         main=True,
     ),
+    _text("website", Resource.TRANSIT_HUBS, TransitHub, "website", enabled=False),
+    _region(Resource.TRANSIT_HUBS, TransitHub),
     ItemSensorDescription(
         key="station_location",
         resource=Resource.INSPECTION_STATIONS,
-        value_fn=lambda s: s.location,
-        attrs_fn=lambda s: {
-            "highway": s.highway,
-            "direction": s.direction,
-            "contact": s.contact,
-        },
+        model=InspectionStation,
+        value_fn=lambda s: _short(s.location),
         main=True,
     ),
+    _text("road", Resource.INSPECTION_STATIONS, InspectionStation, "highway"),
+    _text("direction", Resource.INSPECTION_STATIONS, InspectionStation, "direction"),
+    _text("contact", Resource.INSPECTION_STATIONS, InspectionStation, "contact"),
+    _region(Resource.INSPECTION_STATIONS, InspectionStation),
     ItemSensorDescription(
         key="roundabout_type",
         resource=Resource.ROUNDABOUTS,
-        value_fn=lambda r: r.roundabout_type,
-        attrs_fn=lambda r: {"location": r.location},
+        model=Roundabout,
+        value_fn=lambda r: _short(r.roundabout_type),
         main=True,
     ),
+    _text("location", Resource.ROUNDABOUTS, Roundabout, "location"),
+    _region(Resource.ROUNDABOUTS, Roundabout),
     ItemSensorDescription(
         key="hov_road",
         resource=Resource.HOV_LANES,
-        value_fn=lambda h: h.road,
+        model=HovLane,
+        value_fn=lambda h: _short(h.road),
         main=True,
     ),
+    _region(Resource.HOV_LANES, HovLane),
     ItemSensorDescription(
         key="hours",
         resource=Resource.INFORMATION_CENTRES,
-        value_fn=lambda c: c.hours,
-        attrs_fn=lambda c: {
-            "address": c.address,
-            "phone": c.phone,
-            "email": c.email,
-        },
+        model=InformationCentre,
+        value_fn=lambda c: _short(c.hours),
         main=True,
     ),
+    _text("centre_address", Resource.INFORMATION_CENTRES, InformationCentre, "address"),
+    _text("phone", Resource.INFORMATION_CENTRES, InformationCentre, "phone"),
+    _text("email", Resource.INFORMATION_CENTRES, InformationCentre, "email"),
+    _region(Resource.INFORMATION_CENTRES, InformationCentre),
 )
-
-# Checked so a description can't be paired with the wrong model.
-_MODELS: dict[Resource, type] = {
-    Resource.ROAD_CONDITIONS: RoadSegment,
-    Resource.FERRY_TERMINALS: FerryTerminal,
-    Resource.SERVICE_CENTRES: ServiceCentre,
-    Resource.CARPOOL_LOTS: CarpoolLot,
-    Resource.TRANSIT_HUBS: TransitHub,
-    Resource.INSPECTION_STATIONS: InspectionStation,
-    Resource.ROUNDABOUTS: Roundabout,
-    Resource.HOV_LANES: HovLane,
-    Resource.INFORMATION_CENTRES: InformationCentre,
-}
 
 
 async def async_setup_entry(
@@ -251,19 +392,23 @@ def _summary_sensors(
     sensors: list[SensorEntity] = []
     if road is not None:
         sensors.append(WorstConditionSensor(road, subentry_id, title))
+        if subentry.subentry_type == SUBENTRY_COMMUTE:
+            sensors.append(RouteSensor(road, subentry_id, title, subentry.data))
     for feed in (Resource.EVENTS, Resource.CONSTRUCTION, Resource.ALERTS):
         if feed in feeds and (coordinator := coordinators.get(feed)):
             sensors.append(ScopeCountSensor(coordinator, subentry_id, title, road))
     if Resource.EVENTS in feeds and (events := coordinators.get(Resource.EVENTS)):
         sensors.extend(
             NearestEventSensor(events, subentry_id, title, road, slot)
-            for slot in range(1, int(subentry.data.get(CONF_EVENT_SLOTS, 0)) + 1)
+            for slot in range(1, NEAREST_EVENTS + 1)
         )
     return sensors
 
 
 class ItemSensor(ItemEntity, SensorEntity):
     """One field of an item."""
+
+    _unrecorded_attributes = LOCATION_ATTRIBUTES
 
     entity_description: ItemSensorDescription
 
@@ -283,11 +428,11 @@ class ItemSensor(ItemEntity, SensorEntity):
     def available(self) -> bool:
         """Return whether the item is published and of the expected type."""
         return super().available and isinstance(
-            self.item, _MODELS[self.entity_description.resource]
+            self.item, self.entity_description.model
         )
 
     @property
-    def native_value(self) -> StateType | datetime:
+    def native_value(self) -> StateType | date | datetime:
         """Return the field's value."""
         return self.entity_description.value_fn(self.item)
 
@@ -340,7 +485,7 @@ class SegmentFeedSensor(ItemEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the first few, with their details."""
-        return {"items": [_event_summary(e) for e in self._items()[:MAX_LISTED]]}
+        return {"items": [event_details(e) for e in self._items()[:MAX_LISTED]]}
 
 
 class WorstConditionSensor(SummaryEntity, SensorEntity):
@@ -419,29 +564,20 @@ class ScopeCountSensor(SummaryEntity, SensorEntity):
         scope = self._scope()
         if self.coordinator.resource is Resource.ALERTS:
             alerts = sorted(scope.alerts, key=lambda a: not a.high_importance)
-            return {
-                "items": [
-                    {
-                        "message": a.message,
-                        "regions": list(a.regions),
-                        "high_importance": a.high_importance,
-                    }
-                    for a in alerts[:MAX_LISTED]
-                ]
-            }
+            return {"items": [alert_details(a) for a in alerts[:MAX_LISTED]]}
         pairs = (
             scope.events
             if self.coordinator.resource is Resource.EVENTS
             else scope.construction
         )
-        return {"items": [_event_summary(e, km) for e, km in pairs[:MAX_LISTED]]}
+        return {"items": [event_details(e, km) for e, km in pairs[:MAX_LISTED]]}
 
 
 class NearestEventSensor(SummaryEntity, SensorEntity):
     """The Nth nearest active event, with its location for the map.
 
-    Slots are fixed entities; when there are fewer events than slots, the
-    extra slots are unavailable.
+    There are always NEAREST_EVENTS of these; with fewer events in scope, the
+    rest are Unknown.
     """
 
     def __init__(
@@ -470,11 +606,6 @@ class NearestEventSensor(SummaryEntity, SensorEntity):
         return events[self._index] if self._index < len(events) else None
 
     @property
-    def available(self) -> bool:
-        """Return whether there's an event for this slot."""
-        return super().available and self._event() is not None
-
-    @property
     def native_value(self) -> str | None:
         """Return a short name for the event."""
         if (pair := self._event()) is None:
@@ -488,9 +619,48 @@ class NearestEventSensor(SummaryEntity, SensorEntity):
         if (pair := self._event()) is None:
             return {}
         event, km = pair
-        return {
-            "event_id": event.id,
-            **_event_summary(event, km),
-            "lanes_affected": event.lanes_affected,
-            **location_attributes(event.coordinates),
+        return event_details(event, km)
+
+
+class RouteSensor(SummaryEntity, SensorEntity):
+    """A commute's routes, drawn by the map card.
+
+    The state is the main route's length. As [latitude, longitude] lines,
+    ``route`` holds the main route, ``alternatives`` the other routes items
+    were generated along, and ``local`` the straight lines standing in for
+    local roads when the routes were planned over highways only. They only
+    change when the commute is planned again, so they aren't recorded.
+    """
+
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
+    _attr_suggested_display_precision = 0
+    _unrecorded_attributes = frozenset({"route", "alternatives", "local"})
+
+    def __init__(
+        self,
+        road: ResourceCoordinator,
+        subentry_id: str,
+        subentry_title: str,
+        data: Mapping[str, Any],
+    ) -> None:
+        """Initialize the sensor from the commute's stored routes."""
+        super().__init__(road, subentry_id, subentry_title, "commute_route")
+        main = list(dict.fromkeys(route_pieces(data)))
+        self._attr_native_value = round(sum(line_km(line) for _, line in main), 1)
+        # Along roads, every piece follows a road; over highways, pieces
+        # without a segment are straight stand-ins.
+        straight = data.get(CONF_ROUTING) != ROUTING_ROADS
+        self._attr_extra_state_attributes = {
+            "route": [_rounded(line) for sid, line in main if sid or not straight],
+            "alternatives": [
+                _rounded(line)
+                for pieces in alternative_pieces(data)
+                for _, line in pieces
+            ],
+            "local": [_rounded(line) for sid, line in main if not sid and straight],
         }
+
+
+def _rounded(line: Iterable[Point]) -> list[list[float]]:
+    return [[round(lat, 5), round(lon, 5)] for lat, lon in line]

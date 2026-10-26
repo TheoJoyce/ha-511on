@@ -11,6 +11,7 @@ from collections import deque
 from collections.abc import Awaitable, Callable
 from enum import StrEnum
 import json
+from pathlib import Path
 import time
 from typing import Any, Final
 
@@ -77,6 +78,10 @@ class Ontario511ConnectionError(Ontario511Error):
 
 class Ontario511RateLimitError(Ontario511Error):
     """Ontario 511 reported that the rate limit was exceeded."""
+
+
+class Ontario511DevCacheError(Ontario511Error):
+    """The development key was used without a cached response to read."""
 
 
 class RateLimiter:
@@ -183,5 +188,41 @@ class Ontario511Client:
         if not isinstance(data, list):
             raise Ontario511ConnectionError(
                 f"Unexpected payload fetching {resource.value}"
+            )
+        return data
+
+
+class DevCacheClient(Ontario511Client):
+    """Serve resources from saved full responses instead of the API.
+
+    Used with the development key (see client.DEV_API_KEY), so many areas and
+    commutes can be tried without spending a real key's calls. It reads files
+    only and makes no request, so the rate limiter doesn't apply.
+    """
+
+    def __init__(self, cache_dir: Path) -> None:
+        """Initialize the client with the directory of saved responses."""
+        self._cache_dir = cache_dir
+
+    async def async_get(self, resource: Resource) -> list[dict[str, Any]]:
+        """Return the saved items of ``resource``."""
+        path = self._cache_dir / f"{resource.value}.json"
+        try:
+            body = await asyncio.get_running_loop().run_in_executor(
+                None, path.read_text
+            )
+        except OSError:
+            raise Ontario511DevCacheError(
+                f"No cached response for {resource.value}"
+            ) from None
+        try:
+            data = json.loads(body)
+        except ValueError:
+            raise Ontario511DevCacheError(
+                f"Invalid cached response for {resource.value}"
+            ) from None
+        if not isinstance(data, list):
+            raise Ontario511DevCacheError(
+                f"Unexpected cached response for {resource.value}"
             )
         return data

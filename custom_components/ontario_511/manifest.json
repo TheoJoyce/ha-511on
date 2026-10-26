@@ -1,15 +1,16 @@
 {
   "domain": "ontario_511",
   "name": "Ontario 511",
+  "after_dependencies": ["frontend", "http"],
   "codeowners": [
     "@TheoJoyce"
   ],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["zone"],
   "documentation": "https://github.com/TheoJoyce/ha-511on",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/TheoJoyce/ha-511on/issues",
   "requirements": [],
-  "version": "0.1.0-alpha.1"
+  "version": "0.1.0-alpha.2"
 }
