@@ -14,11 +14,14 @@ from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     area_registry as ar,
+    config_validation as cv,
     device_registry as dr,
     entity_registry as er,
 )
+from homeassistant.helpers.typing import ConfigType
 
 from .api import Ontario511Client, Resource
+from .card import async_register_card
 from .client import create_client, key_id
 from .commute import route_lines
 from .const import (
@@ -47,6 +50,8 @@ from .generation import generate_for_area, generate_for_commute
 from .models import Item
 
 _LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
@@ -106,6 +111,12 @@ def resources_in_use(entry: ConfigEntry) -> set[Resource]:
     if needed & {Resource.EVENTS, Resource.CONSTRUCTION}:
         needed.add(Resource.ROAD_CONDITIONS)
     return needed
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Serve the map card."""
+    await async_register_card(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -> bool:

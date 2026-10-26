@@ -89,7 +89,6 @@ AREA = ConfigSubentryDataWithId(
     unique_id=None,
     data=area_data(
         feeds=["event", "constructionprojects", "alerts"],
-        event_slots=3,
         items=_first_items(),
     ),
 )

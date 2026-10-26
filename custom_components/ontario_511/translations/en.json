@@ -514,6 +514,14 @@
       },
       "email": {
         "name": "Email"
+      },
+      "commute_route": {
+        "name": "Route",
+        "state_attributes": {
+          "route": {
+            "name": "Route"
+          }
+        }
       }
     },
     "binary_sensor": {

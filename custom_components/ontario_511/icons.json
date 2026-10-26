@@ -47,6 +47,7 @@
       "construction": { "default": "mdi:excavator" },
       "alerts": { "default": "mdi:alert-decagram-outline" },
       "nearest_event": { "default": "mdi:map-marker-alert" },
+      "commute_route": { "default": "mdi:routes" },
       "road": { "default": "mdi:highway" },
       "last_updated": { "default": "mdi:update" },
       "direction": { "default": "mdi:compass-outline" },

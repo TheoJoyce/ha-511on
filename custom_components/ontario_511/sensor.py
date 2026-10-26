@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
+from itertools import pairwise
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -12,15 +13,16 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
 )
-from homeassistant.const import MAX_LENGTH_STATE_STATE, EntityCategory
+from homeassistant.const import MAX_LENGTH_STATE_STATE, EntityCategory, UnitOfLength
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
 from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
 from .api import Resource
+from .commute import route_lines
 from .conditions import RoadCondition
-from .const import NEAREST_EVENTS, SUBENTRY_ITEM
+from .const import NEAREST_EVENTS, SUBENTRY_COMMUTE, SUBENTRY_ITEM
 from .coordinator import ResourceCoordinator
 from .entity import (
     LOCATION_ATTRIBUTES,
@@ -29,6 +31,7 @@ from .entity import (
     location_attributes,
 )
 from .feeds import Scope
+from .geo import Point, distance_km
 from .models import (
     Camera as CameraModel,
     CarpoolLot,
@@ -318,6 +321,10 @@ def _summary_sensors(
     sensors: list[SensorEntity] = []
     if road is not None:
         sensors.append(WorstConditionSensor(road, subentry_id, title))
+        if subentry.subentry_type == SUBENTRY_COMMUTE:
+            sensors.append(
+                RouteSensor(road, subentry_id, title, route_lines(subentry.data))
+            )
     for feed in (Resource.EVENTS, Resource.CONSTRUCTION, Resource.ALERTS):
         if feed in feeds and (coordinator := coordinators.get(feed)):
             sensors.append(ScopeCountSensor(coordinator, subentry_id, title, road))
@@ -557,4 +564,39 @@ class NearestEventSensor(SummaryEntity, SensorEntity):
             **_event_summary(event, km),
             "lanes_affected": event.lanes_affected,
             **location_attributes(event.coordinates),
+        }
+
+
+class RouteSensor(SummaryEntity, SensorEntity):
+    """A commute's route: the roads it covers, drawn by the map card.
+
+    The state is the length of the distinct stretches driven by all of the
+    commute's routes. The ``route`` attribute holds those stretches as
+    [latitude, longitude] lines; it never changes, so it isn't recorded.
+    """
+
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
+    _attr_suggested_display_precision = 0
+    _unrecorded_attributes = frozenset({"route"})
+
+    def __init__(
+        self,
+        road: ResourceCoordinator,
+        subentry_id: str,
+        subentry_title: str,
+        lines: list[tuple[Point, ...]],
+    ) -> None:
+        """Initialize the sensor from the commute's stored route."""
+        super().__init__(road, subentry_id, subentry_title, "commute_route")
+        distinct = list(dict.fromkeys(lines))
+        self._attr_native_value = round(
+            sum(distance_km(a, b) for line in distinct for a, b in pairwise(line)),
+            1,
+        )
+        self._attr_extra_state_attributes = {
+            "route": [
+                [[round(lat, 5), round(lon, 5)] for lat, lon in line]
+                for line in distinct
+            ]
         }

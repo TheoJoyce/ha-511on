@@ -67,6 +67,8 @@ Home Assistant defines a device as "a physical device … or a service". Each ge
 
 The map card shows any entity with numeric `latitude` and `longitude` attributes, and the built-in Map dashboard adds them automatically. Each item's main entity carries its location, so items appear on the map and move if the data moves.
 
+**Commute routes** need lines, which Home Assistant's map card can't draw (it only draws an entity's own location history). Each commute's **Route** sensor holds the stretches it drives as a `route` attribute (excluded from the recorder), with their length as its state. The integration serves its own card, `custom:ontario-511-map-card` (`frontend/`), from a versioned static path and registers it with `add_extra_js_url`. It draws routes as lines, other located entities as markers, and zones. It bundles MapLibre GL 6.14.0 (BSD-3-Clause, licence alongside) and uses VersaTiles' OpenStreetMap vector tiles, as Home Assistant 2026.10's own map does; it doesn't depend on the frontend's internal map element, which changed engines in 2026.
+
 **Nearest events** put events on the map without temporary entities. Each area and commute has three fixed entities ("Nearest event 1" to "Nearest event 3"). Entity N shows the Nth nearest active event: its location, description and details. When there are fewer than three events, the rest are Unknown. Home Assistant's dynamic alternative, `geo_location` entities, can't belong to a device or subentry, and automations can only match them by source and zone, so they couldn't be tied to an area or commute.
 
 ## Data policy

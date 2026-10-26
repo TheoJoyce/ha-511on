@@ -53,7 +53,7 @@ Each generated item is a device, grouped under the area or commute that generate
 | Roundabout | Type, Location |
 | HOT/HOV lane | Road |
 | Travel information centre | Hours, Address, Phone, Email |
-| Area or commute summary | Worst road condition, Hazardous conditions, Full closure, Events, Construction, Alerts, New event, New alert, Nearest event 1 to 3 |
+| Area or commute summary | Worst road condition, Hazardous conditions, Full closure, Events, Construction, Alerts, New event, New alert, Nearest event 1 to 3, and for commutes Route (for the [map card](#map-card)) |
 
 Each piece of Ontario 511's data is its own entity, so you can use it in automations, dashboards and templates. Attributes are kept for what explains a state, such as the feed's own text in `reported`, and for the location the map needs.
 
@@ -124,6 +124,26 @@ On the integration page:
 
 Data refreshes on its own. To get the latest data in an automation, use Home Assistant's **Update entity** action on any of the integration's entities. Data fetched in the last couple of minutes is reused instead of asking Ontario 511 again.
 
+### Map card
+
+Home Assistant's map card can't draw lines, so the integration includes an **Ontario 511 map** card. It's added automatically; find it under **Add card** when editing a dashboard. It suggests your first commute's **Route** sensor and its nearest events.
+
+- An entity with a route (a commute's **Route** sensor) is drawn as a line along the roads it covers.
+- Any other entity with a location (items, nearest events) is a marker. Select one to open its details.
+- Zones are shaded, and the map follows Home Assistant's light or dark theme.
+
+The map uses [MapLibre GL](https://maplibre.org/), bundled with the integration, and [VersaTiles](https://versatiles.org/) vector tiles, the same free OpenStreetMap tiles as Home Assistant's own map. Map data © OpenStreetMap contributors.
+
+```yaml
+type: custom:ontario-511-map-card
+title: Home to Work
+entities:
+  - sensor.home_to_work_route
+  - sensor.home_to_work_nearest_event_1
+  - entity: sensor.home_to_work_nearest_event_2
+    color: orange
+```
+
 ### Address search
 
 When setting up an area you can type an address instead of dragging the pin. It's looked up with [OpenStreetMap Nominatim](https://nominatim.org/), and the map is shown again with the pin on the place found so you can check it.
@@ -177,3 +197,5 @@ The code is licensed under the [Apache License 2.0](LICENSE). The licence applie
 ## Acknowledgements
 
 `AGENTS.md` and the skills in `.claude/skills/` are adapted from [Home Assistant Core](https://github.com/home-assistant/core) under the Apache License 2.0. Each adapted file links to its source and lists what was changed.
+
+The map card bundles [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js) 6.14.0, under the BSD 3-Clause licence (`custom_components/ontario_511/frontend/maplibre-gl.LICENSE.txt`).

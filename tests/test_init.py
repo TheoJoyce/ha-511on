@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 from typing import Any
+from unittest.mock import AsyncMock, Mock, patch
 
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
@@ -18,6 +20,7 @@ from homeassistant.helpers import (
     device_registry as dr,
     entity_registry as er,
 )
+from homeassistant.setup import async_setup_component
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, load_fixture
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
@@ -33,6 +36,7 @@ from custom_components.ontario_511.const import (
     CONF_ITEMS,
     CONF_PENDING,
     CONF_RADIUS_KM,
+    CONF_ROUTE,
     CONF_SEGMENTS,
     CONF_START,
     DOMAIN,
@@ -41,7 +45,7 @@ from custom_components.ontario_511.const import (
 )
 from custom_components.ontario_511.models import RoadSegment
 
-from .common import road_condition
+from .common import encode_polyline, road_condition
 from .conftest import API_KEY, AREA_ID, area_data
 
 INVALID_KEY = "<Error><Message>Invalid Key</Message></Error>"
@@ -288,3 +292,65 @@ async def test_new_devices_go_in_the_chosen_ha_area(
     )
     assert devices
     assert {d.area_id for d in devices} == {outside.id}
+
+
+ROUTE_LINE = [(43.7, -79.6), (43.7, -79.5)]
+
+
+@pytest.mark.parametrize(
+    "subentries",
+    [
+        [
+            ConfigSubentryDataWithId(
+                subentry_id=COMMUTE_ID,
+                subentry_type=SUBENTRY_COMMUTE,
+                title="Work",
+                unique_id=None,
+                data={
+                    CONF_START: {"latitude": 43.7, "longitude": -79.6},
+                    CONF_END: {"latitude": 43.7, "longitude": -79.5},
+                    CONF_SEGMENTS: [],
+                    # Two routes sharing a stretch count it once.
+                    CONF_ROUTE: [
+                        ["a", encode_polyline(ROUTE_LINE)],
+                        ["a", encode_polyline(ROUTE_LINE)],
+                    ],
+                    CONF_CORRIDOR_KM: 5.0,
+                    CONF_FEEDS: [],
+                    CONF_PENDING: [],
+                    CONF_ITEMS: {},
+                },
+            )
+        ]
+    ],
+)
+async def test_commute_route_sensor(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_api: AiohttpClientMocker,
+) -> None:
+    """A commute's Route sensor has its length and the lines for the map card."""
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    state = hass.states.get("sensor.work_route")
+    assert float(state.state) == pytest.approx(8.0, abs=0.1)
+    assert state.attributes["unit_of_measurement"] == "km"
+    assert state.attributes["route"] == [[[43.7, -79.6], [43.7, -79.5]]]
+
+
+async def test_map_card_is_served(hass: HomeAssistant) -> None:
+    """The card and its files are served from a versioned URL and loaded."""
+    hass.config.components.add("frontend")
+    hass.http = Mock(async_register_static_paths=AsyncMock())
+    with patch("custom_components.ontario_511.card.add_extra_js_url") as add_js:
+        assert await async_setup_component(hass, DOMAIN, {})
+    (paths,) = hass.http.async_register_static_paths.call_args.args
+    (path,) = paths
+    assert path.url_path == "/ontario_511/0.1.0-alpha.2"
+    assert path.cache_headers
+    assert (Path(path.path) / "maplibre-gl.mjs").is_file()
+    add_js.assert_called_once_with(
+        hass, "/ontario_511/0.1.0-alpha.2/ontario-511-map-card.js"
+    )

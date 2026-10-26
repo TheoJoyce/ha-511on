@@ -1,6 +1,7 @@
 {
   "domain": "ontario_511",
   "name": "Ontario 511",
+  "after_dependencies": ["frontend", "http"],
   "codeowners": [
     "@TheoJoyce"
   ],
