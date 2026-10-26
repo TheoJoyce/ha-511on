@@ -11,8 +11,9 @@ from homeassistant.config_entries import (
     ConfigEntryState,
     ConfigSubentryDataWithId,
 )
-from homeassistant.const import CONF_API_KEY
+from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, load_fixture
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
@@ -23,7 +24,6 @@ from custom_components.ontario_511.api import Resource
 from custom_components.ontario_511.const import (
     CONF_CORRIDOR_KM,
     CONF_END,
-    CONF_EVENT_SLOTS,
     CONF_FEEDS,
     CONF_ITEMS,
     CONF_PENDING,
@@ -118,6 +118,48 @@ async def test_migrate_from_first_alpha(
             ConfigSubentryDataWithId(
                 subentry_id=AREA_ID,
                 subentry_type=SUBENTRY_AREA,
+                title="Home",
+                unique_id=None,
+                data=area_data(event_slots=5),
+            )
+        ]
+    ],
+)
+async def test_migrate_event_slots(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_api: AiohttpClientMocker,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Version 2.1 slot settings go; slots beyond the nearest three are removed."""
+    mock_config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(mock_config_entry, minor_version=1)
+    for slot in range(1, 6):
+        entity_registry.async_get_or_create(
+            Platform.SENSOR,
+            DOMAIN,
+            f"{AREA_ID}:nearest_event_{slot}",
+            config_entry=mock_config_entry,
+            config_subentry_id=AREA_ID,
+            suggested_object_id=f"home_nearest_event_{slot}",
+        )
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert mock_config_entry.minor_version == 2
+    assert "event_slots" not in mock_config_entry.subentries[AREA_ID].data
+    assert hass.states.get("sensor.home_nearest_event_3") is not None
+    assert entity_registry.async_get("sensor.home_nearest_event_4") is None
+    assert entity_registry.async_get("sensor.home_nearest_event_5") is None
+
+
+@pytest.mark.parametrize(
+    "subentries",
+    [
+        [
+            ConfigSubentryDataWithId(
+                subentry_id=AREA_ID,
+                subentry_type=SUBENTRY_AREA,
                 title="Highway 407 east",
                 unique_id=None,
                 data=area_data(
@@ -191,7 +233,6 @@ def _route_near_cameras() -> dict[str, Any]:
                     CONF_FEEDS: [],
                     CONF_PENDING: ["cameras"],
                     CONF_ITEMS: {},
-                    CONF_EVENT_SLOTS: 5,
                 },
             ),
         ]

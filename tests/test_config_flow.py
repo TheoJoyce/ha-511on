@@ -13,7 +13,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType, InvalidData
+from homeassistant.data_entry_flow import FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
@@ -25,7 +25,6 @@ from custom_components.ontario_511.client import get_rate_limiter
 from custom_components.ontario_511.const import (
     CONF_ADDRESS,
     CONF_CORRIDOR_KM,
-    CONF_EVENT_SLOTS,
     CONF_FEEDS,
     CONF_FROM_AREA,
     CONF_ITEM_ID,
@@ -57,19 +56,16 @@ HOME_INPUT: dict[str, Any] = {
     CONF_NAME: "Home",
     CONF_LOCATION: {**WEST_END, "radius": 12345},
     CONF_TYPES: ["event", "alerts", "roadconditions", "cameras"],
-    CONF_EVENT_SLOTS: 3,
 }
 WORK_INPUT: dict[str, Any] = {
     CONF_NAME: "Work",
     CONF_LOCATION: {**EAST_END, "radius": 5000},
     CONF_TYPES: ["event"],
-    CONF_EVENT_SLOTS: 1,
 }
 COMMUTE_INPUT: dict[str, Any] = {
     CONF_NAME: "Work run",
     CONF_CORRIDOR_KM: 5,
     CONF_TYPES: ["event", "cameras"],
-    CONF_EVENT_SLOTS: 5,
 }
 WEST_ID = RoadSegment.from_api(WEST_401).id
 EAST_ID = RoadSegment.from_api(EAST_401).id
@@ -99,29 +95,14 @@ async def _start_with_key(
     return result
 
 
-async def _area(
-    configure: Any, flow_id: str, area_input: dict[str, Any], radius_km: float
-) -> dict[str, Any]:
-    """Fill in both area steps: the map, then the radius in kilometres."""
-    result = await configure(flow_id, area_input)
-    assert result["step_id"] == "area_radius"
-    return await configure(flow_id, {CONF_RADIUS_KM: radius_km})
-
-
 @pytest.mark.usefixtures("mock_setup_entry")
 async def test_setup_with_area_only(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """Key, then an area (map, then radius), then finish."""
+    """Key, then an area, then finish."""
     result = await _start_with_key(hass, aioclient_mock)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], HOME_INPUT
-    )
-    assert result["step_id"] == "area_radius"
-    (radius_key,) = result["data_schema"].schema
-    assert radius_key.default() == 12.3  # From the dragged circle, in km.
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_RADIUS_KM: 20.5}
     )
     assert result["type"] is FlowResultType.MENU
     assert result["step_id"] == "add_commute"
@@ -137,10 +118,10 @@ async def test_setup_with_area_only(
     assert area.subentry_type == SUBENTRY_AREA
     assert area.title == "Home"
     assert area.unique_id.startswith("area_")
-    assert area.data[CONF_RADIUS_KM] == 20.5
+    # The map's radius is in metres; it's stored in kilometres.
+    assert area.data[CONF_RADIUS_KM] == 12.3
     assert area.data[CONF_FEEDS] == ["event", "alerts"]
     assert area.data[CONF_PENDING] == ["roadconditions", "cameras"]
-    assert area.data[CONF_EVENT_SLOTS] == 3
     assert CONF_TYPES not in area.data
     assert aioclient_mock.call_count == 1
 
@@ -153,10 +134,10 @@ async def test_setup_with_commute(
     _mock_road_conditions(aioclient_mock)
     configure = hass.config_entries.flow.async_configure
     result = await _start_with_key(hass, aioclient_mock)
-    result = await _area(configure, result["flow_id"], HOME_INPUT, 10)
+    result = await configure(result["flow_id"], HOME_INPUT)
     result = await configure(result["flow_id"], {"next_step_id": "destination"})
     assert result["step_id"] == "area"
-    result = await _area(configure, result["flow_id"], WORK_INPUT, 5)
+    result = await configure(result["flow_id"], WORK_INPUT)
     assert result["step_id"] == "commute"
     assert result["description_placeholders"] == {"from": "Home", "to": "Work"}
 
@@ -186,9 +167,9 @@ async def test_local_commute_uses_a_straight_corridor(
     _mock_road_conditions(aioclient_mock, [KENORA])
     configure = hass.config_entries.flow.async_configure
     result = await _start_with_key(hass, aioclient_mock)
-    result = await _area(configure, result["flow_id"], HOME_INPUT, 10)
+    result = await configure(result["flow_id"], HOME_INPUT)
     result = await configure(result["flow_id"], {"next_step_id": "destination"})
-    result = await _area(configure, result["flow_id"], WORK_INPUT, 5)
+    result = await configure(result["flow_id"], WORK_INPUT)
     result = await configure(result["flow_id"], COMMUTE_INPUT)
     assert result["type"] is FlowResultType.CREATE_ENTRY
     commute = list(result["result"].subentries.values())[-1]
@@ -204,9 +185,7 @@ async def test_many_types_warn_about_slower_import(
     configure = hass.config_entries.flow.async_configure
     result = await _start_with_key(hass, aioclient_mock)
     many = [r.value for r in Resource][:11]
-    result = await _area(
-        configure, result["flow_id"], {**HOME_INPUT, CONF_TYPES: many}, 10
-    )
+    result = await configure(result["flow_id"], {**HOME_INPUT, CONF_TYPES: many})
     assert result["step_id"] == "slow_import"
     assert result["description_placeholders"] == {"fast": "10", "count": "11"}
     result = await configure(result["flow_id"], {})
@@ -225,21 +204,25 @@ async def test_area_requires_a_type(
     assert result["errors"] == {CONF_TYPES: "no_types"}
 
 
-async def test_radius_from_the_map_is_kept_in_range(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+@pytest.mark.parametrize(
+    "radius", [pytest.param(499, id="too_small"), pytest.param(50001, id="too_big")]
+)
+async def test_radius_out_of_range(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, radius: int
 ) -> None:
-    """A circle bigger than 50 km is offered as 50 km; the field rejects more."""
+    """The radius must be 0.5 to 50 km; the form says so in metres."""
     result = await _start_with_key(hass, aioclient_mock)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {**HOME_INPUT, CONF_LOCATION: {**WEST_END, "radius": 80000}},
+        {**HOME_INPUT, CONF_LOCATION: {**WEST_END, "radius": radius}},
     )
-    (radius_key,) = result["data_schema"].schema
-    assert radius_key.default() == 50.0
-    with pytest.raises(InvalidData):
-        await hass.config_entries.flow.async_configure(
-            result["flow_id"], {CONF_RADIUS_KM: 60}
-        )
+    assert result["step_id"] == "area"
+    assert result["errors"] == {CONF_LOCATION: "radius_out_of_range"}
+    assert result["description_placeholders"] == {
+        "found": "",
+        "min_radius": "500",
+        "max_radius": "50000",
+    }
 
 
 @pytest.mark.usefixtures("mock_setup_entry")
@@ -250,9 +233,9 @@ async def test_commute_road_conditions_unavailable(
     aioclient_mock.get(Resource.ROAD_CONDITIONS.url, status=503)
     configure = hass.config_entries.flow.async_configure
     result = await _start_with_key(hass, aioclient_mock)
-    result = await _area(configure, result["flow_id"], HOME_INPUT, 10)
+    result = await configure(result["flow_id"], HOME_INPUT)
     result = await configure(result["flow_id"], {"next_step_id": "destination"})
-    result = await _area(configure, result["flow_id"], WORK_INPUT, 5)
+    result = await configure(result["flow_id"], WORK_INPUT)
     result = await configure(result["flow_id"], COMMUTE_INPUT)
     assert result["step_id"] == "commute"
     assert result["errors"] == {"base": "cannot_connect"}
@@ -354,11 +337,13 @@ async def test_add_area(hass: HomeAssistant, init_integration: MockConfigEntry) 
     """Another area can be added from the integration page."""
     result = await _start_subentry(hass, init_integration, SUBENTRY_AREA)
     assert result["step_id"] == "area"
-    result = await _area(
-        hass.config_entries.subentries.async_configure,
+    result = await hass.config_entries.subentries.async_configure(
         result["flow_id"],
-        {**HOME_INPUT, CONF_NAME: "Cottage"},
-        8,
+        {
+            **HOME_INPUT,
+            CONF_NAME: "Cottage",
+            CONF_LOCATION: {**WEST_END, "radius": 8000},
+        },
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     cottage = next(
@@ -395,7 +380,7 @@ async def test_add_commute_to_a_new_area(
     result = await configure(result["flow_id"], {"next_step_id": "new_area"})
     result = await configure(result["flow_id"], {CONF_FROM_AREA: AREA_ID})
     assert result["step_id"] == "area"
-    result = await _area(configure, result["flow_id"], WORK_INPUT, 5)
+    result = await configure(result["flow_id"], WORK_INPUT)
     assert result["step_id"] == "commute"
     result = await configure(result["flow_id"], COMMUTE_INPUT)
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -420,7 +405,6 @@ async def test_add_commute_to_a_new_area(
         {
             CONF_NAME: "Work run",
             CONF_FEEDS: ["event"],
-            CONF_EVENT_SLOTS: 2,
             CONF_CORRIDOR_KM: 2.5,
             CONF_SEGMENTS: [EAST_ID],
         },
@@ -542,7 +526,6 @@ async def test_reconfigure_area(
         {
             CONF_NAME: "House",
             CONF_FEEDS: ["constructionprojects"],
-            CONF_EVENT_SLOTS: 0,
         },
     )
     assert result["type"] is FlowResultType.ABORT
@@ -550,7 +533,6 @@ async def test_reconfigure_area(
     area = init_integration.subentries[AREA_ID]
     assert area.title == "House"
     assert area.data[CONF_FEEDS] == ["constructionprojects"]
-    assert area.data[CONF_EVENT_SLOTS] == 0
 
 
 @pytest.mark.usefixtures("mock_setup_entry")
@@ -569,7 +551,7 @@ async def test_address_moves_the_pin(
     )
     assert result["step_id"] == "area"
     assert result["errors"] == {}
-    assert result["description_placeholders"] == {"found": "📍 Barrie, Ontario"}
+    assert result["description_placeholders"]["found"] == "📍 Barrie, Ontario"
     schema = {key.schema: key for key in result["data_schema"].schema}
     assert schema[CONF_LOCATION].default() == {
         "latitude": 44.3894,
@@ -578,12 +560,12 @@ async def test_address_moves_the_pin(
     }
     assert schema[CONF_ADDRESS].default() == ""
 
-    # Submitting the moved pin (no address) continues to the radius.
+    # Submitting the moved pin (no address) continues.
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {**HOME_INPUT, CONF_LOCATION: schema[CONF_LOCATION].default()},
     )
-    assert result["step_id"] == "area_radius"
+    assert result["step_id"] == "add_commute"
 
 
 @pytest.mark.parametrize(

@@ -12,14 +12,13 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from .api import Ontario511Client, Resource
 from .client import create_client, key_id
 from .commute import route_lines
 from .const import (
     CONF_CORRIDOR_KM,
-    CONF_EVENT_SLOTS,
     CONF_FEEDS,
     CONF_ITEM_ID,
     CONF_ITEMS,
@@ -29,9 +28,9 @@ from .const import (
     CONF_RESOURCE,
     CONF_SEGMENTS,
     DEFAULT_AREA_NAME,
-    DEFAULT_EVENT_SLOTS,
     DEFAULT_RADIUS_KM,
     DOMAIN,
+    NEAREST_EVENTS,
     SUBENTRY_AREA,
     SUBENTRY_COMMUTE,
     SUBENTRY_ITEM,
@@ -238,11 +237,18 @@ def _plan_generation(
     return updates
 
 
+# Subentry data key for the configurable nearest event slots of 0.1.0-alpha.1.
+_LEGACY_EVENT_SLOTS = "event_slots"
+
+
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Migrate entries from the first alpha builds.
+    """Migrate entries from earlier alpha builds.
 
     Version 1 had a radius option around home and only followed events and
     alerts. It becomes a "Home" area with the same radius and feeds.
+
+    Version 2.1 let each area and commute choose how many nearest event slots
+    to show. Version 2.2 always shows NEAREST_EVENTS, so extra slots go.
     """
     if entry.version > 2:
         return False
@@ -262,7 +268,6 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         CONF_FEEDS: [Resource.EVENTS.value, Resource.ALERTS.value],
                         CONF_PENDING: [],
                         CONF_ITEMS: {},
-                        CONF_EVENT_SLOTS: DEFAULT_EVENT_SLOTS,
                     }
                 ),
                 subentry_type=SUBENTRY_AREA,
@@ -270,7 +275,29 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 unique_id=None,
             ),
         )
-        hass.config_entries.async_update_entry(entry, options={}, version=2)
+        hass.config_entries.async_update_entry(
+            entry, options={}, version=2, minor_version=2
+        )
+    if entry.minor_version < 2:
+        registry = er.async_get(hass)
+        for subentry in list(entry.subentries.values()):
+            if _LEGACY_EVENT_SLOTS not in subentry.data:
+                continue
+            slots = int(subentry.data[_LEGACY_EVENT_SLOTS])
+            for slot in range(NEAREST_EVENTS + 1, slots + 1):
+                unique_id = f"{subentry.subentry_id}:nearest_event_{slot}"
+                if entity_id := registry.async_get_entity_id(
+                    Platform.SENSOR, DOMAIN, unique_id
+                ):
+                    registry.async_remove(entity_id)
+            hass.config_entries.async_update_subentry(
+                entry,
+                subentry,
+                data={
+                    k: v for k, v in subentry.data.items() if k != _LEGACY_EVENT_SLOTS
+                },
+            )
+        hass.config_entries.async_update_entry(entry, minor_version=2)
     return True
 
 

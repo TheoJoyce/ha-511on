@@ -60,7 +60,6 @@ from .const import (
     CONF_ADDRESS,
     CONF_CORRIDOR_KM,
     CONF_END,
-    CONF_EVENT_SLOTS,
     CONF_FEEDS,
     CONF_FROM_AREA,
     CONF_ITEM_ID,
@@ -76,7 +75,6 @@ from .const import (
     DEFAULT_AREA_NAME,
     DEFAULT_CORRIDOR_KM,
     DEFAULT_DESTINATION_NAME,
-    DEFAULT_EVENT_SLOTS,
     DEFAULT_NEW_AREA_NAME,
     DEFAULT_RADIUS_KM,
     DOMAIN,
@@ -121,7 +119,6 @@ DEFAULT_TYPES = [
         Resource.SERVICE_CENTRES,
     )
 ]
-MAX_EVENT_SLOTS = 50
 # Reconfigure offers segments this far beyond the corridor to add to a route.
 NEARBY_SEGMENTS_KM = 10.0
 MAX_ITEM_CHOICES = 200
@@ -154,18 +151,6 @@ def _km_selector(minimum: float, maximum: float) -> NumberSelector:
             step=0.1,
             unit_of_measurement="km",
             mode=NumberSelectorMode.BOX,
-        )
-    )
-
-
-def _clamp_km(value: float, minimum: float, maximum: float) -> float:
-    return round(min(maximum, max(minimum, value)), 1)
-
-
-def _slots_selector() -> NumberSelector:
-    return NumberSelector(
-        NumberSelectorConfig(
-            min=0, max=MAX_EVENT_SLOTS, step=1, mode=NumberSelectorMode.BOX
         )
     )
 
@@ -204,8 +189,8 @@ async def _async_validate_key(hass: HomeAssistant, api_key: str) -> dict[str, st
 class _SetupSteps:
     """Area and commute steps shared by initial setup and subentry flows.
 
-    An area is two steps: a map with a draggable pin and radius circle, then
-    the radius in kilometres, prefilled from the circle. A commute runs from
+    An area is a map with a draggable pin and radius circle; Home Assistant's
+    location selector shows the radius in metres. A commute runs from
     one area to another (``_from`` and ``_to``); its routes are worked out
     between their centres. Subclasses provide the API client and decide what
     happens once an area or commute is complete.
@@ -244,7 +229,6 @@ class _SetupSteps:
             CONF_ADDRESS: "",
             CONF_LOCATION: {**_home(self.hass), "radius": DEFAULT_RADIUS_KM * 1000},
             CONF_TYPES: DEFAULT_TYPES,
-            CONF_EVENT_SLOTS: DEFAULT_EVENT_SLOTS,
         }
         if user_input is not None:
             address = (user_input.get(CONF_ADDRESS) or "").strip()
@@ -275,6 +259,12 @@ class _SetupSteps:
                     found = f"📍 {place.name}"
             elif not user_input[CONF_TYPES]:
                 errors[CONF_TYPES] = "no_types"
+            elif not (
+                MIN_RADIUS_KM * 1000
+                <= float(user_input[CONF_LOCATION].get("radius", 0))
+                <= MAX_RADIUS_KM * 1000
+            ):
+                errors[CONF_LOCATION] = "radius_out_of_range"
             else:
                 location = user_input[CONF_LOCATION]
                 feeds, pending = _split_types(user_input[CONF_TYPES])
@@ -285,17 +275,13 @@ class _SetupSteps:
                         "latitude": location["latitude"],
                         "longitude": location["longitude"],
                     },
-                    CONF_RADIUS_KM: _clamp_km(
-                        float(location.get("radius", DEFAULT_RADIUS_KM * 1000)) / 1000,
-                        MIN_RADIUS_KM,
-                        MAX_RADIUS_KM,
-                    ),
+                    CONF_RADIUS_KM: round(float(location["radius"]) / 1000, 1),
                     CONF_FEEDS: feeds,
                     CONF_PENDING: pending,
                     CONF_ITEMS: {},
-                    CONF_EVENT_SLOTS: int(user_input[CONF_EVENT_SLOTS]),
                 }
-                return await self.async_step_area_radius()
+                self._draft_kind = SUBENTRY_AREA
+                return await self._async_next_after_draft()
         schema = probatio.Schema(
             {
                 probatio.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
@@ -308,45 +294,22 @@ class _SetupSteps:
                 probatio.Required(
                     CONF_TYPES, default=defaults[CONF_TYPES]
                 ): _types_selector(TYPE_OPTIONS),
-                probatio.Required(
-                    CONF_EVENT_SLOTS, default=defaults[CONF_EVENT_SLOTS]
-                ): _slots_selector(),
             }
         )
         return self.async_show_form(
             step_id="area",
             data_schema=schema,
             errors=errors,
-            description_placeholders={"found": found},
+            description_placeholders={
+                "found": found,
+                "min_radius": str(int(MIN_RADIUS_KM * 1000)),
+                "max_radius": str(int(MAX_RADIUS_KM * 1000)),
+            },
         )
 
     async def _async_geocoder(self) -> Geocoder:
         integration = await async_get_integration(self.hass, DOMAIN)
         return get_geocoder(self.hass, str(integration.version))
-
-    async def async_step_area_radius(
-        self, user_input: dict[str, Any] | None = None
-    ) -> Any:
-        """Confirm or fine-tune the radius in kilometres."""
-        if user_input is not None:
-            self._draft[CONF_RADIUS_KM] = round(float(user_input[CONF_RADIUS_KM]), 1)
-            self._draft_kind = SUBENTRY_AREA
-            return await self._async_next_after_draft()
-        schema = probatio.Schema(
-            {
-                probatio.Required(
-                    CONF_RADIUS_KM, default=self._draft[CONF_RADIUS_KM]
-                ): _km_selector(MIN_RADIUS_KM, MAX_RADIUS_KM),
-            }
-        )
-        return self.async_show_form(
-            step_id="area_radius",
-            data_schema=schema,
-            description_placeholders={
-                "name": self._draft[CONF_NAME],
-                "max_radius": str(int(MAX_RADIUS_KM)),
-            },
-        )
 
     async def async_step_commute(self, user_input: dict[str, Any] | None = None) -> Any:
         """Settings for a commute between two areas; routes are worked out."""
@@ -389,7 +352,6 @@ class _SetupSteps:
                         CONF_FEEDS: feeds,
                         CONF_PENDING: pending,
                         CONF_ITEMS: {},
-                        CONF_EVENT_SLOTS: int(user_input[CONF_EVENT_SLOTS]),
                         **plan,
                     }
                     return await self._async_next_after_draft()
@@ -397,7 +359,6 @@ class _SetupSteps:
             CONF_NAME: self._commute_name(),
             CONF_CORRIDOR_KM: DEFAULT_CORRIDOR_KM,
             CONF_TYPES: DEFAULT_TYPES,
-            CONF_EVENT_SLOTS: DEFAULT_EVENT_SLOTS,
         }
         schema = probatio.Schema(
             {
@@ -408,9 +369,6 @@ class _SetupSteps:
                 probatio.Required(
                     CONF_TYPES, default=defaults[CONF_TYPES]
                 ): _types_selector(TYPE_OPTIONS),
-                probatio.Required(
-                    CONF_EVENT_SLOTS, default=defaults[CONF_EVENT_SLOTS]
-                ): _slots_selector(),
             }
         )
         return self.async_show_form(
@@ -471,6 +429,7 @@ class Ontario511ConfigFlow(ConfigFlow, _SetupSteps, domain=DOMAIN):
     """Handle a config flow for Ontario 511."""
 
     VERSION = 2
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the flow."""
@@ -618,7 +577,6 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
             new_data = {
                 **subentry.data,
                 CONF_FEEDS: user_input[CONF_FEEDS],
-                CONF_EVENT_SLOTS: int(user_input[CONF_EVENT_SLOTS]),
             }
             if is_commute:
                 new_data[CONF_CORRIDOR_KM] = round(
@@ -638,10 +596,6 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
             probatio.Required(
                 CONF_FEEDS, default=list(subentry.data.get(CONF_FEEDS, []))
             ): _types_selector([r.value for r in FEED_RESOURCES]),
-            probatio.Required(
-                CONF_EVENT_SLOTS,
-                default=subentry.data.get(CONF_EVENT_SLOTS, DEFAULT_EVENT_SLOTS),
-            ): _slots_selector(),
         }
         if is_commute:
             current = list(subentry.data.get(CONF_SEGMENTS, []))

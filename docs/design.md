@@ -16,7 +16,7 @@ One **config entry** per API key. It holds three kinds of **config subentries**,
 
 | Subentry | What the user sets | What it generates |
 |---|---|---|
-| **Area** | Name, centre and radius (drag a pin and circle on the map, then confirm the radius in km; max 50 km) | Items of the chosen data types, nearest to the centre first, and a summary device |
+| **Area** | Name, centre and radius (drag a pin and circle on the map, or type the radius in metres; 0.5 to 50 km) | Items of the chosen data types, nearest to the centre first, and a summary device |
 | **Commute** | The two areas it runs between (an existing one, or a new area added in the same flow), corridor width (default 5 km, max 20 km). Routes between the areas' centres are worked out automatically; the segments can be adjusted by reconfiguring | Items of the chosen data types within the corridor, and a summary device covering both areas and the route (door to door) |
 | **Item** | A data type, then one item from a list sorted by distance | That one item. No cap applies |
 
@@ -64,7 +64,7 @@ Values that change get their own entities. Details go in attributes; lists in at
 
 The map card shows any entity with numeric `latitude` and `longitude` attributes, and the built-in Map dashboard adds them automatically. Each item's main entity carries its location, so items appear on the map and move if the data moves.
 
-**Nearest event slots** put events on the map without temporary entities. Each area and commute has a fixed number of slot entities ("Nearest event 1", "Nearest event 2", …). Slot N shows the Nth nearest active event: its location, description and details. When there are fewer events than slots, the extra slots are unavailable. The number of slots is set when creating the area or commute (default 5) and can be changed later.
+**Nearest events** put events on the map without temporary entities. Each area and commute has three fixed entities ("Nearest event 1" to "Nearest event 3"). Entity N shows the Nth nearest active event: its location, description and details. When there are fewer than three events, the rest are Unknown. Home Assistant's dynamic alternative, `geo_location` entities, can't belong to a device or subentry, and automations can only match them by source and zone, so they couldn't be tied to an area or commute.
 
 ## Data policy
 

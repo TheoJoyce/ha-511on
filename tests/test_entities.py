@@ -25,7 +25,6 @@ from homeassistant.const import (
     ATTR_LATITUDE,
     STATE_OFF,
     STATE_ON,
-    STATE_UNAVAILABLE,
     STATE_UNKNOWN,
     Platform,
 )
@@ -192,8 +191,8 @@ async def test_road_segment_and_summary(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.usefixtures("loaded")
-async def test_nearest_event_slots(hass: HomeAssistant) -> None:
-    """Slots follow the nearest active events and carry their location."""
+async def test_nearest_events(hass: HomeAssistant) -> None:
+    """The three nearest active events, with their location for the map."""
     first = hass.states.get("sensor.home_nearest_event_1")
     third = hass.states.get("sensor.home_nearest_event_3")
     assert first.attributes["event_id"] == "323209"
@@ -202,17 +201,17 @@ async def test_nearest_event_slots(hass: HomeAssistant) -> None:
     assert first.attributes["distance_km"] <= third.attributes["distance_km"]
 
 
-async def test_slots_unavailable_without_events(
+async def test_nearest_events_unknown_without_events(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
     aioclient_mock: AiohttpClientMocker,
 ) -> None:
-    """With fewer events than slots, the extra slots are unavailable."""
+    """With fewer than three events, the rest are Unknown, not unavailable."""
     _serve(aioclient_mock, [])
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
-    assert hass.states.get("sensor.home_nearest_event_1").state == STATE_UNAVAILABLE
+    assert hass.states.get("sensor.home_nearest_event_1").state == STATE_UNKNOWN
     assert hass.states.get("sensor.home_events").state == "0"
 
 

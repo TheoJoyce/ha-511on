@@ -13,7 +13,8 @@
       "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
       "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
       "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
-      "outside_ontario": "That address isn't in Ontario."
+      "outside_ontario": "That address isn't in Ontario.",
+      "radius_out_of_range": "The radius must be between {min_radius} and {max_radius} metres."
     },
     "step": {
       "user": {
@@ -30,14 +31,12 @@
           "name": "Name",
           "location": "Centre and radius",
           "types": "Data to generate",
-          "event_slots": "Nearest event slots",
           "address": "Address (optional)"
         },
         "data_description": {
           "name": "For example Home, Work or Cottage.",
-          "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
+          "location": "Drag the pin to the centre and drag the circle's edge to set the radius, from {min_radius} to {max_radius} metres. You can also type the radius in metres.",
           "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-          "event_slots": "How many of the nearest events to show on the map.",
           "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
         },
         "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
@@ -55,13 +54,11 @@
         "data": {
           "name": "Name",
           "corridor_km": "Corridor width",
-          "types": "Data to generate",
-          "event_slots": "Nearest event slots"
+          "types": "Data to generate"
         },
         "data_description": {
           "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
-          "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones.",
-          "event_slots": "How many of the nearest events to show on the map."
+          "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones."
         },
         "description": "A commute from {from} to {to}. Up to three sensible highway routes between them are worked out and all used. Its summaries cover both areas and the route between them.",
         "title": "Commute"
@@ -79,16 +76,6 @@
         },
         "description": "Ontario 511 rejected the saved API key. Enter a valid key.",
         "title": "Re-authenticate Ontario 511"
-      },
-      "area_radius": {
-        "data": {
-          "radius_km": "Radius"
-        },
-        "data_description": {
-          "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
-        },
-        "description": "Confirm the radius of {name}.",
-        "title": "Radius"
       }
     }
   },
@@ -107,7 +94,8 @@
         "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
         "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
         "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
-        "outside_ontario": "That address isn't in Ontario."
+        "outside_ontario": "That address isn't in Ontario.",
+        "radius_out_of_range": "The radius must be between {min_radius} and {max_radius} metres."
       },
       "abort": {
         "reconfigure_successful": "Settings saved."
@@ -118,28 +106,16 @@
             "name": "Name",
             "location": "Centre and radius",
             "types": "Data to generate",
-            "event_slots": "Nearest event slots",
             "address": "Address (optional)"
           },
           "data_description": {
             "name": "For example Home, Work or Cottage.",
-            "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
+            "location": "Drag the pin to the centre and drag the circle's edge to set the radius, from {min_radius} to {max_radius} metres. You can also type the radius in metres.",
             "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-            "event_slots": "How many of the nearest events to show on the map.",
             "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
           },
           "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
           "title": "Area"
-        },
-        "area_radius": {
-          "data": {
-            "radius_km": "Radius"
-          },
-          "data_description": {
-            "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
-          },
-          "description": "Confirm the radius of {name}.",
-          "title": "Radius"
         },
         "slow_import": {
           "description": "You chose {count} data types. Ontario 511 allows {fast} requests a minute, so the first {fast} load now and the rest about a minute later. Their entities appear when the data arrives.",
@@ -148,8 +124,7 @@
         "reconfigure": {
           "data": {
             "name": "Name",
-            "feeds": "Follow",
-            "event_slots": "Nearest event slots"
+            "feeds": "Follow"
           },
           "data_description": {
             "feeds": "Events, construction and alerts shown for this area."
@@ -173,7 +148,8 @@
         "geocoding_unavailable": "Address search is switched off right now. Place the pin on the map instead.",
         "geocoding_failed": "Couldn't reach the address search. Try again, or place the pin on the map.",
         "address_not_found": "No place was found for that address. Check it, or place the pin on the map.",
-        "outside_ontario": "That address isn't in Ontario."
+        "outside_ontario": "That address isn't in Ontario.",
+        "radius_out_of_range": "The radius must be between {min_radius} and {max_radius} metres."
       },
       "abort": {
         "reconfigure_successful": "Settings saved.",
@@ -208,40 +184,26 @@
             "name": "Name",
             "location": "Centre and radius",
             "types": "Data to generate",
-            "event_slots": "Nearest event slots",
             "address": "Address (optional)"
           },
           "data_description": {
             "name": "For example Home, Work or Cottage.",
-            "location": "Drag the pin to the centre and drag the circle's edge to set the radius. You can fine-tune the radius in kilometres next.",
+            "location": "Drag the pin to the centre and drag the circle's edge to set the radius, from {min_radius} to {max_radius} metres. You can also type the radius in metres.",
             "types": "Used once, to choose what to generate. You can add or remove items afterwards.",
-            "event_slots": "How many of the nearest events to show on the map.",
             "address": "Type an address and submit to move the pin there. Address search is by OpenStreetMap Nominatim: the address you type is sent to OpenStreetMap. Map data © OpenStreetMap contributors."
           },
           "description": "Choose an area to watch. Items nearest the centre are generated first.\n\n{found}",
           "title": "Area"
         },
-        "area_radius": {
-          "data": {
-            "radius_km": "Radius"
-          },
-          "data_description": {
-            "radius_km": "Taken from the circle you drew. Adjust it if you like, up to {max_radius} km."
-          },
-          "description": "Confirm the radius of {name}.",
-          "title": "Radius"
-        },
         "commute": {
           "data": {
             "name": "Name",
             "corridor_km": "Corridor width",
-            "types": "Data to generate",
-            "event_slots": "Nearest event slots"
+            "types": "Data to generate"
           },
           "data_description": {
             "corridor_km": "Anything within this distance of the route counts as on the commute, including nearby roads.",
-            "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones.",
-            "event_slots": "How many of the nearest events to show on the map."
+            "types": "Used once, to choose what to generate along the route. Commute items are generated before nearby ones."
           },
           "description": "A commute from {from} to {to}. Up to three sensible highway routes between them are worked out and all used. Its summaries cover both areas and the route between them.",
           "title": "Commute"
@@ -254,7 +216,6 @@
           "data": {
             "name": "Name",
             "feeds": "Follow",
-            "event_slots": "Nearest event slots",
             "corridor_km": "Corridor width",
             "segments": "Road segments"
           },

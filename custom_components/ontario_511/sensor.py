@@ -19,7 +19,7 @@ from homeassistant.helpers.typing import StateType
 from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
 from .api import Resource
 from .conditions import RoadCondition
-from .const import CONF_EVENT_SLOTS, SUBENTRY_ITEM
+from .const import NEAREST_EVENTS, SUBENTRY_ITEM
 from .coordinator import ResourceCoordinator
 from .entity import ItemEntity, SummaryEntity, location_attributes
 from .feeds import Scope
@@ -257,7 +257,7 @@ def _summary_sensors(
     if Resource.EVENTS in feeds and (events := coordinators.get(Resource.EVENTS)):
         sensors.extend(
             NearestEventSensor(events, subentry_id, title, road, slot)
-            for slot in range(1, int(subentry.data.get(CONF_EVENT_SLOTS, 0)) + 1)
+            for slot in range(1, NEAREST_EVENTS + 1)
         )
     return sensors
 
@@ -440,8 +440,8 @@ class ScopeCountSensor(SummaryEntity, SensorEntity):
 class NearestEventSensor(SummaryEntity, SensorEntity):
     """The Nth nearest active event, with its location for the map.
 
-    Slots are fixed entities; when there are fewer events than slots, the
-    extra slots are unavailable.
+    There are always NEAREST_EVENTS of these; with fewer events in scope, the
+    rest are Unknown.
     """
 
     def __init__(
@@ -468,11 +468,6 @@ class NearestEventSensor(SummaryEntity, SensorEntity):
             self.subentry_id
         ).events
         return events[self._index] if self._index < len(events) else None
-
-    @property
-    def available(self) -> bool:
-        """Return whether there's an event for this slot."""
-        return super().available and self._event() is not None
 
     @property
     def native_value(self) -> str | None:

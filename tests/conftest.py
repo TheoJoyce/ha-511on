@@ -25,7 +25,6 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 from custom_components.ontario_511.api import RateLimiter, Resource
 from custom_components.ontario_511.client import RATE_LIMITER
 from custom_components.ontario_511.const import (
-    CONF_EVENT_SLOTS,
     CONF_FEEDS,
     CONF_ITEMS,
     CONF_LOCATION,
@@ -50,7 +49,6 @@ def area_data(**overrides: Any) -> dict[str, Any]:
         CONF_FEEDS: [Resource.EVENTS.value, Resource.ALERTS.value],
         CONF_PENDING: [],
         CONF_ITEMS: {},
-        CONF_EVENT_SLOTS: 5,
         **overrides,
     }
 
@@ -128,6 +126,7 @@ def mock_config_entry(subentries: list[ConfigSubentryDataWithId]) -> MockConfigE
         data={CONF_API_KEY: API_KEY},
         unique_id=hashlib.sha256(API_KEY.encode()).hexdigest(),
         version=2,
+        minor_version=2,
         subentries_data=subentries,
     )
 
