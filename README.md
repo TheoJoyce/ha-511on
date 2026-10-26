@@ -55,7 +55,7 @@ Each generated item is a device, grouped under the area or commute that generate
 | Travel information centre | Hours, Address, Phone, Email |
 | Area or commute summary | Worst road condition, Hazardous conditions, Full closure, Events, Construction, Alerts, New event, New alert, Nearest event 1 to 3, and for commutes Route (for the [map card](#map-card)) |
 
-Each piece of Ontario 511's data is its own entity, so you can use it in automations, dashboards and templates. Attributes are kept for what explains a state, such as the feed's own text in `reported`, and for the location the map needs.
+Each piece of Ontario 511's data is its own entity, so you can use it in automations, dashboards and templates. [docs/api-mapping.md](docs/api-mapping.md) lists every field Ontario 511 publishes and where it ends up. Attributes are kept for what explains a state, such as the feed's own text in `reported`, and for the location the map needs.
 
 - **Hazardous** means worse than wet (partly covered or worse), drifting snow, or poor visibility.
 - A road condition or ferry status shows **Unknown** when Ontario 511 has no report for it; the feed's own text is in the `reported` attribute.

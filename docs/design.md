@@ -1,6 +1,6 @@
 # Design
 
-How the integration models Ontario 511 data in Home Assistant. This is the reference for what gets generated, how it's organised, and how fresh each kind of data is kept. Rules in `AGENTS.md` (rate limits, compliance) still apply.
+How the integration models Ontario 511 data in Home Assistant. This is the reference for what gets generated, how it's organised, and how fresh each kind of data is kept. For where every API field ends up, see [`api-mapping.md`](api-mapping.md). Rules in `AGENTS.md` (rate limits, compliance) still apply.
 
 ## Principles
 

@@ -43,7 +43,7 @@ These rules come from the Ontario 511 [API documentation](https://511on.ca/devel
 
 ## Architecture
 
-See `docs/design.md` for the data model (areas, commutes, items, devices and entities).
+See `docs/design.md` for the data model (areas, commutes, items, devices and entities) and `docs/api-mapping.md` for where every API field ends up. Keep `api-mapping.md` up to date when a field's handling changes.
 
 - `api.py`: the API client, `Resource` enum, errors and `RateLimiter`. No Home Assistant imports. Every resource is under `/api/v2/get/` except `roadconditions`, which is under `/api/v3/get/`. Error messages never contain the request URL, because it carries the key.
 - `client.py`: Home Assistant glue: the instance-wide limiter and client creation (shared aiohttp session; `lang=fr` when Home Assistant's language is French).
