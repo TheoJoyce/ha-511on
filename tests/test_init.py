@@ -115,7 +115,7 @@ async def test_migrate_from_first_alpha(
     await hass.async_block_till_done()
 
     assert entry.state is ConfigEntryState.LOADED
-    assert entry.version == 2
+    assert entry.version == 3
     assert entry.options == {}
     (area,) = entry.subentries.values()
     assert area.subentry_type == SUBENTRY_AREA
@@ -146,7 +146,9 @@ async def test_migrate_event_slots(
 ) -> None:
     """Version 2.1 slot settings go; slots beyond the nearest three are removed."""
     mock_config_entry.add_to_hass(hass)
-    hass.config_entries.async_update_entry(mock_config_entry, minor_version=1)
+    hass.config_entries.async_update_entry(
+        mock_config_entry, version=2, minor_version=1
+    )
     for slot in range(1, 6):
         entity_registry.async_get_or_create(
             Platform.SENSOR,
@@ -159,7 +161,7 @@ async def test_migrate_event_slots(
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
 
-    assert mock_config_entry.minor_version == 2
+    assert mock_config_entry.version == 3
     assert "event_slots" not in mock_config_entry.subentries[AREA_ID].data
     assert hass.states.get("sensor.home_nearest_event_3") is not None
     assert entity_registry.async_get("sensor.home_nearest_event_4") is None
@@ -251,12 +253,13 @@ def _route_near_cameras() -> dict[str, Any]:
         ]
     ],
 )
-async def test_commute_items_take_priority(
+async def test_overlapping_places_share_an_item(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
     aioclient_mock: AiohttpClientMocker,
+    device_registry: dr.DeviceRegistry,
 ) -> None:
-    """Items along a commute go to the commute, not to an overlapping area."""
+    """An item in an area and along a commute is listed by both, with one device."""
     aioclient_mock.get(
         Resource.ROAD_CONDITIONS.url, text=json.dumps([_route_near_cameras()])
     )
@@ -268,8 +271,16 @@ async def test_commute_items_take_priority(
     commute = mock_config_entry.subentries[COMMUTE_ID]
     area = mock_config_entry.subentries[AREA_ID]
     assert set(commute.data[CONF_ITEMS]["cameras"]) == {"455", "456"}
-    assert "cameras" not in area.data[CONF_ITEMS]
+    assert set(area.data[CONF_ITEMS]["cameras"]) == {"455", "456"}
     assert commute.data[CONF_PENDING] == area.data[CONF_PENDING] == []
+    item_devices = [
+        d
+        for d in dr.async_entries_for_config_entry(
+            device_registry, mock_config_entry.entry_id
+        )
+        if d.config_subentry_id is None
+    ]
+    assert len(item_devices) == 2
 
 
 async def test_new_devices_go_in_the_chosen_ha_area(

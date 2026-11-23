@@ -80,6 +80,34 @@ def generate_for_commute(
     )
 
 
+def inside_area(
+    resource: Resource,
+    items: Iterable[Item],
+    centre: Point,
+    radius_km: float,
+) -> set[str]:
+    """Return the IDs of the given items inside an area, without a cap."""
+    if resource is Resource.ROAD_CONDITIONS:
+        segments = [s for s in items if isinstance(s, RoadSegment)]
+        return {s.id for s, _ in segments_within_radius(segments, centre, radius_km)}
+    return {item.id for item, _ in within_radius(items, centre, radius_km)}
+
+
+def inside_corridor(
+    resource: Resource,
+    items: Iterable[Item],
+    segment_ids: Collection[str],
+    lines: Sequence[Sequence[Point]],
+    corridor_km: float,
+) -> set[str]:
+    """Return the IDs of the given items along a commute, without a cap."""
+    if resource is Resource.ROAD_CONDITIONS:
+        segments = [s for s in items if isinstance(s, RoadSegment)]
+        near = segments_within_corridor(segments, lines, corridor_km)
+        return {s.id for s in segments if s.id in segment_ids} | {s.id for s, _ in near}
+    return {item.id for item, _ in within_corridor(items, lines, corridor_km)}
+
+
 def _take(
     resource: Resource, items: Iterable[Item], exclude: Collection[str]
 ) -> Generated:

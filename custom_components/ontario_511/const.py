@@ -39,6 +39,9 @@ CONF_ITEMS: Final = "items"
 CONF_PENDING: Final = "pending"
 CONF_RESOURCE: Final = "resource"
 CONF_ITEM_ID: Final = "item_id"
+# Set by the migration to shared item devices, until the subentry has
+# listed the existing items inside it.
+CONF_SHARE_ITEMS: Final = "share_items"
 
 DEFAULT_AREA_NAME: Final = "Home"
 DEFAULT_DESTINATION_NAME: Final = "Work"
@@ -55,6 +58,8 @@ ROUTING_ROADS: Final = "roads"
 ROUTING_HIGHWAYS: Final = "highways"
 # Repair issue for commutes planned before routes followed roads.
 REPLAN_ISSUE: Final = "replan_commute"
+# Repair issue listing entities lost when duplicate items were merged.
+MERGED_ITEMS_ISSUE: Final = "merged_items"
 # Area and commute summaries show this many of the nearest events.
 NEAREST_EVENTS: Final = 3
 

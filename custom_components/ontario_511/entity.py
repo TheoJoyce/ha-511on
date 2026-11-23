@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -106,9 +107,18 @@ def alert_details(alert: Alert) -> dict[str, Any]:
     }
 
 
-def item_device_identifier(subentry_id: str, resource: Resource, item_id: str) -> str:
-    """Return the device identifier for an item within a subentry."""
-    return f"{subentry_id}:{resource.value}:{item_id}"
+@dataclass(frozen=True, slots=True)
+class SharedItem:
+    """A real-world item, and the areas, commutes and items that list it."""
+
+    item_id: str
+    name: str
+    subentry_ids: tuple[str, ...]
+
+
+def item_device_identifier(entry_id: str, resource: Resource, item_id: str) -> str:
+    """Return the device identifier of an item, shared across the entry."""
+    return f"{entry_id}:{resource.value}:{item_id}"
 
 
 def summary_device_identifier(subentry_id: str) -> str:
@@ -116,12 +126,16 @@ def summary_device_identifier(subentry_id: str) -> str:
     return f"{subentry_id}:summary"
 
 
-def _suggested_area(coordinator: ResourceCoordinator, subentry_id: str) -> str | None:
-    """Return the Home Assistant area chosen for a subentry's devices.
+def _suggested_area(
+    coordinator: ResourceCoordinator, subentry_ids: tuple[str, ...]
+) -> str | None:
+    """Return the Home Assistant area chosen for a device.
 
-    Home Assistant only applies it when a device is first created.
+    The first of its areas and commutes that has one. Home Assistant only
+    applies it when a device is first created.
     """
-    return coordinator.config_entry.runtime_data.suggested_areas.get(subentry_id)
+    areas = coordinator.config_entry.runtime_data.suggested_areas
+    return next((areas[i] for i in subentry_ids if i in areas), None)
 
 
 class Ontario511Entity(CoordinatorEntity[ResourceCoordinator]):
@@ -145,30 +159,27 @@ class Ontario511Entity(CoordinatorEntity[ResourceCoordinator]):
 
 
 class ItemEntity(Ontario511Entity):
-    """An entity describing one item, on that item's device."""
+    """An entity describing one item, on that item's shared device."""
 
     def __init__(
-        self,
-        coordinator: ResourceCoordinator,
-        subentry_id: str,
-        item_id: str,
-        item_name: str,
-        key: str,
+        self, coordinator: ResourceCoordinator, shared: SharedItem, key: str
     ) -> None:
         """Initialize the entity."""
         super().__init__(coordinator)
-        self.item_id = item_id
-        self.subentry_id = subentry_id
-        identifier = item_device_identifier(subentry_id, coordinator.resource, item_id)
+        self.item_id = shared.item_id
+        self.subentry_ids = shared.subentry_ids
+        identifier = item_device_identifier(
+            coordinator.config_entry.entry_id, coordinator.resource, shared.item_id
+        )
         self._attr_translation_key = key
         self._attr_unique_id = f"{identifier}:{key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, identifier)},
-            name=item_name,
+            name=shared.name,
             model=RESOURCE_MODELS[coordinator.resource],
             entry_type=DeviceEntryType.SERVICE,
             configuration_url=SOURCE_URL,
-            suggested_area=_suggested_area(coordinator, subentry_id),
+            suggested_area=_suggested_area(coordinator, shared.subentry_ids),
         )
 
     @property
@@ -209,5 +220,5 @@ class SummaryEntity(Ontario511Entity):
             model="Summary",
             entry_type=DeviceEntryType.SERVICE,
             configuration_url=SOURCE_URL,
-            suggested_area=_suggested_area(coordinator, subentry_id),
+            suggested_area=_suggested_area(coordinator, (subentry_id,)),
         )

@@ -51,7 +51,7 @@ from homeassistant.helpers.selector import (
 from homeassistant.loader import async_get_integration
 import probatio
 
-from . import Ontario511ConfigEntry
+from . import Ontario511ConfigEntry, subentry_items
 from .api import (
     Ontario511AuthError,
     Ontario511Client,
@@ -125,6 +125,7 @@ from .custom_routes import (
     pins_from_route,
 )
 from .directions import RoutingFailed, RoutingUnavailable, async_get_router
+from .entity import item_device_identifier
 from .geo import Point, distance_km
 from .geocode import (
     AddressNotFound,
@@ -574,8 +575,8 @@ class _SetupSteps:
 class Ontario511ConfigFlow(ConfigFlow, _SetupSteps, domain=DOMAIN):
     """Handle a config flow for Ontario 511."""
 
-    VERSION = 2
-    MINOR_VERSION = 2
+    VERSION = 3
+    MINOR_VERSION = 1
 
     def __init__(self) -> None:
         """Initialize the flow."""
@@ -811,14 +812,25 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
     def _move_devices_if_changed(
         self, subentry: ConfigSubentry, new_data: Mapping[str, Any]
     ) -> None:
-        """Move every device of a subentry to a newly chosen Home Assistant area."""
+        """Move a subentry's summary and items to a newly chosen area.
+
+        A device has one Home Assistant area, so an item shared with another
+        area or commute follows the latest choice.
+        """
         area_id = new_data.get(CONF_HA_AREA)
         if not area_id or area_id == subentry.data.get(CONF_HA_AREA):
             return
         entry_id = self._get_entry().entry_id
+        items = {
+            (DOMAIN, item_device_identifier(entry_id, resource, item_id))
+            for resource, names in subentry_items(subentry).items()
+            for item_id in names
+        }
         registry = dr.async_get(self.hass)
         for device in dr.async_entries_for_config_entry(registry, entry_id):
-            if device.config_subentry_id == subentry.subentry_id:
+            if device.config_subentry_id == subentry.subentry_id or (
+                device.identifiers & items
+            ):
                 registry.async_update_device(device.id, area_id=area_id)
 
     async def async_step_reconfigure_commute(

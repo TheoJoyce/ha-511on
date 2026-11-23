@@ -17,10 +17,15 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from . import Ontario511ConfigEntry, subentry_items
+from . import Ontario511ConfigEntry, shared_items
 from .api import REQUEST_TIMEOUT, Resource
 from .coordinator import ResourceCoordinator
-from .entity import LOCATION_ATTRIBUTES, ItemEntity, location_attributes
+from .entity import (
+    LOCATION_ATTRIBUTES,
+    ItemEntity,
+    SharedItem,
+    location_attributes,
+)
 from .models import Camera as CameraModel, CameraView
 from .policy import CAMERA_IMAGE_CACHE
 
@@ -42,28 +47,21 @@ async def async_setup_entry(
     coordinator = entry.runtime_data.coordinators.get(Resource.CAMERAS)
     if coordinator is None:
         return
-    created: set[tuple[str, str, int]] = set()
+    created: set[tuple[str, int]] = set()
 
     @callback
     def _add_views() -> None:
         data = coordinator.data or {}
-        for subentry in entry.subentries.values():
-            items = subentry_items(subentry).get(Resource.CAMERAS, {})
-            new: list[TrafficCamera] = []
-            for item_id, name in items.items():
-                camera = data.get(item_id)
-                count = len(camera.views) if isinstance(camera, CameraModel) else 0
-                for index in range(max(1, count)):
-                    key = (subentry.subentry_id, item_id, index)
-                    if key not in created:
-                        created.add(key)
-                        new.append(
-                            TrafficCamera(
-                                coordinator, subentry.subentry_id, item_id, name, index
-                            )
-                        )
-            if new:
-                async_add_entities(new, config_subentry_id=subentry.subentry_id)
+        new: list[TrafficCamera] = []
+        for shared in shared_items(entry).get(Resource.CAMERAS, {}).values():
+            camera = data.get(shared.item_id)
+            count = len(camera.views) if isinstance(camera, CameraModel) else 0
+            for index in range(max(1, count)):
+                if (shared.item_id, index) not in created:
+                    created.add((shared.item_id, index))
+                    new.append(TrafficCamera(coordinator, shared, index))
+        if new:
+            async_add_entities(new)
 
     _add_views()
     entry.async_on_unload(coordinator.async_add_listener(_add_views))
@@ -77,15 +75,11 @@ class TrafficCamera(ItemEntity, Camera):
     def __init__(
         self,
         coordinator: ResourceCoordinator,
-        subentry_id: str,
-        item_id: str,
-        item_name: str,
+        shared: SharedItem,
         index: int,
     ) -> None:
         """Initialize the camera view."""
-        ItemEntity.__init__(
-            self, coordinator, subentry_id, item_id, item_name, f"view_{index + 1}"
-        )
+        ItemEntity.__init__(self, coordinator, shared, f"view_{index + 1}")
         Camera.__init__(self)
         self._index = index
         self._attr_translation_key = "view"

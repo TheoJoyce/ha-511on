@@ -412,6 +412,10 @@
           "not_loaded": "The Ontario 511 integration isn't loaded. Check that it's set up and try again."
         }
       }
+    },
+    "merged_items": {
+      "title": "Some duplicate Ontario 511 entities were removed",
+      "description": "The same Ontario 511 item had a device in more than one place. Each real item now has one device, so the duplicates were removed and their entities no longer exist: {entities}\n\nIf an automation, script or dashboard uses one of these, point it at the same entity on the remaining device."
     }
   },
   "selector": {

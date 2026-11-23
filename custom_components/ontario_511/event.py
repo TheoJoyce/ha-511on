@@ -12,11 +12,17 @@ from homeassistant.components.event import EventEntity
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
+from . import Ontario511ConfigEntry, shared_items, subentry_feeds
 from .api import Resource
 from .const import SUBENTRY_ITEM
 from .coordinator import ResourceCoordinator
-from .entity import ItemEntity, SummaryEntity, alert_details, event_details
+from .entity import (
+    ItemEntity,
+    SharedItem,
+    SummaryEntity,
+    alert_details,
+    event_details,
+)
 from .models import Alert
 
 PARALLEL_UPDATES = 0
@@ -35,14 +41,13 @@ async def async_setup_entry(
     events = coordinators.get(Resource.EVENTS)
     road = coordinators.get(Resource.ROAD_CONDITIONS)
     alerts = coordinators.get(Resource.ALERTS)
+    if events is not None and road is not None:
+        segments = shared_items(entry).get(Resource.ROAD_CONDITIONS, {})
+        async_add_entities(
+            SegmentNewEvent(road, events, shared) for shared in segments.values()
+        )
     for subentry in entry.subentries.values():
         entities: list[EventEntity] = []
-        if events is not None and road is not None:
-            segments = subentry_items(subentry).get(Resource.ROAD_CONDITIONS, {})
-            entities.extend(
-                SegmentNewEvent(road, events, subentry.subentry_id, item_id, name)
-                for item_id, name in segments.items()
-            )
         if subentry.subentry_type != SUBENTRY_ITEM:
             feeds = subentry_feeds(subentry)
             if Resource.EVENTS in feeds and events is not None:
@@ -107,18 +112,16 @@ class SegmentNewEvent(_NewItemsMixin, ItemEntity):
         self,
         road: ResourceCoordinator,
         events: ResourceCoordinator,
-        subentry_id: str,
-        item_id: str,
-        item_name: str,
+        shared: SharedItem,
     ) -> None:
         """Initialize on the segment's device."""
-        super().__init__(road, subentry_id, item_id, item_name, "segment_new_event")
+        super().__init__(road, shared, "segment_new_event")
         self.extra_coordinators = (events,)
         self._attr_event_types = [EVENT_NEW]
 
     def _current(self) -> dict[str, dict[str, Any]]:
         events, _ = self.coordinator.config_entry.runtime_data.feeds.on_segment(
-            self.item_id, self.subentry_id
+            self.item_id, self.subentry_ids
         )
         return {e.id: event_details(e) for e in events}
 

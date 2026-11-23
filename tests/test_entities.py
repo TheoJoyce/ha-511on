@@ -165,8 +165,11 @@ async def test_every_entity_has_attribution_and_subentry(
     """Every entity carries the OGL-Ontario attribution and its subentry."""
     entries = er.async_entries_for_config_entry(entity_registry, loaded.entry_id)
     assert entries
+    # Items are shared by the entry; only summaries belong to a subentry.
+    assert {
+        e.unique_id.startswith(f"{AREA_ID}:"): e.config_subentry_id for e in entries
+    } == {True: AREA_ID, False: None}
     for entry in entries:
-        assert entry.config_subentry_id == AREA_ID
         if entry.disabled_by is not None:
             continue
         state = hass.states.get(entry.entity_id)
@@ -287,7 +290,7 @@ async def test_removing_an_item_device(
 ) -> None:
     """Deleting an item's device drops it from the area; summaries stay."""
     item_device = device_registry.async_get_device_by_identifier(
-        (DOMAIN, f"{AREA_ID}:roadconditions:{WEST_ID}"), loaded.entry_id
+        (DOMAIN, f"{loaded.entry_id}:roadconditions:{WEST_ID}"), loaded.entry_id
     )
     summary_device = device_registry.async_get_device_by_identifier(
         (DOMAIN, f"{AREA_ID}:summary"), loaded.entry_id
