@@ -172,6 +172,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -
         ):
             entry.runtime_data.suggested_areas[subentry.subentry_id] = area.name
     _async_update_replan_issues(hass, entry)
+    # The registries save later than the entry, so a crash right after the
+    # migration can leave devices to move.
+    if _async_share_item_devices(hass, entry):
+        _async_request_shared_lists(hass, entry)
     _async_remove_unlisted_items(hass, entry)
 
     # Setup waits for one resource, which checks the key and connection; the
@@ -497,12 +501,24 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.config_entries.async_update_entry(entry, minor_version=2)
     if entry.version == 2:
         _async_share_item_devices(hass, entry)
+        _async_request_shared_lists(hass, entry)
         hass.config_entries.async_update_entry(entry, version=3, minor_version=1)
     return True
 
 
-def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
+def _async_request_shared_lists(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Have each area and commute list the existing items inside it."""
+    for subentry in entry.subentries.values():
+        if subentry.subentry_type != SUBENTRY_ITEM:
+            hass.config_entries.async_update_subentry(
+                entry, subentry, data={**subentry.data, CONF_SHARE_ITEMS: True}
+            )
+
+
+def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Move item devices from their subentries to the entry.
+
+    Returns whether anything moved.
 
     Entity IDs, device IDs and user settings stay. If the same item had two
     devices, an enabled one stays over a disabled one, then a customised one,
@@ -530,6 +546,7 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
             if e.config_entry_id == entry.entry_id
         ]
 
+    moved = bool(groups)
     lost: list[str] = []
     for new, group in groups.items():
         keep = min(
@@ -572,11 +589,7 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
             entities.async_update_entity(
                 entity.entity_id, config_subentry_id=None, new_unique_id=new_id
             )
-    for subentry in entry.subentries.values():
-        if subentry.subentry_type != SUBENTRY_ITEM:
-            hass.config_entries.async_update_subentry(
-                entry, subentry, data={**subentry.data, CONF_SHARE_ITEMS: True}
-            )
+            moved = True
     if lost:
         ir.async_create_issue(
             hass,
@@ -588,6 +601,7 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
             translation_key=MERGED_ITEMS_ISSUE,
             translation_placeholders={"entities": ", ".join(sorted(lost))},
         )
+    return moved
 
 
 def _is_customised(device: dr.DeviceEntry, entities: list[er.RegistryEntry]) -> bool:

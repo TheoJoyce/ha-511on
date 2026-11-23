@@ -196,6 +196,32 @@ async def test_migration_keeps_ids_and_shares_items(
 
 
 @pytest.mark.usefixtures("mock_api")
+async def test_devices_left_behind_by_a_crash_are_moved(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """An entry saved as migrated, with registries that weren't, finishes the move."""
+    entry = _old_entry([_area(NEAR_ID, "Near", SPOT, {"455": NAME_455})])
+    entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(entry, version=3, minor_version=1)
+    device, entity = _old_device(
+        device_registry, entity_registry, entry, NEAR_ID, "455", "near"
+    )
+
+    await _setup(hass, entry)
+
+    moved = _item_device(device_registry, "455")
+    assert moved is not None
+    assert moved.id == device.id
+    updated = entity_registry.async_get(entity.entity_id)
+    assert updated is not None
+    assert updated.id == entity.id
+    assert updated.unique_id == f"{ENTRY_ID}:cameras:455:camera_road"
+    assert len(dr.async_entries_for_config_entry(device_registry, ENTRY_ID)) == 2
+
+
+@pytest.mark.usefixtures("mock_api")
 async def test_migration_does_not_bring_back_deleted_items(
     hass: HomeAssistant,
     device_registry: dr.DeviceRegistry,
