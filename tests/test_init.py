@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 import hashlib
 import json
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
+from freezegun.api import FrozenDateTimeFactory
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
     ConfigEntryState,
@@ -22,7 +24,11 @@ from homeassistant.helpers import (
 )
 from homeassistant.setup import async_setup_component
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry, load_fixture
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+    load_fixture,
+)
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
@@ -49,6 +55,7 @@ from custom_components.ontario_511.const import (
     SUBENTRY_COMMUTE,
 )
 from custom_components.ontario_511.models import RoadSegment
+from custom_components.ontario_511.policy import RESOURCE_POLICIES
 
 from .common import encode_polyline, road_condition
 from .conftest import API_KEY, AREA_ID, area_data
@@ -138,6 +145,53 @@ async def test_one_failing_resource_keeps_the_rest_after_a_reload(
     await hass.config_entries.async_reload(mock_config_entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
     assert mock_config_entry.state is ConfigEntryState.LOADED
+
+
+@pytest.mark.parametrize(
+    "subentries",
+    [
+        [
+            ConfigSubentryDataWithId(
+                subentry_id=AREA_ID,
+                subentry_type=SUBENTRY_AREA,
+                title="Bowmanville",
+                unique_id=None,
+                data=area_data(
+                    location=CAMERA_SPOT,
+                    radius_km=10.0,
+                    feeds=[Resource.ALERTS.value],
+                    pending=["cameras"],
+                ),
+            )
+        ]
+    ],
+)
+async def test_generation_finishes_when_a_failed_resource_recovers(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Items wait for their resource's next normal poll, without extra requests."""
+    aioclient_mock.get(Resource.ALERTS.url, text=load_fixture("alerts.json"))
+    aioclient_mock.get(Resource.CAMERAS.url, status=500)
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert mock_config_entry.state is ConfigEntryState.LOADED
+    assert mock_config_entry.subentries[AREA_ID].data[CONF_PENDING] == ["cameras"]
+
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(Resource.ALERTS.url, text=load_fixture("alerts.json"))
+    aioclient_mock.get(Resource.CAMERAS.url, text=load_fixture("cameras.json"))
+    freezer.tick(RESOURCE_POLICIES[Resource.CAMERAS].refresh + timedelta(seconds=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    data = mock_config_entry.subentries[AREA_ID].data
+    assert data[CONF_PENDING] == []
+    assert set(data[CONF_ITEMS]["cameras"]) == {"455", "456"}
+    assert hass.states.get("camera.highway_407_east_of_bethesda_view_1") is not None
 
 
 async def test_migrate_from_first_alpha(

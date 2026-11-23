@@ -548,7 +548,11 @@ class Ontario511MapCard extends HTMLElement {
         ("event_id" in state.attributes
           ? this._color("--error-color", "#db4437")
           : this._color("--primary-color", "#03a9f4"));
-      const name = state.attributes.friendly_name ?? id;
+      // Since 2026.11, names are built from the device and entity names.
+      const name =
+        this._hass.formatEntityName?.(state) ??
+        state.attributes.friendly_name ??
+        id;
       const value = this._hass.formatEntityState?.(state) ?? state.state;
       element.title = `${name}: ${value}`;
     }

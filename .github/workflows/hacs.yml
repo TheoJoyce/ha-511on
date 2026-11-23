@@ -1,4 +1,4 @@
-name: HACS
+name: Marketplace
 
 on:
   push:
@@ -10,10 +10,11 @@ on:
 permissions: {}
 
 jobs:
+  # The "Protect main" ruleset requires a check with this job name.
   hacs:
     runs-on: ubuntu-latest
     steps:
-      - name: HACS validation
+      - name: Marketplace validation
         uses: hacs/action@main
         with:
           category: integration

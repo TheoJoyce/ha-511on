@@ -3,8 +3,8 @@ name: Release
 # Merging a release's pull request into main publishes it: the merge commit
 # is tagged v<version> from manifest.json, and the release notes are that
 # version's section of CHANGELOG.md, reviewed in that pull request. Alpha,
-# beta and rc versions are pre-releases, which HACS only offers to users who
-# turn on beta versions. A merge whose version already has a tag publishes
+# beta and rc versions are pre-releases, which Marketplace only offers to users
+# who include pre-releases for this repository. A merge whose version already has a tag publishes
 # nothing.
 
 on:

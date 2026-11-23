@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import partial
 import logging
 import re
 from types import MappingProxyType
@@ -17,7 +18,7 @@ from homeassistant.config_entries import (
     ConfigSubentry,
 )
 from homeassistant.const import CONF_API_KEY, Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import (
     area_registry as ar,
     config_validation as cv,
@@ -92,6 +93,7 @@ class Ontario511Data:
     # Set while generation updates subentries, so those updates don't each
     # trigger a reload.
     generating: bool = field(default=False)
+    generation: asyncio.Task[None] | None = field(default=None)
     # Home Assistant area name per subentry, suggested for its new devices.
     suggested_areas: dict[str, str] = field(default_factory=dict)
 
@@ -201,11 +203,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -
         s.data.get(CONF_PENDING) or s.data.get(CONF_SHARE_ITEMS)
         for s in entry.subentries.values()
     ):
-        entry.async_create_background_task(
-            hass,
-            _async_generate(hass, entry, first_refreshes),
-            f"{DOMAIN} generate items",
-        )
+        _async_start_generation(hass, entry, first_refreshes)
+    _async_generate_when_data_arrives(hass, entry)
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -286,6 +285,53 @@ async def _async_update_listener(
     """Reload when subentries change, so new items get entities."""
     if not entry.runtime_data.generating:
         hass.config_entries.async_schedule_reload(entry.entry_id)
+
+
+@callback
+def _async_start_generation(
+    hass: HomeAssistant,
+    entry: Ontario511ConfigEntry,
+    first_refreshes: Mapping[Resource, asyncio.Task[None]],
+) -> None:
+    """Generate items, unless that's already running."""
+    runtime = entry.runtime_data
+    if runtime.generation is None or runtime.generation.done():
+        runtime.generation = entry.async_create_background_task(
+            hass,
+            _async_generate(hass, entry, first_refreshes),
+            f"{DOMAIN} generate items",
+        )
+
+
+@callback
+def _async_generate_when_data_arrives(
+    hass: HomeAssistant, entry: Ontario511ConfigEntry
+) -> None:
+    """Finish generating once a resource that failed has data again.
+
+    Listening makes its coordinator poll on its normal schedule, so this adds
+    no requests beyond the polling budget.
+    """
+    pending = {
+        Resource(value)
+        for subentry in entry.subentries.values()
+        for value in subentry.data.get(CONF_PENDING, [])
+    }
+
+    @callback
+    def _async_check(resource: Resource) -> None:
+        if entry.runtime_data.coordinators[resource].data is not None and any(
+            resource.value in s.data.get(CONF_PENDING, [])
+            for s in entry.subentries.values()
+        ):
+            _async_start_generation(hass, entry, {})
+
+    for resource in pending:
+        entry.async_on_unload(
+            entry.runtime_data.coordinators[resource].async_add_listener(
+                partial(_async_check, resource)
+            )
+        )
 
 
 async def _async_generate(
@@ -575,11 +621,15 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         device, old = keep
         # Entities first: moving the device first would delete them.
         for entity in own_entities(device):
-            entities.async_update_entity(
-                entity.entity_id,
-                config_subentry_id=None,
-                new_unique_id=new + entity.unique_id.removeprefix(old),
-            )
+            # After a crash between the two registry saves it may have moved.
+            if entity.unique_id.startswith(f"{old}:"):
+                entities.async_update_entity(
+                    entity.entity_id,
+                    config_subentry_id=None,
+                    new_unique_id=new + entity.unique_id.removeprefix(old),
+                )
+            else:
+                entities.async_update_entity(entity.entity_id, config_subentry_id=None)
         devices.async_update_device(
             device.id,
             new_config_subentry_id=None,
@@ -593,8 +643,7 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     for entity in er.async_entries_for_config_entry(entities, entry.entry_id):
         subentry_id, _, rest = entity.unique_id.partition(":")
         if (
-            entity.device_id is None
-            and subentry_id in entry.subentries
+            subentry_id in entry.subentries
             and rest.rpartition(":")[0] in listed
             and not entities.async_get_entity_id(
                 entity.domain, DOMAIN, new_id := f"{entry.entry_id}:{rest}"

@@ -2,6 +2,26 @@
 
 Changes to the Ontario 511 integration for Home Assistant, newest first. It's community-maintained and not affiliated with or endorsed by Ontario 511, the Ministry of Transportation, or the Government of Ontario. Versions follow [Semantic Versioning](https://semver.org/); alpha, beta and rc versions are pre-releases.
 
+## [0.1.0-alpha.4] - Unreleased
+
+> [!WARNING]
+> This is an alpha. Entities, options and stored settings may change between releases.
+
+### Requirements
+
+- Home Assistant 2026.10.0 or later. Marketplace needs 2026.11 or later; on 2026.10, install manually.
+- Your own Ontario 511 API key ([request one](https://511on.ca/developers/doc) while logged in at 511on.ca)
+
+### What's new
+
+- **Ready for Marketplace.** The install steps, links and badges now use Home Assistant's built-in Marketplace, and the integration declares the **Vehicles & transport** category.
+- **New areas and commutes finish on their own.** If a data type couldn't be fetched when one was added, its items now appear at that type's next normal refresh, instead of waiting for a restart.
+- **Map card names** follow Home Assistant 2026.11's entity naming, with the device and entity name, when you hover over a marker.
+
+### Upgrading from 0.1.0-alpha.3
+
+- Existing installs move to Marketplace automatically when you update to Home Assistant 2026.11. To keep getting pre-releases, go to **Settings** → **Marketplace**, open **Ontario 511**, and open the menu (⋮). If it offers **Include pre-releases**, select it and confirm.
+
 ## [0.1.0-alpha.3] - 2026-11-23
 
 > [!WARNING]
