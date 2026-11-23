@@ -384,12 +384,24 @@ async def test_migration_moves_an_entity_without_a_device(
         config_subentry_id=NEAR_ID,
         suggested_object_id="orphan",
     )
+    summary = entity_registry.async_get_or_create(
+        Platform.SENSOR,
+        DOMAIN,
+        f"{NEAR_ID}:alerts",
+        config_entry=entry,
+        config_subentry_id=NEAR_ID,
+        suggested_object_id="near_alerts",
+    )
 
     await _setup(hass, entry)
 
     moved = entity_registry.async_get(orphan.entity_id)
     assert moved is not None
     assert moved.unique_id == f"{ENTRY_ID}:cameras:455:camera_road"
+    # "alerts" is a summary sensor's key as well as a resource.
+    kept = entity_registry.async_get(summary.entity_id)
+    assert kept is not None
+    assert kept.unique_id == f"{NEAR_ID}:alerts"
 
 
 @pytest.mark.usefixtures("mock_api")

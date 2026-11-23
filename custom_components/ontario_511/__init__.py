@@ -563,6 +563,7 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
         if (
             entity.device_id is None
             and subentry_id in entry.subentries
+            and rest.count(":") >= 2
             and rest.partition(":")[0] in resources
             and not entities.async_get_entity_id(
                 entity.domain, DOMAIN, new_id := f"{entry.entry_id}:{rest}"
