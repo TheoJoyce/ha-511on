@@ -2,6 +2,38 @@
 
 Changes to the Ontario 511 integration for Home Assistant, newest first. It's community-maintained and not affiliated with or endorsed by Ontario 511, the Ministry of Transportation, or the Government of Ontario. Versions follow [Semantic Versioning](https://semver.org/); alpha, beta and rc versions are pre-releases.
 
+## [0.1.0] - 2026-11-23
+
+The first stable release.
+
+### Requirements
+
+- Home Assistant 2026.10.0 or later. Marketplace needs 2026.11 or later; on 2026.10, install manually.
+- Your own Ontario 511 API key ([request one](https://511on.ca/developers/doc) while logged in at 511on.ca)
+
+### What's included
+
+- **Areas and commutes.** Follow the places you care about. Commutes run along real roads, and can follow your own pins or an imported route.
+- **Every Ontario 511 data type.** Events, construction, road conditions, alerts, cameras, ferries, rest areas, service centres, seasonal loads, carpool lots, transit hubs, inspection stations, roundabouts, HOT/HOV lanes and travel information centres.
+- **One device per real item,** shared by every area and commute it's in.
+- **Ontario 511 map card,** showing routes and everything nearby.
+
+### Upgrading from an alpha
+
+- Nothing has changed since 0.1.0-alpha.4 except the version. From an earlier alpha, your devices and settings are moved automatically on the first start: **back up first**, because going back to an alpha needs that backup. The [earlier release notes](https://github.com/TheoJoyce/ha-511on/releases) list what changed in each.
+- Marketplace now offers stable versions by default. If you turned on **Include pre-releases** only to get the alphas, you can turn it off from the menu (⋮) on the **Ontario 511** page in Marketplace.
+
+### OpenStreetMap services
+
+- **Commute routes:** the two areas' centres and any pins are sent to OpenStreetMap's routing service (OSRM, run by FOSSGIS), only when you submit a commute form or the repair. Routes © OpenStreetMap contributors.
+- **Address search:** a typed address is sent to [OpenStreetMap Nominatim](https://nominatim.org/), only when you submit the area form. Map data © OpenStreetMap contributors.
+- **Map card:** map tiles come from [VersaTiles](https://versatiles.org/) (OpenStreetMap data).
+
+### Known limitations
+
+- Road condition names have only been seen for bare, wet and "No Report" roads so far; winter conditions are matched by keywords and will be checked against real winter data.
+- Google's documented directions links are supported. Links copied from the Google Maps address bar and Apple Maps links couldn't be checked against official documentation or real shared links. If one isn't read, use a GPX file or place pins.
+
 ## [0.1.0-alpha.4] - 2026-11-23
 
 > [!WARNING]
