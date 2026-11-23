@@ -239,7 +239,12 @@ test("the editor keeps per-entity options and drops an empty title", () => {
   });
   editor.hass = makeHass([]);
   const form = editor.querySelector("ha-form");
-  assert.deepEqual(form.data, { title: "Commute", entities: [EVENT, ROUTE] });
+  assert.deepEqual(form.data, {
+    title: "Commute",
+    scope: "all",
+    nearby: true,
+    entities: [EVENT, ROUTE],
+  });
 
   const changes = [];
   editor.addEventListener("config-changed", (ev) => changes.push(ev.detail.config));
@@ -254,6 +259,167 @@ test("the editor keeps per-entity options and drops an empty title", () => {
       entities: [{ entity: EVENT, color: "orange" }, CAMERA],
     },
   ]);
+});
+
+test("the editor saves a chosen scope and only a turned-off nearby", () => {
+  const editor = document.createElement(`${CARD}-editor`);
+  document.body.appendChild(editor);
+  editor.setConfig({ type: `custom:${CARD}`, entities: [] });
+  editor.hass = makeHass([]);
+  const form = editor.querySelector("ha-form");
+  const changes = [];
+  editor.addEventListener("config-changed", (ev) => changes.push(ev.detail.config));
+  const change = (value) =>
+    form.dispatchEvent(
+      new CustomEvent("value-changed", {
+        detail: { value: { title: "", entities: [], ...value } },
+      })
+    );
+  change({ scope: "commute-1", nearby: false });
+  change({ scope: "all", nearby: true });
+  assert.deepEqual(changes, [
+    { type: `custom:${CARD}`, entities: [], scope: "commute-1", nearby: false },
+    { type: `custom:${CARD}`, entities: [] },
+  ]);
+});
+
+const NEAR = "sensor.near_camera";
+const FAR = "sensor.far_rest_area";
+const IN_AREA = "sensor.in_area_ferry";
+const OTHER = "sensor.other_integration";
+const COMMUTE_SCOPE = {
+  id: "commute-1",
+  title: "Home to Work",
+  type: "commute",
+  route_entity: ROUTE,
+  corridor_km: 2,
+  lines: [
+    [
+      [43.7, -79.6],
+      [43.7, -79.5],
+    ],
+  ],
+  areas: [{ center: [43.9, -79.9], radius_km: 3 }],
+};
+const AREA_SCOPE = {
+  id: "area-1",
+  title: "Cottage",
+  type: "area",
+  center: [44.5, -79.0],
+  radius_km: 5,
+};
+const located = (id, latitude, longitude) =>
+  state(id, "ok", { latitude, longitude });
+const scopedHass = (scopes = [COMMUTE_SCOPE, AREA_SCOPE]) => {
+  const hass = makeHass(
+    [
+      ROUTE_STATE,
+      // About 1 km from the route.
+      located(NEAR, 43.709, -79.55),
+      located(FAR, 45.0, -81.0),
+      located(IN_AREA, 44.51, -79.01),
+      located(OTHER, 43.7, -79.55),
+    ],
+    {
+      entities: Object.fromEntries([
+        ...[ROUTE, NEAR, FAR, IN_AREA].map((id) => [
+          id,
+          { entity_id: id, platform: "ontario_511" },
+        ]),
+        [OTHER, { entity_id: OTHER, platform: "other" }],
+      ]),
+    }
+  );
+  hass.calls = [];
+  hass.callWS = async (message) => {
+    hass.calls.push(message);
+    return { scopes };
+  };
+  return hass;
+};
+const markerIds = (hass, map) =>
+  map.markers
+    .filter((m) => !m.removed)
+    .map(({ lngLat: [lon, lat] }) =>
+      Object.values(hass.states).find(
+        (s) => s.attributes.latitude === lat && s.attributes.longitude === lon
+      ).entity_id
+    )
+    .sort();
+const createScoped = async (config, hass = scopedHass()) => {
+  const { card, map } = await createCard(config, hass);
+  await settle();
+  return { card, map, hass };
+};
+
+test("a listed route shows what's near that commute, without listing it", async () => {
+  const { map, hass } = await createScoped({ entities: [ROUTE] });
+  assert.deepEqual(hass.calls, [{ type: "ontario_511/map_scopes" }]);
+  assert.deepEqual(markerIds(hass, map), [NEAR]);
+});
+
+test("with nothing listed, every area and commute is shown", async () => {
+  const { map, hass } = await createScoped({ entities: [] });
+  assert.deepEqual(markerIds(hass, map), [IN_AREA, NEAR].sort());
+  assert.equal(map.sources["o511-routes"].data.features.length, 1);
+});
+
+test("a chosen area shows only what's inside it", async () => {
+  const { map, hass } = await createScoped({ entities: [], scope: "area-1" });
+  assert.deepEqual(markerIds(hass, map), [IN_AREA]);
+  assert.equal(map.sources["o511-routes"].data.features.length, 0);
+});
+
+test("a chosen commute draws its route and includes its areas", async () => {
+  const hass = scopedHass();
+  hass.states[FAR] = located(FAR, 43.91, -79.91);
+  const { map } = await createScoped({ entities: [], scope: "commute-1" }, hass);
+  assert.equal(map.sources["o511-routes"].data.features.length, 1);
+  assert.deepEqual(markerIds(hass, map), [FAR, NEAR].sort());
+});
+
+test("nearby can be turned off, leaving what's listed", async () => {
+  const { map, hass } = await createScoped({
+    entities: [ROUTE, FAR],
+    nearby: false,
+  });
+  assert.deepEqual(markerIds(hass, map), [FAR]);
+});
+
+test("a list without a route keeps showing only that list", async () => {
+  const { map, hass } = await createScoped({ entities: [FAR] });
+  assert.deepEqual(markerIds(hass, map), [FAR]);
+});
+
+test("a registry change with the same scopes keeps the user's view", async () => {
+  const { card, map, hass } = await createScoped({ entities: [ROUTE] });
+  const fits = map.fits.length;
+  card.hass = { ...hass, entities: { ...hass.entities } };
+  await settle();
+  await settle();
+  assert.equal(hass.calls.length, 2);
+  assert.equal(map.fits.length, fits);
+});
+
+test("a failed scope request still draws what's listed", async () => {
+  const hass = scopedHass();
+  hass.callWS = async () => {
+    throw new Error("unknown_command");
+  };
+  const { map } = await createScoped({ entities: [ROUTE, FAR] }, hass);
+  assert.equal(map.sources["o511-routes"].data.features.length, 1);
+  assert.deepEqual(markerIds(hass, map), [FAR]);
+});
+
+test("a custom route's pins are drawn", async () => {
+  const hass = scopedHass();
+  hass.states[ROUTE] = state(ROUTE, "42.0", {
+    ...ROUTE_STATE.attributes,
+    pins: [[43.72, -79.55]],
+  });
+  const { map } = await createScoped({ entities: [ROUTE] }, hass);
+  const [pin] = map.sources["o511-pins"].data.features;
+  assert.deepEqual(pin.geometry.coordinates, [-79.55, 43.72]);
 });
 
 test("draws on style.load even if MapLibre still reports loading", async () => {

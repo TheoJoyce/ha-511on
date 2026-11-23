@@ -50,6 +50,7 @@ from .coordinator import ResourceCoordinator
 from .feeds import FeedIndex
 from .generation import generate_for_area, generate_for_commute
 from .models import Item
+from .websocket import async_register_commands
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -116,8 +117,9 @@ def resources_in_use(entry: ConfigEntry) -> set[Resource]:
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Serve the map card."""
+    """Serve the map card and the data it needs."""
     await async_register_card(hass)
+    async_register_commands(hass)
     return True
 
 
