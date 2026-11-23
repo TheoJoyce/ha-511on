@@ -14,12 +14,13 @@ Changes to the Ontario 511 integration for Home Assistant, newest first. It's co
 
 ### What's new
 
-- **Ready for Marketplace.** The install steps, links and badges now use Home Assistant's built-in Marketplace, and the integration is listed under **Vehicles & transport**.
+- **Ready for Marketplace.** The install steps, links and badges now use Home Assistant's built-in Marketplace, and the integration declares the **Vehicles & transport** category.
+- **New areas and commutes finish on their own.** If a data type couldn't be fetched when one was added, its items now appear at that type's next normal refresh, instead of waiting for a restart.
 - **Map card names** follow Home Assistant 2026.11's entity naming, with the device and entity name, when you hover over a marker.
 
 ### Upgrading from 0.1.0-alpha.3
 
-- Existing installs move to Marketplace automatically when you update to Home Assistant 2026.11. To keep getting pre-releases, check that the **Pre-release** switch is on: **Settings** → **Devices & services** → **Marketplace**, then the **Ontario 511** device.
+- Existing installs move to Marketplace automatically when you update to Home Assistant 2026.11. To keep getting pre-releases, go to **Settings** → **Marketplace**, open **Ontario 511**, and open the menu (⋮). If it offers **Include pre-releases**, select it and confirm.
 
 ## [0.1.0-alpha.3] - 2026-11-23
 

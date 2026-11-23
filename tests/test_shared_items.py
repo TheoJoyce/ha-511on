@@ -222,6 +222,56 @@ async def test_devices_left_behind_by_a_crash_are_moved(
     assert len(dr.async_entries_for_config_entry(device_registry, ENTRY_ID)) == 2
 
 
+@pytest.mark.parametrize(
+    ("device_saved", "entity_saved"),
+    [
+        pytest.param(False, True, id="entity_registry_saved_first"),
+        pytest.param(True, False, id="device_registry_saved_first"),
+    ],
+)
+@pytest.mark.usefixtures("mock_api")
+async def test_crash_between_the_registry_saves(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+    device_saved: bool,
+    entity_saved: bool,
+) -> None:
+    """Either registry being ahead of the other still ends with one entity."""
+    entry = _old_entry([_area(NEAR_ID, "Near", SPOT, {"455": NAME_455})])
+    entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(entry, version=3, minor_version=1)
+    device, entity = _old_device(
+        device_registry, entity_registry, entry, NEAR_ID, "455", "near"
+    )
+    new_id = f"{ENTRY_ID}:cameras:455"
+    if entity_saved:
+        entity_registry.async_update_entity(
+            entity.entity_id,
+            config_subentry_id=None,
+            new_unique_id=f"{new_id}:camera_road",
+        )
+    if device_saved:
+        entity_registry.async_update_entity(entity.entity_id, config_subentry_id=None)
+        device_registry.async_update_device(
+            device.id,
+            new_config_subentry_id=None,
+            new_identifiers={(DOMAIN, new_id)},
+        )
+
+    await _setup(hass, entry)
+
+    updated = entity_registry.async_get(entity.entity_id)
+    assert updated is not None
+    assert updated.id == entity.id
+    assert updated.unique_id == f"{new_id}:camera_road"
+    assert not [
+        e
+        for e in er.async_entries_for_config_entry(entity_registry, ENTRY_ID)
+        if e.unique_id.endswith("camera_road") and e.id != entity.id
+    ]
+
+
 @pytest.mark.usefixtures("mock_api")
 async def test_migration_does_not_bring_back_deleted_items(
     hass: HomeAssistant,

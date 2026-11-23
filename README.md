@@ -93,9 +93,9 @@ Or add it by hand:
 2. Select **Add from link**, enter `https://github.com/TheoJoyce/ha-511on`, and select **Add**. If asked, choose the type **Integration**. Adding a repository by link needs a GitHub connection, and Marketplace walks you through it the first time.
 3. Open **Ontario 511**. Until a stable version is out, every release is a pre-release: open the menu (⋮), select **Install another version**, choose the newest version, and select **Install**.
 4. If Home Assistant asks you to restart, restart it.
-5. Turn on pre-releases, so Marketplace offers the next ones as updates: go to **Settings** → **Devices & services** → **Marketplace**, open the **Ontario 511** device, enable its **Pre-release** entity (it's disabled by default), and turn the switch on.
+5. Turn on pre-releases, so Marketplace offers the next ones as updates: in **Settings** → **Marketplace**, open **Ontario 511**, open the menu (⋮), select **Include pre-releases**, and confirm.
 
-Without the **Pre-release** switch, Marketplace can't offer pre-releases as updates. Until a stable version is out, it then offers the latest commit instead, shown as a code such as `ad00b1d` rather than a version number.
+Without **Include pre-releases**, Marketplace can't offer pre-releases as updates. Until a stable version is out, it then offers the latest commit instead, shown as a code such as `ad00b1d` rather than a version number.
 
 ### Manual
 
