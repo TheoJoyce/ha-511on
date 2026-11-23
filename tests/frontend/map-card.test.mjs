@@ -411,6 +411,21 @@ test("a failed scope request still draws what's listed", async () => {
   assert.deepEqual(markerIds(hass, map), [FAR]);
 });
 
+test("only the latest scope reply is used", async () => {
+  const hass = scopedHass();
+  const replies = [];
+  hass.callWS = () => new Promise((resolve) => replies.push(resolve));
+  const { card, map } = await createScoped({ entities: [ROUTE] }, hass);
+  card.hass = { ...hass, entities: { ...hass.entities } };
+  await settle();
+  assert.equal(replies.length, 2);
+  replies[1]({ scopes: [COMMUTE_SCOPE] });
+  await settle();
+  replies[0]({ scopes: [] });
+  await settle();
+  assert.deepEqual(markerIds(hass, map), [NEAR]);
+});
+
 test("a custom route's pins are drawn", async () => {
   const hass = scopedHass();
   hass.states[ROUTE] = state(ROUTE, "42.0", {

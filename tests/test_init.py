@@ -29,6 +29,7 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 
 from custom_components.ontario_511.api import Resource
 from custom_components.ontario_511.card import frontend_hash
+from custom_components.ontario_511.client import response_cache
 from custom_components.ontario_511.const import (
     CONF_ALTERNATIVES,
     CONF_CORRIDOR_KM,
@@ -97,6 +98,46 @@ async def test_connection_error_retries_setup(
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
     assert mock_config_entry.state is ConfigEntryState.SETUP_RETRY
+
+
+@pytest.mark.parametrize(
+    "subentries",
+    [
+        [
+            ConfigSubentryDataWithId(
+                subentry_id=AREA_ID,
+                subentry_type=SUBENTRY_AREA,
+                title="Home",
+                unique_id=None,
+                data=area_data(
+                    feeds=[],
+                    items={"cameras": {"455": "Camera"}, "roundabouts": {"1": "R"}},
+                ),
+            )
+        ]
+    ],
+)
+async def test_one_failing_resource_keeps_the_rest_after_a_reload(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """With other data cached, a failing resource doesn't stop the entry."""
+    aioclient_mock.get(Resource.CAMERAS.url, text=load_fixture("cameras.json"))
+    aioclient_mock.get(Resource.ROUNDABOUTS.url, text=load_fixture("roundabouts.json"))
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    # Cameras stay cached; roundabouts have to be fetched again, and fail.
+    cache = response_cache(hass)
+    for key in [k for k in cache if k[1] is Resource.ROUNDABOUTS]:
+        del cache[key]
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(Resource.ROUNDABOUTS.url, status=500)
+    await hass.config_entries.async_reload(mock_config_entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert mock_config_entry.state is ConfigEntryState.LOADED
 
 
 async def test_migrate_from_first_alpha(

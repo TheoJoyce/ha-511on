@@ -202,6 +202,13 @@ def test_route_recorded_the_other_way_is_followed_from_the_start() -> None:
     ]
 
 
+def test_route_that_overshoots_keeps_its_order() -> None:
+    """A forward route isn't reversed just because that would be shorter."""
+    start, end = (43.70, -80.0), (43.70, -79.0)
+    stops = [(43.70, -78.76), (43.72, -79.24)]
+    assert pins_from_route([start, *stops, end], start, end) == stops
+
+
 @pytest.mark.parametrize(
     "text",
     [

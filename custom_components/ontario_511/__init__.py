@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 import logging
+import re
 from types import MappingProxyType
 from typing import Any
 
@@ -181,8 +182,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -
     # Setup waits for one resource, which checks the key and connection; the
     # rest load in the background, because with many resources the rate
     # limiter spaces the first calls over more than a minute.
+    # With cached data the key is known to work, so one failing resource
+    # shouldn't hold back the others.
     missing = [c for c in coordinators.values() if c.data is None]
-    if missing:
+    if missing and len(missing) == len(coordinators):
         first = min(missing, key=lambda c: c.resource is not VALIDATION_RESOURCE)
         await first.async_config_entry_first_refresh()
     first_refreshes = {
@@ -338,7 +341,7 @@ async def _async_generate(
         runtime.generating = False
     # New items need entities. Without any, a reload would only retry a failing
     # resource at once. Reloading cancels refreshes, which would repeat their calls.
-    if items_changed:
+    if items_changed or resources_in_use(entry) != set(runtime.coordinators):
         await asyncio.gather(*first_refreshes.values())
         hass.config_entries.async_schedule_reload(entry.entry_id)
 
@@ -554,12 +557,20 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             key=lambda pair: (
                 pair[0].disabled_by is not None,
                 not _is_customised(pair[0], own_entities(pair[0])),
+                -sum(e.disabled_by is None for e in own_entities(pair[0])),
                 pair[0].created_at,
             ),
         )
         for device, _ in group:
             if device.id != keep[0].id:
                 lost.extend(e.entity_id for e in own_entities(device))
+                for entity in er.async_entries_for_device(
+                    entities, device.id, include_disabled_entities=True
+                ):
+                    if entity.config_entry_id != entry.entry_id:
+                        entities.async_update_entity(
+                            entity.entity_id, device_id=keep[0].id
+                        )
                 devices.async_remove_device(device.id)
         device, old = keep
         # Entities first: moving the device first would delete them.
@@ -574,14 +585,17 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             new_config_subentry_id=None,
             new_identifiers={(DOMAIN, new)},
         )
-    resources = {resource.value for resource in Resource}
+    listed = {
+        f"{resource.value}:{item_id}"
+        for resource, items in shared_items(entry).items()
+        for item_id in items
+    }
     for entity in er.async_entries_for_config_entry(entities, entry.entry_id):
         subentry_id, _, rest = entity.unique_id.partition(":")
         if (
             entity.device_id is None
             and subentry_id in entry.subentries
-            and rest.count(":") >= 2
-            and rest.partition(":")[0] in resources
+            and rest.rpartition(":")[0] in listed
             and not entities.async_get_entity_id(
                 entity.domain, DOMAIN, new_id := f"{entry.entry_id}:{rest}"
             )
@@ -609,10 +623,19 @@ def _is_customised(device: dr.DeviceEntry, entities: list[er.RegistryEntry]) -> 
     if device.name_by_user or device.area_id or device.labels:
         return True
     for entity in entities:
-        if entity.name or entity.icon or entity.area_id or entity.labels:
+        if (
+            entity.name
+            or entity.icon
+            or entity.area_id
+            or entity.labels
+            or entity.hidden_by
+            or any(alias is not er.COMPUTED_NAME for alias in entity.aliases)
+        ):
             return True
         default = slugify(f"{device.name or ''} {entity.original_name or ''}")
-        if not entity.entity_id.partition(".")[2].startswith(default):
+        if not re.fullmatch(
+            rf"{re.escape(default)}(_\d+)?", entity.entity_id.partition(".")[2]
+        ):
             return True
     return False
 

@@ -195,10 +195,6 @@ def _distinct(points: Sequence[Point]) -> Iterator[Point]:
             last = point
 
 
-def _trip_km(start: Point, stops: Sequence[Point], end: Point) -> float:
-    return sum(distance_km(a, b) for a, b in pairwise((start, *stops, end)))
-
-
 def pins_from_route(
     points: Sequence[Point], start: Point, end: Point, limit: int = MAX_PINS
 ) -> list[Point]:
@@ -216,7 +212,9 @@ def pins_from_route(
     ]
     if not between:
         raise NoStops
-    if _trip_km(start, between[::-1], end) < _trip_km(start, between, end):
+    if distance_km(points[0], end) + distance_km(points[-1], start) < (
+        distance_km(points[0], start) + distance_km(points[-1], end)
+    ):
         between.reverse()
     return between if len(between) <= limit else _spaced(between, limit)
 

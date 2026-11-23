@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from typing import Any
 from unittest.mock import Mock, patch
 
 from homeassistant.config_entries import ConfigEntryState, ConfigSubentryDataWithId
@@ -428,6 +429,94 @@ async def test_migration_moves_an_entity_without_a_device(
     kept = entity_registry.async_get(summary.entity_id)
     assert kept is not None
     assert kept.unique_id == f"{NEAR_ID}:alerts"
+
+
+@pytest.mark.usefixtures("mock_api")
+async def test_migration_leaves_an_unlisted_orphan_with_its_area(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """An old entity for an item nothing lists isn't made permanent."""
+    entry = _old_entry([_area(NEAR_ID, "Near", SPOT, {"455": NAME_455})])
+    entry.add_to_hass(hass)
+    orphan = entity_registry.async_get_or_create(
+        Platform.SENSOR,
+        DOMAIN,
+        f"{NEAR_ID}:cameras:456:camera_road",
+        config_entry=entry,
+        config_subentry_id=NEAR_ID,
+        suggested_object_id="unlisted",
+    )
+
+    await _setup(hass, entry)
+
+    kept = entity_registry.async_get(orphan.entity_id)
+    assert kept is not None
+    assert kept.config_subentry_id == NEAR_ID
+
+
+@pytest.mark.usefixtures("mock_api")
+async def test_migration_keeps_a_helper_on_the_kept_duplicate(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """A helper on a merged-away device moves to the device that stays."""
+    entry = _old_entry([_area(NEAR_ID, "Near", SPOT, {"455": NAME_455}), SINGLE_ITEM])
+    entry.add_to_hass(hass)
+    duplicate, _ = _old_device(
+        device_registry, entity_registry, entry, NEAR_ID, "455", "first"
+    )
+    kept, _ = _old_device(
+        device_registry, entity_registry, entry, ITEM_ID, "455", "second"
+    )
+    device_registry.async_update_device(kept.id, name_by_user="Mine")
+    helper_entry = MockConfigEntry(domain="template")
+    helper_entry.add_to_hass(hass)
+    helper = entity_registry.async_get_or_create(
+        Platform.SENSOR,
+        "template",
+        "my_helper",
+        config_entry=helper_entry,
+        device_id=duplicate.id,
+    )
+
+    await _setup(hass, entry)
+
+    moved = entity_registry.async_get(helper.entity_id)
+    assert moved is not None
+    assert moved.device_id == kept.id
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        pytest.param({"new_entity_id": "sensor.second_kitchen"}, id="renamed_suffix"),
+        pytest.param({"aliases": ["Kitchen camera"]}, id="alias"),
+        pytest.param({"hidden_by": er.RegistryEntryHider.USER}, id="hidden"),
+    ],
+)
+@pytest.mark.usefixtures("mock_api")
+async def test_migration_counts_entity_changes_as_customised(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+    change: dict[str, Any],
+) -> None:
+    """The duplicate whose entity the user changed is the one kept."""
+    entry = _old_entry([_area(NEAR_ID, "Near", SPOT, {"455": NAME_455}), SINGLE_ITEM])
+    entry.add_to_hass(hass)
+    _old_device(device_registry, entity_registry, entry, NEAR_ID, "455", "first")
+    used, entity = _old_device(
+        device_registry, entity_registry, entry, ITEM_ID, "455", "second"
+    )
+    entity_registry.async_update_entity(entity.entity_id, **change)
+
+    await _setup(hass, entry)
+
+    moved = _item_device(device_registry, "455")
+    assert moved is not None
+    assert moved.id == used.id
 
 
 @pytest.mark.usefixtures("mock_api")

@@ -265,10 +265,15 @@ class Ontario511MapCard extends HTMLElement {
     this._scopesLoaded = true;
     this._scopesEntities = this._hass.entities;
     this._scopesRoutes = routes;
+    const request = (this._scopesRequest = (this._scopesRequest ?? 0) + 1);
     try {
       const { scopes } = await this._hass.callWS({
         type: "ontario_511/map_scopes",
       });
+      // Replies can arrive out of order; only the latest request counts.
+      if (request !== this._scopesRequest) {
+        return;
+      }
       this._scopesRoutes = scopes
         .map((scope) => this._hass.states[scope.route_entity]?.attributes.route)
         .filter(Boolean);
