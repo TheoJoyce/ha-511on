@@ -12,7 +12,7 @@ import logging
 from types import MappingProxyType
 from typing import Any
 
-from homeassistant.components.zone import DATA_ZONE_STORAGE_COLLECTION
+from homeassistant.components.zone.const import DOMAIN as ZONE_DOMAIN
 from homeassistant.config_entries import (
     ConfigEntryState,
     ConfigFlow,
@@ -195,7 +195,10 @@ async def _async_create_zone(
     The zone belongs to the user from then on: it isn't changed or removed
     with the area.
     """
-    await hass.data[DATA_ZONE_STORAGE_COLLECTION].async_create_item(
+    zone_data = hass.data[ZONE_DOMAIN]
+    # Home Assistant 2026.10 stores the collection here, 2026.11 wraps it.
+    zones = getattr(zone_data, "storage_collection", zone_data)
+    await zones.async_create_item(
         {
             CONF_NAME: name,
             CONF_LATITUDE: location["latitude"],
