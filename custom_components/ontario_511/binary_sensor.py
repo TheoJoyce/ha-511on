@@ -14,11 +14,11 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
+from . import Ontario511ConfigEntry, shared_items, subentry_feeds
 from .api import Resource
 from .const import SUBENTRY_ITEM
 from .coordinator import ResourceCoordinator
-from .entity import ItemEntity, SummaryEntity
+from .entity import ItemEntity, SharedItem, SummaryEntity
 from .models import CarpoolLot, RestArea, RoadSegment, SeasonalLoad
 
 PARALLEL_UPDATES = 0
@@ -109,25 +109,21 @@ async def async_setup_entry(
         for r in (Resource.EVENTS, Resource.CONSTRUCTION)
         if (c := coordinators.get(r)) is not None
     ]
+    items: list[BinarySensorEntity] = []
+    for resource, shared_by_id in shared_items(entry).items():
+        if (coordinator := coordinators.get(resource)) is None:
+            continue
+        for shared in shared_by_id.values():
+            items.extend(
+                ItemBinarySensor(coordinator, shared, d)
+                for d in ITEM_BINARY_SENSORS
+                if d.resource is resource
+            )
+            if resource is Resource.ROAD_CONDITIONS and feeds:
+                items.append(SegmentClosureSensor(coordinator, feeds, shared))
+    async_add_entities(items)
     for subentry in entry.subentries.values():
         entities: list[BinarySensorEntity] = []
-        for resource, items in subentry_items(subentry).items():
-            if (coordinator := coordinators.get(resource)) is None:
-                continue
-            for item_id, name in items.items():
-                entities.extend(
-                    ItemBinarySensor(
-                        coordinator, subentry.subentry_id, item_id, name, d
-                    )
-                    for d in ITEM_BINARY_SENSORS
-                    if d.resource is resource
-                )
-                if resource is Resource.ROAD_CONDITIONS and feeds:
-                    entities.append(
-                        SegmentClosureSensor(
-                            coordinator, feeds, subentry.subentry_id, item_id, name
-                        )
-                    )
         if subentry.subentry_type != SUBENTRY_ITEM:
             followed = [c for c in feeds if c.resource in subentry_feeds(subentry)]
             if road is not None:
@@ -153,13 +149,11 @@ class ItemBinarySensor(ItemEntity, BinarySensorEntity):
     def __init__(
         self,
         coordinator: ResourceCoordinator,
-        subentry_id: str,
-        item_id: str,
-        item_name: str,
+        shared: SharedItem,
         description: ItemBinaryDescription,
     ) -> None:
         """Initialize the binary sensor."""
-        super().__init__(coordinator, subentry_id, item_id, item_name, description.key)
+        super().__init__(coordinator, shared, description.key)
         self.entity_description = description
 
     @property
@@ -184,12 +178,10 @@ class SegmentClosureSensor(ItemEntity, BinarySensorEntity):
         self,
         road: ResourceCoordinator,
         feeds: list[ResourceCoordinator],
-        subentry_id: str,
-        item_id: str,
-        item_name: str,
+        shared: SharedItem,
     ) -> None:
         """Initialize the binary sensor on the segment's device."""
-        super().__init__(road, subentry_id, item_id, item_name, "full_closure")
+        super().__init__(road, shared, "full_closure")
         self.extra_coordinators = tuple(feeds)
 
     @property
@@ -197,7 +189,7 @@ class SegmentClosureSensor(ItemEntity, BinarySensorEntity):
         """Return whether anything on the segment closes all lanes."""
         events, construction = (
             self.coordinator.config_entry.runtime_data.feeds.on_segment(
-                self.item_id, self.subentry_id
+                self.item_id, self.subentry_ids
             )
         )
         return any(e.is_full_closure for e in (*events, *construction))

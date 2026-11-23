@@ -32,7 +32,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'accessible',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:accessible',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:accessible',
     'unit_of_measurement': None,
   })
 # ---
@@ -83,7 +83,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'fuel',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:fuel',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:fuel',
     'unit_of_measurement': None,
   })
 # ---
@@ -134,7 +134,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'open',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:open',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:open',
     'unit_of_measurement': None,
   })
 # ---
@@ -186,7 +186,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'truck_parking',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:truck_parking',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:truck_parking',
     'unit_of_measurement': None,
   })
 # ---
@@ -237,7 +237,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'washrooms',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:washrooms',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:washrooms',
     'unit_of_measurement': None,
   })
 # ---
@@ -288,7 +288,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'restricted',
-    'unique_id': '01JTEST0NTAR10511AREA00001:seasonalloadapi:32684e4006c2f754:restricted',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:seasonalloadapi:32684e4006c2f754:restricted',
     'unit_of_measurement': None,
   })
 # ---
@@ -445,7 +445,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'drifting',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:drifting',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:drifting',
     'unit_of_measurement': None,
   })
 # ---
@@ -496,7 +496,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'full_closure',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:full_closure',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:full_closure',
     'unit_of_measurement': None,
   })
 # ---
@@ -548,7 +548,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'hazardous',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:hazardous',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:hazardous',
     'unit_of_measurement': None,
   })
 # ---
@@ -600,7 +600,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'drifting',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:drifting',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:drifting',
     'unit_of_measurement': None,
   })
 # ---
@@ -651,7 +651,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'full_closure',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:full_closure',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:full_closure',
     'unit_of_measurement': None,
   })
 # ---
@@ -703,7 +703,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'hazardous',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:hazardous',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:hazardous',
     'unit_of_measurement': None,
   })
 # ---
@@ -755,7 +755,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'bike_rack',
-    'unique_id': '01JTEST0NTAR10511AREA00001:carpoollots:1361264909:bike_rack',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:carpoollots:1361264909:bike_rack',
     'unit_of_measurement': None,
   })
 # ---
@@ -806,7 +806,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'lights',
-    'unique_id': '01JTEST0NTAR10511AREA00001:carpoollots:1361264909:lights',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:carpoollots:1361264909:lights',
     'unit_of_measurement': None,
   })
 # ---
@@ -857,7 +857,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'transit',
-    'unique_id': '01JTEST0NTAR10511AREA00001:carpoollots:1361264909:transit',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:carpoollots:1361264909:transit',
     'unit_of_measurement': None,
   })
 # ---
@@ -908,7 +908,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'accessible',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:accessible',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:accessible',
     'unit_of_measurement': None,
   })
 # ---
@@ -959,7 +959,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'fuel',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:fuel',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:fuel',
     'unit_of_measurement': None,
   })
 # ---
@@ -1010,7 +1010,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'open',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:open',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:open',
     'unit_of_measurement': None,
   })
 # ---
@@ -1062,7 +1062,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'truck_parking',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:truck_parking',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:truck_parking',
     'unit_of_measurement': None,
   })
 # ---
@@ -1113,7 +1113,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'washrooms',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:washrooms',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:washrooms',
     'unit_of_measurement': None,
   })
 # ---
@@ -1164,7 +1164,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'view',
-    'unique_id': '01JTEST0NTAR10511AREA00001:cameras:455:view_1',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:cameras:455:view_1',
     'unit_of_measurement': None,
   })
 # ---
@@ -1344,7 +1344,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'segment_new_event',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:segment_new_event',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:segment_new_event',
     'unit_of_measurement': None,
   })
 # ---
@@ -1403,7 +1403,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'segment_new_event',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:segment_new_event',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:segment_new_event',
     'unit_of_measurement': None,
   })
 # ---
@@ -1458,7 +1458,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'contact',
-    'unique_id': '01JTEST0NTAR10511AREA00001:inspectionstations:482:contact',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:inspectionstations:482:contact',
     'unit_of_measurement': None,
   })
 # ---
@@ -1509,7 +1509,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'direction',
-    'unique_id': '01JTEST0NTAR10511AREA00001:inspectionstations:482:direction',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:inspectionstations:482:direction',
     'unit_of_measurement': None,
   })
 # ---
@@ -1560,7 +1560,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'station_location',
-    'unique_id': '01JTEST0NTAR10511AREA00001:inspectionstations:482:station_location',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:inspectionstations:482:station_location',
     'unit_of_measurement': None,
   })
 # ---
@@ -1613,7 +1613,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:inspectionstations:482:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:inspectionstations:482:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -1664,7 +1664,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'road',
-    'unique_id': '01JTEST0NTAR10511AREA00001:inspectionstations:482:road',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:inspectionstations:482:road',
     'unit_of_measurement': None,
   })
 # ---
@@ -1715,7 +1715,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'centre_address',
-    'unique_id': '01JTEST0NTAR10511AREA00001:informationcenter:593596478:centre_address',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:informationcenter:593596478:centre_address',
     'unit_of_measurement': None,
   })
 # ---
@@ -1766,7 +1766,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'email',
-    'unique_id': '01JTEST0NTAR10511AREA00001:informationcenter:593596478:email',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:informationcenter:593596478:email',
     'unit_of_measurement': None,
   })
 # ---
@@ -1817,7 +1817,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'hours',
-    'unique_id': '01JTEST0NTAR10511AREA00001:informationcenter:593596478:hours',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:informationcenter:593596478:hours',
     'unit_of_measurement': None,
   })
 # ---
@@ -1870,7 +1870,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'phone',
-    'unique_id': '01JTEST0NTAR10511AREA00001:informationcenter:593596478:phone',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:informationcenter:593596478:phone',
     'unit_of_measurement': None,
   })
 # ---
@@ -1921,7 +1921,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:informationcenter:593596478:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:informationcenter:593596478:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -1972,7 +1972,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'address',
-    'unique_id': '01JTEST0NTAR10511AREA00001:transithub:1848677822:address',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:transithub:1848677822:address',
     'unit_of_measurement': None,
   })
 # ---
@@ -2025,7 +2025,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:transithub:1848677822:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:transithub:1848677822:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -2076,7 +2076,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'website',
-    'unique_id': '01JTEST0NTAR10511AREA00001:transithub:1848677822:website',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:transithub:1848677822:website',
     'unit_of_measurement': None,
   })
 # ---
@@ -2127,7 +2127,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'comments',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:comments',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:comments',
     'unit_of_measurement': None,
   })
 # ---
@@ -2178,7 +2178,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'direction',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:direction',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:direction',
     'unit_of_measurement': None,
   })
 # ---
@@ -2229,7 +2229,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'food_services',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:food_services',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:food_services',
     'unit_of_measurement': None,
   })
 # ---
@@ -2280,7 +2280,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'location',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:location',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:location',
     'unit_of_measurement': None,
   })
 # ---
@@ -2331,7 +2331,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'mode',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:mode',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:mode',
     'unit_of_measurement': None,
   })
 # ---
@@ -2382,7 +2382,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -2433,7 +2433,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'road',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:road',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:road',
     'unit_of_measurement': None,
   })
 # ---
@@ -2484,7 +2484,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'season',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:season',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:season',
     'unit_of_measurement': None,
   })
 # ---
@@ -2540,7 +2540,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'rest_area_status',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:rest_area_status',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:rest_area_status',
     'unit_of_measurement': None,
   })
 # ---
@@ -2599,7 +2599,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'area_type',
-    'unique_id': '01JTEST0NTAR10511AREA00001:allrestareas:3cc0a73da6df6e3a:area_type',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:allrestareas:3cc0a73da6df6e3a:area_type',
     'unit_of_measurement': None,
   })
 # ---
@@ -2650,7 +2650,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:hovlanes:149499285:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:hovlanes:149499285:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -2701,7 +2701,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'hov_road',
-    'unique_id': '01JTEST0NTAR10511AREA00001:hovlanes:149499285:hov_road',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:hovlanes:149499285:hov_road',
     'unit_of_measurement': None,
   })
 # ---
@@ -2754,7 +2754,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'direction',
-    'unique_id': '01JTEST0NTAR10511AREA00001:cameras:455:direction',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:cameras:455:direction',
     'unit_of_measurement': None,
   })
 # ---
@@ -2805,7 +2805,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'road',
-    'unique_id': '01JTEST0NTAR10511AREA00001:cameras:455:road',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:cameras:455:road',
     'unit_of_measurement': None,
   })
 # ---
@@ -2856,7 +2856,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'sort_order',
-    'unique_id': '01JTEST0NTAR10511AREA00001:cameras:455:sort_order',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:cameras:455:sort_order',
     'unit_of_measurement': None,
   })
 # ---
@@ -2907,7 +2907,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'source',
-    'unique_id': '01JTEST0NTAR10511AREA00001:cameras:455:source',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:cameras:455:source',
     'unit_of_measurement': None,
   })
 # ---
@@ -2958,7 +2958,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'source_id',
-    'unique_id': '01JTEST0NTAR10511AREA00001:cameras:455:source_id',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:cameras:455:source_id',
     'unit_of_measurement': None,
   })
 # ---
@@ -3009,7 +3009,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'load_date',
-    'unique_id': '01JTEST0NTAR10511AREA00001:seasonalloadapi:32684e4006c2f754:load_date',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:seasonalloadapi:32684e4006c2f754:load_date',
     'unit_of_measurement': None,
   })
 # ---
@@ -3061,7 +3061,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'route',
-    'unique_id': '01JTEST0NTAR10511AREA00001:seasonalloadapi:32684e4006c2f754:route',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:seasonalloadapi:32684e4006c2f754:route',
     'unit_of_measurement': None,
   })
 # ---
@@ -3117,7 +3117,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'load_status',
-    'unique_id': '01JTEST0NTAR10511AREA00001:seasonalloadapi:32684e4006c2f754:load_status',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:seasonalloadapi:32684e4006c2f754:load_status',
     'unit_of_measurement': None,
   })
 # ---
@@ -3747,7 +3747,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'segment_construction',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:segment_construction',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:segment_construction',
     'unit_of_measurement': None,
   })
 # ---
@@ -3800,7 +3800,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'segment_events',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:segment_events',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:segment_events',
     'unit_of_measurement': None,
   })
 # ---
@@ -3881,7 +3881,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'last_updated',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:last_updated',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:last_updated',
     'unit_of_measurement': None,
   })
 # ---
@@ -3933,7 +3933,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -3984,7 +3984,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'reported_conditions',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:reported_conditions',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:reported_conditions',
     'unit_of_measurement': None,
   })
 # ---
@@ -4035,7 +4035,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'road',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:road',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:road',
     'unit_of_measurement': None,
   })
 # ---
@@ -4096,7 +4096,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'condition',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:condition',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:condition',
     'unit_of_measurement': None,
   })
 # ---
@@ -4173,7 +4173,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'surface_condition',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:surface_condition',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:surface_condition',
     'unit_of_measurement': None,
   })
 # ---
@@ -4240,7 +4240,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'visibility',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:1b4785af1e51b222:visibility',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:1b4785af1e51b222:visibility',
     'unit_of_measurement': None,
   })
 # ---
@@ -4298,7 +4298,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'segment_construction',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:segment_construction',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:segment_construction',
     'unit_of_measurement': None,
   })
 # ---
@@ -4351,7 +4351,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'segment_events',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:segment_events',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:segment_events',
     'unit_of_measurement': None,
   })
 # ---
@@ -4460,7 +4460,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'last_updated',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:last_updated',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:last_updated',
     'unit_of_measurement': None,
   })
 # ---
@@ -4512,7 +4512,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -4563,7 +4563,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'reported_conditions',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:reported_conditions',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:reported_conditions',
     'unit_of_measurement': None,
   })
 # ---
@@ -4614,7 +4614,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'road',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:road',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:road',
     'unit_of_measurement': None,
   })
 # ---
@@ -4675,7 +4675,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'condition',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:condition',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:condition',
     'unit_of_measurement': None,
   })
 # ---
@@ -4752,7 +4752,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'surface_condition',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:surface_condition',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:surface_condition',
     'unit_of_measurement': None,
   })
 # ---
@@ -4819,7 +4819,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'visibility',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roadconditions:cb16c8c5a9918509:visibility',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roadconditions:cb16c8c5a9918509:visibility',
     'unit_of_measurement': None,
   })
 # ---
@@ -4877,7 +4877,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'accessible_spaces',
-    'unique_id': '01JTEST0NTAR10511AREA00001:carpoollots:1361264909:accessible_spaces',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:carpoollots:1361264909:accessible_spaces',
     'unit_of_measurement': None,
   })
 # ---
@@ -4928,7 +4928,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'enter_from',
-    'unique_id': '01JTEST0NTAR10511AREA00001:carpoollots:1361264909:enter_from',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:carpoollots:1361264909:enter_from',
     'unit_of_measurement': None,
   })
 # ---
@@ -4979,7 +4979,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'interchange',
-    'unique_id': '01JTEST0NTAR10511AREA00001:carpoollots:1361264909:interchange',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:carpoollots:1361264909:interchange',
     'unit_of_measurement': None,
   })
 # ---
@@ -5030,7 +5030,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'parking_spaces',
-    'unique_id': '01JTEST0NTAR10511AREA00001:carpoollots:1361264909:parking_spaces',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:carpoollots:1361264909:parking_spaces',
     'unit_of_measurement': None,
   })
 # ---
@@ -5083,7 +5083,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:carpoollots:1361264909:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:carpoollots:1361264909:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -5134,7 +5134,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'road',
-    'unique_id': '01JTEST0NTAR10511AREA00001:carpoollots:1361264909:road',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:carpoollots:1361264909:road',
     'unit_of_measurement': None,
   })
 # ---
@@ -5185,7 +5185,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'location',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roundabouts:719effbf5b940464:location',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roundabouts:719effbf5b940464:location',
     'unit_of_measurement': None,
   })
 # ---
@@ -5236,7 +5236,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roundabouts:719effbf5b940464:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roundabouts:719effbf5b940464:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -5287,7 +5287,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'roundabout_type',
-    'unique_id': '01JTEST0NTAR10511AREA00001:roundabouts:719effbf5b940464:roundabout_type',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:roundabouts:719effbf5b940464:roundabout_type',
     'unit_of_measurement': None,
   })
 # ---
@@ -5340,7 +5340,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'access_via',
-    'unique_id': '01JTEST0NTAR10511AREA00001:servicecentres:-1597185408:access_via',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:servicecentres:-1597185408:access_via',
     'unit_of_measurement': None,
   })
 # ---
@@ -5391,7 +5391,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'amenities',
-    'unique_id': '01JTEST0NTAR10511AREA00001:servicecentres:-1597185408:amenities',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:servicecentres:-1597185408:amenities',
     'unit_of_measurement': None,
   })
 # ---
@@ -5442,7 +5442,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'commercial_parking',
-    'unique_id': '01JTEST0NTAR10511AREA00001:servicecentres:-1597185408:commercial_parking',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:servicecentres:-1597185408:commercial_parking',
     'unit_of_measurement': None,
   })
 # ---
@@ -5493,7 +5493,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'food_services',
-    'unique_id': '01JTEST0NTAR10511AREA00001:servicecentres:-1597185408:food_services',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:servicecentres:-1597185408:food_services',
     'unit_of_measurement': None,
   })
 # ---
@@ -5544,7 +5544,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'fuel',
-    'unique_id': '01JTEST0NTAR10511AREA00001:servicecentres:-1597185408:fuel',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:servicecentres:-1597185408:fuel',
     'unit_of_measurement': None,
   })
 # ---
@@ -5597,7 +5597,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:servicecentres:-1597185408:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:servicecentres:-1597185408:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -5648,7 +5648,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'road',
-    'unique_id': '01JTEST0NTAR10511AREA00001:servicecentres:-1597185408:road',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:servicecentres:-1597185408:road',
     'unit_of_measurement': None,
   })
 # ---
@@ -5699,7 +5699,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'title',
-    'unique_id': '01JTEST0NTAR10511AREA00001:servicecentres:-1597185408:title',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:servicecentres:-1597185408:title',
     'unit_of_measurement': None,
   })
 # ---
@@ -5750,7 +5750,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'website',
-    'unique_id': '01JTEST0NTAR10511AREA00001:servicecentres:-1597185408:website',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:servicecentres:-1597185408:website',
     'unit_of_measurement': None,
   })
 # ---
@@ -5801,7 +5801,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'comments',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:comments',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:comments',
     'unit_of_measurement': None,
   })
 # ---
@@ -5852,7 +5852,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'direction',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:direction',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:direction',
     'unit_of_measurement': None,
   })
 # ---
@@ -5903,7 +5903,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'food_services',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:food_services',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:food_services',
     'unit_of_measurement': None,
   })
 # ---
@@ -5954,7 +5954,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'location',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:location',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:location',
     'unit_of_measurement': None,
   })
 # ---
@@ -6005,7 +6005,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'mode',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:mode',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:mode',
     'unit_of_measurement': None,
   })
 # ---
@@ -6056,7 +6056,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -6107,7 +6107,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'road',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:road',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:road',
     'unit_of_measurement': None,
   })
 # ---
@@ -6158,7 +6158,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'season',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:season',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:season',
     'unit_of_measurement': None,
   })
 # ---
@@ -6214,7 +6214,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'rest_area_status',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:rest_area_status',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:rest_area_status',
     'unit_of_measurement': None,
   })
 # ---
@@ -6273,7 +6273,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'area_type',
-    'unique_id': '01JTEST0NTAR10511AREA00001:truckrestareas:5285e7b88600c35d:area_type',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:truckrestareas:5285e7b88600c35d:area_type',
     'unit_of_measurement': None,
   })
 # ---
@@ -6324,7 +6324,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'details',
-    'unique_id': '01JTEST0NTAR10511AREA00001:ferryterminals:82:details',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:ferryterminals:82:details',
     'unit_of_measurement': None,
   })
 # ---
@@ -6375,7 +6375,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'out_of_service',
-    'unique_id': '01JTEST0NTAR10511AREA00001:ferryterminals:82:out_of_service',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:ferryterminals:82:out_of_service',
     'unit_of_measurement': None,
   })
 # ---
@@ -6427,7 +6427,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'return_to_service',
-    'unique_id': '01JTEST0NTAR10511AREA00001:ferryterminals:82:return_to_service',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:ferryterminals:82:return_to_service',
     'unit_of_measurement': None,
   })
 # ---
@@ -6479,7 +6479,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'operated_by',
-    'unique_id': '01JTEST0NTAR10511AREA00001:ferryterminals:82:operated_by',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:ferryterminals:82:operated_by',
     'unit_of_measurement': None,
   })
 # ---
@@ -6530,7 +6530,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'region',
-    'unique_id': '01JTEST0NTAR10511AREA00001:ferryterminals:82:region',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:ferryterminals:82:region',
     'unit_of_measurement': None,
   })
 # ---
@@ -6587,7 +6587,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'ferry_status',
-    'unique_id': '01JTEST0NTAR10511AREA00001:ferryterminals:82:ferry_status',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:ferryterminals:82:ferry_status',
     'unit_of_measurement': None,
   })
 # ---
@@ -6647,7 +6647,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'twitter',
-    'unique_id': '01JTEST0NTAR10511AREA00001:ferryterminals:82:twitter',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:ferryterminals:82:twitter',
     'unit_of_measurement': None,
   })
 # ---
@@ -6698,7 +6698,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'website',
-    'unique_id': '01JTEST0NTAR10511AREA00001:ferryterminals:82:website',
+    'unique_id': '01JTEST0NTAR10511ENTRY0001:ferryterminals:82:website',
     'unit_of_measurement': None,
   })
 # ---

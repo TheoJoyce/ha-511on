@@ -144,8 +144,8 @@ def mock_config_entry(subentries: list[ConfigSubentryDataWithId]) -> MockConfigE
         title="Ontario 511",
         data={CONF_API_KEY: API_KEY},
         unique_id=hashlib.sha256(API_KEY.encode()).hexdigest(),
-        version=2,
-        minor_version=2,
+        version=3,
+        minor_version=1,
         subentries_data=subentries,
     )
 

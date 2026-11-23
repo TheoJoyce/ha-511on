@@ -476,6 +476,8 @@ async def test_add_area(hass: HomeAssistant, init_integration: MockConfigEntry) 
         },
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
+    # The reload after adding a subentry schedules a delayed storage write.
+    await hass.async_block_till_done(wait_background_tasks=True)
     cottage = next(
         s for s in init_integration.subentries.values() if s.title == "Cottage"
     )
@@ -842,7 +844,7 @@ async def test_reconfigure_item(
         for d in dr.async_entries_for_config_entry(
             device_registry, init_integration.entry_id
         )
-        if d.config_subentry_id == item.subentry_id
+        if (DOMAIN, f"{init_integration.entry_id}:cameras:456") in d.identifiers
     )
     assert device.area_id == outside.id
 

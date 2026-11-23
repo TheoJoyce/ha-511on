@@ -9,8 +9,8 @@
 // it adds an area, a second area and a commute to it, and removes only those
 // afterwards; otherwise it sets one up and removes it afterwards. It then
 // puts the map card on a dashboard and checks in headless Chromium that the
-// route is drawn along roads, markers appear, map tiles load and a marker
-// opens its entity. Screenshots go to config/e2e/. The commute's route comes
+// route is drawn along roads, nearby entities appear as markers with only the
+// route listed, map tiles load and a marker opens its entity. Screenshots go to config/e2e/. The commute's route comes
 // from the fake API's saved routes (.dev-cache/routing/), fetched once from
 // OpenStreetMap's routing server if they aren't saved yet.
 //
@@ -217,15 +217,7 @@ const findCommute = async (ws, token, entryId, subentryIds) => {
     const found = ours.find((e) => byId[e.entity_id]?.attributes.route);
     return found && { found, ours, byId };
   });
-  const { found, ours, byId } = route;
-  const onSummary = ours.filter(
-    (e) =>
-      e.device_id === found.device_id &&
-      typeof byId[e.entity_id]?.attributes.latitude === "number"
-  );
-  const camera = ours.find(
-    (e) => e.entity_id.startsWith("camera.") && byId[e.entity_id]?.attributes.latitude
-  );
+  const { found, byId } = route;
   const { route: lines, local, alternatives } = byId[found.entity_id].attributes;
   check(
     "Route sensor has the commute's route",
@@ -238,9 +230,7 @@ const findCommute = async (ws, token, entryId, subentryIds) => {
     local.length === 0,
     local.length ? `${local.length} straight stand-ins` : ""
   );
-  return [found.entity_id, ...onSummary.map((e) => e.entity_id), camera?.entity_id].filter(
-    Boolean
-  );
+  return found.entity_id;
 };
 
 const chromiumPath = () => {
@@ -270,7 +260,7 @@ const FIND_CARD = `(() => {
   return find(document);
 })()`;
 
-const checkCard = async (tokens, entities) => {
+const checkCard = async (tokens) => {
   const browser = await chromium.launch({
     executablePath: chromiumPath(),
     args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
@@ -324,11 +314,15 @@ const checkCard = async (tokens, entities) => {
         local: map.queryRenderedFeatures({ layers: ["o511-local"] }).length,
         roads: map.queryRenderedFeatures().filter((f) => f.sourceLayer).length,
         markers: card.shadowRoot.querySelectorAll(".marker").length,
+        located: card._entries().filter((entry) => {
+          const id = typeof entry === "string" ? entry : entry.entity;
+          return typeof card._hass.states[id]?.attributes.latitude === "number";
+        }).length,
+        cameras: card._entries().filter((entry) => String(entry).startsWith("camera.")).length,
         canvas: Boolean(card.shadowRoot.querySelector("canvas.maplibregl-canvas")),
         attribution: card.shadowRoot.querySelector(".maplibregl-ctrl-attrib")?.textContent ?? "",
       };
     })()`);
-    const expectedMarkers = entities.length - 1;
     check("Map drawn on a WebGL canvas", report.canvas, report.style);
     check("OpenStreetMap tiles loaded", report.roads > 0, `${report.roads} map features`);
     check("OpenStreetMap attribution shown", report.attribution.includes("OpenStreetMap"));
@@ -339,9 +333,14 @@ const checkCard = async (tokens, entities) => {
       `${report.alternatives} features of other routes`
     );
     check(
+      "Nearby cameras shown with only the route listed",
+      report.cameras > 0,
+      `${report.cameras} cameras`
+    );
+    check(
       "A marker for each located entity",
-      report.markers === expectedMarkers,
-      `${report.markers} of ${expectedMarkers}`
+      report.markers > 0 && report.markers === report.located,
+      `${report.markers} of ${report.located}`
     );
     await page.screenshot({ path: join(OUT, "map-card.png") });
 
@@ -389,7 +388,7 @@ const main = async () => {
       entryId = await createEntry(token);
       created = true;
     }
-    const entities = await findCommute(ws, token, entryId, subentryIds);
+    const route = await findCommute(ws, token, entryId, subentryIds);
     const dashboard = await ws.call({
       type: "lovelace/dashboards/create",
       url_path: DASHBOARD,
@@ -409,13 +408,17 @@ const main = async () => {
             path: "map",
             type: "panel",
             cards: [
-              { type: "custom:ontario-511-map-card", title: "E2E commute", entities },
+              {
+                type: "custom:ontario-511-map-card",
+                title: "E2E commute",
+                entities: [route],
+              },
             ],
           },
         ],
       },
     });
-    await checkCard(tokens, entities);
+    await checkCard(tokens);
   } finally {
     if (!KEEP) {
       if (dashboardId) {

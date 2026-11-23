@@ -16,13 +16,13 @@ One **config entry** per API key. It holds three kinds of **config subentries**,
 
 | Subentry | What the user sets | What it generates |
 |---|---|---|
-| **Area** | Name, centre and radius (drag a pin and circle on the map, or type the radius in metres; up to 50 km, and 0 is fine for an area that's only a commute's start or end) | Items of the chosen data types, nearest to the centre first, and a summary device |
-| **Commute** | The two areas it runs between (an existing one, or a new area added in the same flow), corridor width (default 5 km, max 20 km). Routes along the roads between the areas' centres are worked out automatically (see [Routing](#routing)); the main route's segments can be adjusted, or the routes planned again, by reconfiguring | Items of the chosen data types along any of its routes, and a summary device covering both areas and the main route (door to door) |
-| **Item** | A data type, then one item from a list sorted by distance | That one item. No cap applies |
+| **Area** | Name, centre and radius (drag a pin and circle on the map, or type the radius in metres; up to 50 km, and 0 is fine for an area that's only a commute's start or end) | Lists items of the chosen data types, nearest to the centre first, and has a summary device |
+| **Commute** | The two areas it runs between (an existing one, or a new area added in the same flow), corridor width (default 5 km, max 20 km). Routes along the roads between the areas' centres are worked out automatically (see [Routing](#routing)); the main route's segments can be adjusted, or the routes planned again, by reconfiguring | Lists items of the chosen data types along any of its routes, and has a summary device covering both areas and the main route (door to door) |
+| **Item** | A data type, then one item from a list sorted by distance | Lists that one item. No cap applies |
 
 Setup chains: API key, then a first area ("Home", 25 km), then optionally a commute, which first adds the area it goes to ("Work").
 
-Areas, commutes and items can name a **Home Assistant area** (`ha_area`). It's passed as each new device's `suggested_area`, which Home Assistant only applies when a device is first created, so users can still move devices individually. Choosing a different one when reconfiguring moves all of that subentry's devices. An area can also **create a matching zone** once, at creation, through the zone integration's storage collection; the zone isn't linked to the area afterwards.
+Areas, commutes and items can name a **Home Assistant area** (`ha_area`). It's passed as each new device's `suggested_area`, which Home Assistant only applies when a device is first created, so users can still move devices individually. Choosing a different one when reconfiguring moves that subentry's summary and the items it lists. A device has one area, so an item shared by two places follows the latest choice. An area can also **create a matching zone** once, at creation, through the zone integration's storage collection; the zone isn't linked to the area afterwards.
 
 Areas carry a link key as their subentry unique ID; commutes reference their two areas by it. If a linked area is deleted, the commute keeps its corridor.
 
@@ -37,13 +37,13 @@ If more than 10 data types are selected, the form warns that the rest load about
 1. Items within a commute's corridor, ordered along the route.
 2. Items nearest to the area's centre.
 
-Each data type has a cap for this initial generation so a busy area doesn't flood Home Assistant: all road segments in range, the 25 nearest cameras, and up to 25 of each other type. Commute items fill the cap first, so a long commute uses the cap before nearby but off-route items. The caps don't limit what can be added later with **Item**.
+Each data type has a cap for this initial generation so a busy area doesn't flood Home Assistant: all road segments in range, the 25 nearest cameras, and up to 25 of each other type. Each area and commute fills its own cap, whether or not another already lists an item. The caps don't limit what can be added later with **Item**.
 
 Measured with live data (October 2026), a 50 km radius holds at most 27 road segments, 107 events and 19 construction projects (Toronto). Cameras are the only type that gets large (357 around Toronto); every other type stays at or under 34.
 
 ## Devices and entities
 
-Home Assistant defines a device as "a physical device … or a service". Each generated item is a **service device**, and each area and commute has a **summary device**. Devices belong to the subentry that generated them, so the integration page shows them under that area or commute. Service is the right type: the integration reads a remote data service and controls nothing, and Core's Trafikverket integrations (Sweden's equivalent of Ontario 511: cameras, weather stations, ferries) use it too. The frontend draws the same icon for every service device row on the integration page, and there's no per-device icon to change that.
+Home Assistant defines a device as "a physical device … or a service". Each real item is one **service device**, owned by the config entry, and each area and commute has a **summary device**, owned by its subentry (see [Associations](#associations)). Service is the right type: the integration reads a remote data service and controls nothing, and Core's Trafikverket integrations (Sweden's equivalent of Ontario 511: cameras, weather stations, ferries) use it too. The frontend draws the same icon for every service device row on the integration page, and there's no per-device icon to change that.
 
 **Each piece of data is its own entity**, following Home Assistant's guidance that attributes only further explain the state and shouldn't hold static information. This follows the Trafikverket camera's pattern: a camera entity plus one sensor per field on the same device. Attributes are kept for what explains a state (the feed's own text in `reported`, a view's description and ID, the capped list of events behind a count) and the location the map needs. Static attributes such as locations are excluded from the recorder.
 
@@ -71,6 +71,34 @@ Home Assistant defines a device as "a physical device … or a service". Each ge
 - **Attaching events to segments:** each event or construction project is assigned to the nearest road segment within 2 km of it. Live data puts 95% of events within 150 m of a segment. Anything further away counts only towards the area or commute summary.
 - **Region alerts:** alerts list the regions they affect. An area's or commute's regions come from the road segments in it; alerts listing no region count everywhere.
 
+### Associations
+
+The data describes real places, so an item isn't owned by the area or commute that happened to find it. Subentries **list** items; the device belongs to the entry, and exists while at least one subentry lists it. Reviewed November 2026 against Home Assistant 2026.11.2:
+
+| Integration | A device is | An item near two configured places is |
+|---|---|---|
+| Trafikverket camera, weather station | One entry per item | Refused as a duplicate |
+| Waze, HERE, Google travel time | One entry per route | Not applicable: no shared items |
+| GDACS, GeoNet quakes | No device; entities per entry | Duplicated |
+| WSDOT, MTA, Data Grand Lyon | One subentry per item | Refused as a duplicate |
+| Google Weather | One subentry per location | Refused if nearly identical |
+| ha-the511 | One per provider | Impossible: one centre |
+| Streckenwacht | One summary per area | Shared: one marker that lists its areas |
+
+Options considered:
+
+- **Keep one owning subentry and scope views by location.** No migration, but ownership stays arbitrary, and deleting the owner deletes an item another place still covers.
+- **One device per item per subentry.** No migration, but the same camera becomes several devices, and each copy's New event fires.
+- **One device per item, owned by the entry (chosen).** Since 2026.8, Home Assistant restricts a device to one config entry and at most one subentry, so a device can't belong to several areas. Child devices don't help: they share their parent's subentry and are removed with it.
+
+How it works:
+
+- Device identifiers and entity unique IDs are `{entry_id}:{resource}:{item_id}`. The entry ID is needed because one install can have an entry per API key.
+- Setup removes item devices no subentry lists, since Home Assistant only removes devices with the subentry that owns them.
+- Deleting an item's device drops it from every subentry listing it, so it doesn't come back.
+- A road segment counts events inside any area or corridor listing it. Listed as a single item, it counts its whole length.
+- **Migration from version 2:** entities are moved first, then their device, because moving the device first deletes them. Entity IDs, device IDs and user settings survive. If one item has two devices, an enabled one stays over a disabled one, then a customised one, then the oldest, and a repair lists the entity IDs that couldn't be merged. Each area and commute then lists other subentries' existing items inside it, for types it already has. That never recreates an item a user deleted.
+
 ### Map
 
 The map card shows any entity with numeric `latitude` and `longitude` attributes, and the built-in Map dashboard adds them automatically. Each item's main entity carries its location, so items appear on the map and move if the data moves.
@@ -88,11 +116,13 @@ The fastest route is the commute's **main route**: its pieces are the corridor, 
 
 **Fallback.** When routing is switched off or fails, the form says so and offers to try again or to use the road segment network alone (`routing.py`). Segments form a network, split where other segments join them partway. A route can join and leave a segment at any of its points (about every 250 m), as drivers can at any interchange; local roads to and from it are straight lines weighted at twice their length, as a stand-in for being slower and less direct. Dijkstra's algorithm finds the cheapest route, then up to two alternatives within 30% of it. A highway route has to cost at least 5% less than local roads all the way, or the commute follows the straight line. These commutes have `routing: highways`, and can be planned again along roads from their settings.
 
+**Custom routes.** A commute's settings can hold up to 8 **pins**, stored in order as `pins`; the route is the one request through the start, the pins and the end, with no alternatives, and planning again keeps them. A new pin goes where it lengthens the trip least. Pins can also be read from a pasted Google Maps or Apple Maps directions link or GPX file (`custom_routes.py`). That's local parsing only: nothing is requested from Google or Apple, short links aren't followed and place names aren't looked up. Stops near the commute's ends are dropped, and a long track is reduced to evenly spaced pins. Nothing is sent until the route is saved; if routing is off or fails, the current route stays.
+
 **Commutes from before 0.1.0-alpha.2** were planned over highways only and have no `routing` in their data. A fixable repair asks to plan each one again; it isn't done in the background, because planning sends the start and end to OpenStreetMap. Planning again uses the areas' current centres and generates the commute's data types again, which adds items along the new routes; existing items stay.
 
 ### Map card
 
-**Commute routes** need lines, which Home Assistant's map card can't draw (it only draws an entity's own location history). Each commute's **Route** sensor holds the main route as a `route` attribute, the other routes as `alternatives`, and, for commutes planned over highways only, the straight stand-ins for local roads as `local` (all excluded from the recorder), with the main route's length as its state. The card draws alternatives faded under the main route, and `local` dashed. The integration serves its own card, `custom:ontario-511-map-card` (`frontend/`), from a static path named after a hash of its files (browsers cache them for a month, so changed files need a new URL) and registers it with `add_extra_js_url`. It draws routes as lines, other located entities as markers, and zones. It bundles MapLibre GL 6.14.0 (BSD-3-Clause, licence alongside) and uses VersaTiles' OpenStreetMap vector tiles, as Home Assistant 2026.10's own map does; it doesn't depend on the frontend's internal map element, which changed engines in 2026.
+**Commute routes** need lines, which Home Assistant's map card can't draw (it only draws an entity's own location history). Each commute's **Route** sensor holds the main route as a `route` attribute, the other routes as `alternatives`, and, for commutes planned over highways only, the straight stand-ins for local roads as `local` (all excluded from the recorder), with the main route's length as its state. The card draws alternatives faded under the main route, and `local` dashed. The integration serves its own card, `custom:ontario-511-map-card` (`frontend/`), from a static path named after a hash of its files (browsers cache them for a month, so changed files need a new URL) and registers it with `add_extra_js_url`. It draws routes as lines, a custom route's pins, other located entities as markers, and zones. A WebSocket command (`ontario_511/map_scopes`) gives it each area's and commute's geometry, so it can show every located entity of the integration in the chosen scope, by position rather than ownership. An explicit list of entities without a Route sensor shows only that list. It bundles MapLibre GL 6.14.0 (BSD-3-Clause, licence alongside) and uses VersaTiles' OpenStreetMap vector tiles, as Home Assistant 2026.10's own map does; it doesn't depend on the frontend's internal map element, which changed engines in 2026.
 
 **Nearest events** put events on the map without temporary entities. Each area and commute has three fixed entities ("Nearest event 1" to "Nearest event 3"). Entity N shows the Nth nearest active event: its location, description and details. When there are fewer than three events, the rest are Unknown. Home Assistant's dynamic alternative, `geo_location` entities, can't belong to a device or subentry, and automations can only match them by source and zone, so they couldn't be tied to an area or commute.
 
@@ -157,7 +187,5 @@ Areas can be placed by typing an address, looked up with OpenStreetMap Nominatim
 
 ## Later
 
-- Custom commute routes: pins placed along the way, sent to the same routing as waypoints.
-- Importing a route from Google Maps, Apple Maps or similar, likely as waypoints for the same routing.
 - Linking areas to commutes.
 - Checking the road condition ranking against winter data.

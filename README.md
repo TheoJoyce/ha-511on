@@ -28,16 +28,17 @@
 Entities for the Ontario 511 data near the places you care about, not the whole province.
 
 - **Areas:** drag a pin and a radius circle on the map (up to 50 km; Home Assistant shows the radius in metres). Items nearest the centre are generated. A radius of 0 is fine for an area you only need as a commute's start or end.
-- **Commutes:** a commute runs from one area to another (for example Home to Work). Up to three sensible routes along the roads between them are found (see [Commute routes](#commute-routes)), and items along all of them are generated. The fastest is the commute's route: a corridor (default 5 km) around it counts as on the commute, and its summaries are door to door: both areas plus that route. Commute items are generated before anything else.
+- **Commutes:** a commute runs from one area to another (for example Home to Work). Up to three sensible routes along the roads between them are found (see [Commute routes](#commute-routes)), and items along all of them are generated. The fastest is the commute's route: a corridor (default 5 km) around it counts as on the commute, and its summaries are door to door: both areas plus that route. You can also make it follow [pins or an imported route](#custom-routes).
 - **Every data type:** events and closures, construction, road conditions, alerts, traffic cameras, ferry terminals, rest areas, truck rest areas, service centres, seasonal load restrictions, carpool lots, transit hubs, inspection stations, roundabouts, HOT/HOV lanes and travel information centres.
 - **No temporary entities:** events and construction come and go, so they're counted on the road segment, area or commute they fall in. Event entities fire when something new appears.
-- **On the map:** each item's main entity has a location, and "Nearest event" entities put the closest events on the map.
+- **Shared items:** a camera or road segment is one device however many areas and commutes it's in.
+- **On the map:** each item's main entity has a location, and the [map card](#map-card) shows everything near a commute or area without listing it.
 
 For example: *when "Hazardous conditions" on your commute turns on, send a notification with the camera preview.*
 
 ## Entities
 
-Each generated item is a device, grouped under the area or commute that generated it on the integration page.
+Each real item (a camera, a road segment and so on) is one device, whichever areas and commutes it's in. On the integration page, item devices are listed together, and each area and commute shows its summary device. An item stays until no area, commute or single item lists it.
 
 | Device | Entities (in brackets: disabled by default) |
 |---|---|
@@ -61,7 +62,7 @@ Every field Ontario 511 publishes is available, so you can use any of it in auto
 - **Events and alerts** carry every field (severity, lanes affected, impact, times, restrictions and more) in the `items` lists behind each count, on **Nearest event** entities, and in the data of **New event** and **New alert** events.
 - **Hazardous** means partly covered or worse (drifting snow included), or poor visibility.
 - A status shows **Unknown** when Ontario 511 has no report or sends a value it doesn't know; the feed's own text is in the `reported` attribute.
-- A segment's events, construction and full closure only count what's inside the area or commute corridor it belongs to.
+- A segment's events, construction and full closure only count what's inside the areas and commute corridors that list it. A segment added as a single item counts its whole length.
 - Events count as active once they've started and until their planned end. Planned future events aren't counted.
 - **Alerts** count when they list the region the area or commute is in.
 
@@ -122,8 +123,9 @@ The data type checkboxes are only used once, to decide what to generate. If you 
 On the integration page:
 
 - **Add area**, **Add commute** or **Add item** to add more. **Add commute** links two areas you already have, or adds a new area to go to. **Add item** adds any single item, chosen from a list sorted by distance from your home.
-- Open an area's or commute's menu (⋮) and select **Reconfigure** to rename it or change which events, construction and alerts it follows. Choosing a different **Area** there moves all of its devices to that Home Assistant area. For a commute you can also change the corridor width and which road segments its route uses, or tick **Plan the route again** to find new routes, for example after moving one of its areas.
-- Delete an item's device to remove that item.
+- Open an area's or commute's menu (⋮) and select **Reconfigure** to rename it or change which events, construction and alerts it follows. Choosing a different **Area** there moves all of its devices to that Home Assistant area. For a commute you can also change the corridor width and which road segments its route uses, tick **Plan the route again** to find new routes (for example after moving one of its areas), or tick **Change the route with pins or an import** (see [Custom routes](#custom-routes)).
+- Delete an item's device to remove that item from every area and commute that lists it.
+- A device has one Home Assistant area. If an item is in two of your areas or commutes, choosing a new **Area** for either moves it.
 
 ### Forcing a refresh
 
@@ -133,8 +135,9 @@ Data refreshes on its own. To get the latest data in an automation, use Home Ass
 
 Home Assistant's map card can't draw lines, so the integration includes an **Ontario 511 map** card. It's added automatically; find it under **Add card** when editing a dashboard. It suggests your first commute's **Route** sensor and its nearest events.
 
-- An entity with a route (a commute's **Route** sensor) is drawn as a line along the roads it takes, with the other routes its items come from faded underneath.
-- Any other entity with a location (items, nearest events) is a marker. Select one to open its details.
+- **Everything nearby is shown by default.** With a commute's **Route** sensor listed, the card shows every Ontario 511 entity with a location in that commute's corridor or either of its areas. With nothing listed, it shows all your areas and commutes. Choose one under **Area or commute**, or turn off **Show everything nearby** to show only what's listed.
+- A commute's route is drawn as a line along the roads it takes, with the other routes its items come from faded underneath, and any pins as circles.
+- Other entities with a location are markers. Select one to open its details.
 - Zones are shaded, and the map follows Home Assistant's light or dark theme.
 
 The map uses [MapLibre GL](https://maplibre.org/), bundled with the integration, and [VersaTiles](https://versatiles.org/) vector tiles, the same free OpenStreetMap tiles as Home Assistant's own map. Map data © OpenStreetMap contributors.
@@ -142,9 +145,10 @@ The map uses [MapLibre GL](https://maplibre.org/), bundled with the integration,
 ```yaml
 type: custom:ontario-511-map-card
 title: Home to Work
+# Optional: false shows only the entities listed here.
+nearby: true
 entities:
   - sensor.home_to_work_route
-  - sensor.home_to_work_nearest_event_1
   - entity: sensor.home_to_work_nearest_event_2
     color: orange
 ```
@@ -165,6 +169,15 @@ A commute's routes are found with [OpenStreetMap's routing service](https://rout
 - The integration follows the [routing service's usage policy](https://routing.openstreetmap.de/about.html): at most a few requests per submit, at most one per second, repeated routes answered from a cache, and requests identify the integration.
 - Routing can be switched off for everyone without an update, through [`geocoding.json`](geocoding.json) in this repository. If it's off or can't be reached, the form offers to try again or to use Ontario 511's highways only, with straight lines between them and the start and end; you can plan the route again later.
 - Commutes set up with 0.1.0-alpha.1 only used Ontario 511's highways. Home Assistant shows a repair for each: open it and select **Submit** to plan the commute along roads. Its existing items stay, and items along the new routes are added.
+
+#### Custom routes
+
+To make a commute follow the way you actually drive, open its menu (⋮), select **Reconfigure** and tick **Change the route with pins or an import**.
+
+- **Pins:** place up to 8 on roads the route should use, in any order. Each goes where it fits best along the trip.
+- **Import:** paste a full Google Maps or Apple Maps directions link with coordinates, or the contents of a GPX file. It's read inside Home Assistant: nothing is requested from Google or Apple. Short share links and links that only name places can't be read, because that would mean contacting those services. The commute keeps its own start and end, and the stops between them become pins.
+- **The two areas' centres and your pins are sent to OpenStreetMap's routing service** when you select **Save this route**, as one request, and again if you later select **Plan the route again**. Nothing is sent while you place pins or paste a route. If routing is off or fails, your current route stays. Routes © OpenStreetMap contributors.
+- Remove every pin and save to go back to the fastest routes.
 
 ## Rate limits and updates
 

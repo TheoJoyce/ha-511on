@@ -183,7 +183,14 @@
         "radius_too_large": "The radius can be at most {max_radius} metres.",
         "zone_needs_radius": "A zone needs a radius. Make the circle larger, or untick Create a matching zone.",
         "routing_unavailable": "Road routing is switched off right now. Untick Plan the route again to keep the current route.",
-        "routing_failed": "Couldn't reach OpenStreetMap's routing, or it found no route. Try again later."
+        "routing_failed": "Couldn't reach OpenStreetMap's routing, or it found no route. Try again later.",
+        "too_many_pins": "This route already has the most pins it can have. Remove one first.",
+        "pin_outside_ontario": "That pin isn't in Ontario.",
+        "import_unsupported": "That isn't a Google Maps or Apple Maps directions link or a GPX file.",
+        "import_short_link": "Short links can't be read without contacting the map service. Open it in a browser and paste the full address.",
+        "import_named_stops": "This link names places instead of giving coordinates. Use a GPX file, or place pins on the map.",
+        "import_outside_ontario": "This route has a stop outside Ontario.",
+        "import_no_stops": "This route has no stops between the commute's start and end. Add a pin instead."
       },
       "abort": {
         "reconfigure_successful": "Settings saved.",
@@ -259,14 +266,16 @@
             "corridor_km": "Corridor width",
             "segments": "Road segments",
             "ha_area": "Area (optional)",
-            "replan": "Plan the route again"
+            "replan": "Plan the route again",
+            "edit_route": "Change the route with pins or an import"
           },
           "data_description": {
             "feeds": "Events, construction and alerts shown for this commute.",
             "corridor_km": "Anything within this distance of the commute's route counts as on the commute.",
             "segments": "The road segments the commute's route uses, which its summary follows. Untick any you don't drive, or tick nearby ones you do; added segments count along their full length.",
             "ha_area": "Optional. Changing it moves every device here to this Home Assistant area, and new devices go there too.",
-            "replan": "Finds routes along the roads again, between the two areas' current centres, which are sent to OpenStreetMap. Items along the new routes are added; existing items stay, and you can delete any you don't need. Replaces the road segments chosen above."
+            "replan": "Finds routes along the roads again, between the two areas' current centres and through any pins, which are sent to OpenStreetMap. Items along the new routes are added; existing items stay, and you can delete any you don't need. Replaces the road segments chosen above.",
+            "edit_route": "Next, place pins the route should go through, or paste a Google Maps or Apple Maps directions link or a GPX file. The route is only planned when you save it. Replaces the road segments chosen above."
           },
           "title": "Settings"
         },
@@ -285,6 +294,46 @@
             "commute_highways": "Use Ontario 511's highways only (local roads become straight lines)"
           },
           "title": "Routes"
+        },
+        "route_pins": {
+          "title": "Route pins",
+          "description": "This route has {count} of at most {max} pins. It goes from the start through each pin to the end. Nothing is sent until you save: then the two areas' centres and the pins are sent to OpenStreetMap's routing service (OSRM). Routes © OpenStreetMap contributors. Remove every pin and save to go back to the fastest routes.",
+          "menu_options": {
+            "route_pin_add": "Add a pin",
+            "route_import": "Import from a link or GPX file",
+            "route_pin_remove": "Remove pins",
+            "route_save": "Save this route",
+            "route_keep": "Keep the current route"
+          }
+        },
+        "route_pin_add": {
+          "title": "Add a pin",
+          "description": "Drag the pin onto a road the route should use. Pins can be added in any order: each goes where it fits best along the trip. A route can have up to {max} pins.",
+          "data": {
+            "pin": "Pin"
+          }
+        },
+        "route_pin_remove": {
+          "title": "Remove pins",
+          "data": {
+            "pins": "Pins to remove"
+          }
+        },
+        "route_import": {
+          "title": "Import a route",
+          "description": "Paste a full Google Maps or Apple Maps directions link, or the contents of a GPX file. It's read here in Home Assistant: nothing is requested from Google or Apple. The commute keeps its own start and end, and the stops between them become up to {max} pins, replacing the current ones. Short share links and links that only name places can't be read: open the link in a browser and copy the full address, or use a GPX file.",
+          "data": {
+            "route_text": "Link or GPX file"
+          }
+        },
+        "route_failed": {
+          "title": "Route not saved",
+          "description": "Couldn't get this route from OpenStreetMap's routing: it may be switched off or unreachable, or it found no route through the pins. Your current route hasn't changed.",
+          "menu_options": {
+            "route_save": "Try again",
+            "route_pins": "Change the pins",
+            "route_keep": "Keep the current route"
+          }
         }
       }
     },
@@ -363,6 +412,10 @@
           "not_loaded": "The Ontario 511 integration isn't loaded. Check that it's set up and try again."
         }
       }
+    },
+    "merged_items": {
+      "title": "Some duplicate Ontario 511 entities were removed",
+      "description": "The same Ontario 511 item had a device in more than one place. Each real item now has one device, so the duplicates were removed and their entities no longer exist: {entities}\n\nIf an automation, script or dashboard uses one of these, point it at the same entity on the remaining device."
     }
   },
   "selector": {

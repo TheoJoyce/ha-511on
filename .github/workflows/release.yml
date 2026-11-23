@@ -47,6 +47,10 @@ jobs:
             echo "::notice::$tag already exists; nothing to release"
             exit 0
           fi
+          if grep -q "^## \[$VERSION\] - Unreleased" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md still has $VERSION as Unreleased"
+            exit 1
+          fi
           # The lines under "## [<version>]", up to the next version.
           awk -v heading="## [$VERSION]" '
             index($0, "## [") == 1 { found = index($0, heading) == 1; next }

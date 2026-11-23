@@ -23,9 +23,3 @@
 - [ ] README updated for user-facing changes
 - [ ] `CHANGELOG.md` has this version's section (it becomes the release notes)
 - [ ] Tried in a real Home Assistant instance
-
-## After merging
-
-Merging publishes the release: the branch is deleted, and the Release workflow tags the merge commit `v<version>` and publishes this version's `CHANGELOG.md` section (as a pre-release for alpha, beta and rc).
-
-- [ ] Release workflow succeeded and the release is on GitHub

@@ -2,6 +2,41 @@
 
 Changes to the Ontario 511 integration for Home Assistant, newest first. It's community-maintained and not affiliated with or endorsed by Ontario 511, the Ministry of Transportation, or the Government of Ontario. Versions follow [Semantic Versioning](https://semver.org/); alpha, beta and rc versions are pre-releases.
 
+## [0.1.0-alpha.3] - 2026-11-23
+
+> [!WARNING]
+> This is an alpha. Entities, options and stored settings may change between releases. This one changes how items are stored: **back up before updating**, because going back to an earlier version needs that backup. Check **Upgrading from 0.1.0-alpha.2** below.
+
+### Requirements
+
+- Home Assistant 2026.10.0 or later
+- Your own Ontario 511 API key ([request one](https://511on.ca/developers/doc) while logged in at 511on.ca)
+
+### What's new
+
+- **Works on Home Assistant 2026.11.** Setting up or changing the integration failed there, because Home Assistant moved something the setup forms relied on.
+- **Items belong to places, not to whichever area or commute found them first.** A camera or road segment is now one device, shared by every area and commute it's in. Deleting one area no longer removes an item another area or commute still covers.
+- **The map card shows everything nearby.** With a commute's **Route** sensor on the card, every Ontario 511 entity with a location in its corridor or either area appears, without listing them. With nothing listed it shows all your areas and commutes, or you can choose one.
+- **Custom routes.** A commute's settings can place up to 8 pins for the route to go through, or read them from a Google Maps or Apple Maps directions link or a GPX file.
+
+### Upgrading from 0.1.0-alpha.2
+
+- Your devices are moved automatically on the first start. **Entity IDs, device names and your settings stay**, so automations and dashboards keep working.
+- On the integration page, item devices are now listed together rather than under an area or commute. Each area and commute keeps its summary device.
+- If the same item had two devices (for example from an area and **Add item**), they become one. The other device's entities can't be merged, so a repair lists them: point anything that used them at the same entity on the remaining device.
+- A road segment in two places now counts events inside either of them.
+- A device has one Home Assistant area. If an item is in two of your areas or commutes, choosing a new **Area** for either moves it.
+
+### OpenStreetMap services
+
+- **Custom routes:** the two areas' centres and your pins are sent to OpenStreetMap's routing service (OSRM, run by FOSSGIS), as one request, only when you save the route or plan it again. Routes © OpenStreetMap contributors.
+- **Imported routes** are read inside Home Assistant. Nothing is requested from Google or Apple, so short share links and links that only name places can't be used.
+
+### Known limitations
+
+- Google's documented directions links are supported. Links copied from the Google Maps address bar and Apple Maps links follow formats that couldn't be checked against official documentation or real shared links. If one isn't read, use a GPX file or place pins.
+- Road condition names have only been seen for bare, wet and "No Report" roads so far; winter conditions are matched by keywords and will be checked against real winter data.
+
 ## [0.1.0-alpha.2] - 2026-10-26
 
 > [!WARNING]

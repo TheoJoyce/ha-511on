@@ -16,6 +16,8 @@ const ROUTES = "o511-routes";
 const LOCAL = "o511-local";
 const ALTERNATIVES = "o511-alternatives";
 const ZONES = "o511-zones";
+const PINS = "o511-pins";
+const KM_PER_DEGREE = 111.32;
 
 let mapLibre;
 const loadMapLibre = () =>
@@ -34,6 +36,40 @@ const circle = (lat, lon, radiusM, steps = 64) => {
   }
   return ring;
 };
+
+// Distance from a point to a line segment, on a flat projection around the
+// point, which is accurate enough at the distances a corridor covers.
+const kmToSegment = ([lat, lon], [aLat, aLon], [bLat, bLon]) => {
+  const xScale = KM_PER_DEGREE * Math.cos((lat * Math.PI) / 180);
+  const ax = (aLon - lon) * xScale;
+  const ay = (aLat - lat) * KM_PER_DEGREE;
+  const dx = (bLon - aLon) * xScale;
+  const dy = (bLat - aLat) * KM_PER_DEGREE;
+  const lengthSquared = dx * dx + dy * dy;
+  const t = lengthSquared
+    ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / lengthSquared))
+    : 0;
+  return Math.hypot(ax + t * dx, ay + t * dy);
+};
+
+const inCircle = (point, { center, radius_km: radius }) =>
+  radius > 0 && kmToSegment(point, center, center) <= radius;
+
+const nearLine = (point, line, km) => {
+  for (let i = 1; i < line.length; i++) {
+    if (kmToSegment(point, line[i - 1], line[i]) <= km) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// Whether a point is in an area, or on a commute: its corridor or either area.
+const inScope = (point, scope) =>
+  scope.type === "area"
+    ? inCircle(point, scope)
+    : scope.areas.some((area) => inCircle(point, area)) ||
+      scope.lines.some((line) => nearLine(point, line, scope.corridor_km));
 
 class Ontario511MapCard extends HTMLElement {
   static getConfigElement() {
@@ -68,7 +104,11 @@ class Ontario511MapCard extends HTMLElement {
       throw new Error("entities must be a list");
     }
     const entities = config.entities ?? [];
-    const ids = JSON.stringify(entities.map(entityId));
+    const ids = JSON.stringify([
+      entities.map(entityId),
+      config.scope ?? null,
+      config.nearby ?? true,
+    ]);
     if (ids !== this._ids) {
       this._ids = ids;
       this._fitted = false;
@@ -136,6 +176,7 @@ class Ontario511MapCard extends HTMLElement {
     if (!this._hass || !this._config || !this.shadowRoot) {
       return;
     }
+    this._loadScopes();
     if (!this._map) {
       await this._createMap();
       return;
@@ -205,8 +246,117 @@ class Ontario511MapCard extends HTMLElement {
     }
   }
 
+  // Areas and commutes change rarely: fetched again when the entity registry
+  // or a commute's route does.
+  async _loadScopes() {
+    if (!this._hass.callWS) {
+      return;
+    }
+    const routes = (this._scopes ?? [])
+      .map((scope) => this._hass.states[scope.route_entity]?.attributes.route)
+      .filter(Boolean);
+    const unchanged =
+      this._scopesEntities === this._hass.entities &&
+      this._scopesRoutes?.length === routes.length &&
+      routes.every((route, i) => route === this._scopesRoutes[i]);
+    if (this._scopesLoaded && unchanged) {
+      return;
+    }
+    this._scopesLoaded = true;
+    this._scopesEntities = this._hass.entities;
+    this._scopesRoutes = routes;
+    const request = (this._scopesRequest = (this._scopesRequest ?? 0) + 1);
+    try {
+      const { scopes } = await this._hass.callWS({
+        type: "ontario_511/map_scopes",
+      });
+      // Replies can arrive out of order; only the latest request counts.
+      if (request !== this._scopesRequest) {
+        return;
+      }
+      this._scopesRoutes = scopes
+        .map((scope) => this._hass.states[scope.route_entity]?.attributes.route)
+        .filter(Boolean);
+      // A registry change usually leaves these alone: keep the user's view.
+      const json = JSON.stringify(scopes);
+      if (json === this._scopesJson) {
+        return;
+      }
+      this._scopesJson = json;
+      this._scopes = scopes;
+      this._nearCache = new Map();
+      this._fitted = false;
+      this._seen = undefined;
+      this._update();
+    } catch {
+      // Listed entities still draw without the integration's scopes.
+      this._scopes ??= [];
+    }
+  }
+
+  // The chosen area or commute; else the commutes whose Route is listed; else
+  // everything when no entities are listed.
+  _activeScopes() {
+    const scopes = this._scopes ?? [];
+    if (this._config.scope) {
+      return scopes.filter((scope) => scope.id === this._config.scope);
+    }
+    const listed = new Set(this._config.entities.map(entityId));
+    if (!listed.size) {
+      return scopes;
+    }
+    return scopes.filter((scope) => listed.has(scope.route_entity));
+  }
+
+  _isNear(id, point, scopes) {
+    this._nearCache ??= new Map();
+    const key = `${id}|${point[0]}|${point[1]}|${scopes.map((s) => s.id).join()}`;
+    let near = this._nearCache.get(key);
+    if (near === undefined) {
+      near = scopes.some((scope) => inScope(point, scope));
+      this._nearCache.set(key, near);
+    }
+    return near;
+  }
+
+  // What's drawn: listed entities, the active commutes' routes, then every
+  // located Ontario 511 entity in the active scopes.
+  _entries() {
+    const entries = [...this._config.entities];
+    const shown = new Set(entries.map(entityId));
+    const add = (id) => {
+      if (!shown.has(id)) {
+        shown.add(id);
+        entries.push(id);
+      }
+    };
+    const scopes = this._activeScopes();
+    scopes.forEach((scope) => scope.route_entity && add(scope.route_entity));
+    if (this._config.nearby === false || !scopes.length) {
+      return entries;
+    }
+    for (const entry of Object.values(this._hass.entities ?? {})) {
+      if (entry.platform !== "ontario_511") {
+        continue;
+      }
+      const attributes = this._hass.states[entry.entity_id]?.attributes;
+      if (
+        typeof attributes?.latitude === "number" &&
+        typeof attributes.longitude === "number" &&
+        this._isNear(
+          entry.entity_id,
+          [attributes.latitude, attributes.longitude],
+          scopes
+        )
+      ) {
+        add(entry.entity_id);
+      }
+    }
+    return entries;
+  }
+
   _states() {
-    const shown = this._config.entities.map(
+    const shown = this._entries().map(
       (entry) => this._hass.states[entityId(entry)]
     );
     const zones = Object.keys(this._hass.states)
@@ -226,6 +376,7 @@ class Ontario511MapCard extends HTMLElement {
     const alternatives = [];
     const local = [];
     const points = [];
+    const pins = [];
     const line = (coordinates) => ({
       type: "Feature",
       properties: {},
@@ -234,7 +385,7 @@ class Ontario511MapCard extends HTMLElement {
         coordinates: coordinates.map(([lat, lon]) => [lon, lat]),
       },
     });
-    for (const entry of this._config.entities) {
+    for (const entry of this._entries()) {
       const state = this._hass.states[entityId(entry)];
       if (!state) {
         continue;
@@ -244,6 +395,13 @@ class Ontario511MapCard extends HTMLElement {
         routes.push(...route.map(line));
         alternatives.push(...(state.attributes.alternatives ?? []).map(line));
         local.push(...(state.attributes.local ?? []).map(line));
+        pins.push(
+          ...(state.attributes.pins ?? []).map(([lat, lon]) => ({
+            type: "Feature",
+            properties: {},
+            geometry: { type: "Point", coordinates: [lon, lat] },
+          }))
+        );
       } else if (typeof latitude === "number" && typeof longitude === "number") {
         points.push({ entry, state, lngLat: [longitude, latitude] });
       }
@@ -274,6 +432,7 @@ class Ontario511MapCard extends HTMLElement {
     this._setSource(ALTERNATIVES, alternatives);
     this._setSource(LOCAL, local);
     this._setSource(ROUTES, routes);
+    this._setSource(PINS, pins);
     if (!map.getLayer(ZONES)) {
       const accent = this._color("--accent-color", "#ff9800");
       map.addLayer({
@@ -322,6 +481,18 @@ class Ontario511MapCard extends HTMLElement {
         paint: {
           "line-color": this._color("--primary-color", "#03a9f4"),
           "line-width": 5,
+        },
+      });
+      // The pins a custom route goes through.
+      map.addLayer({
+        id: PINS,
+        type: "circle",
+        source: PINS,
+        paint: {
+          "circle-radius": 5,
+          "circle-color": "#ffffff",
+          "circle-stroke-width": 3,
+          "circle-stroke-color": this._color("--primary-color", "#03a9f4"),
         },
       });
     }
@@ -390,14 +561,37 @@ class Ontario511MapCard extends HTMLElement {
   }
 }
 
-const SCHEMA = [
+const ALL_SCOPES = "all";
+const schema = (scopes) => [
   { name: "title", selector: { text: {} } },
+  {
+    name: "scope",
+    selector: {
+      select: {
+        mode: "dropdown",
+        options: [
+          { value: ALL_SCOPES, label: "Automatic" },
+          ...scopes.map((scope) => ({ value: scope.id, label: scope.title })),
+        ],
+      },
+    },
+  },
+  { name: "nearby", selector: { boolean: {} } },
   { name: "entities", selector: { entity: { multiple: true } } },
 ];
-const LABELS = { title: "Title", entities: "Entities" };
+const LABELS = {
+  title: "Title",
+  scope: "Area or commute",
+  nearby: "Show everything nearby",
+  entities: "Extra entities",
+};
 const HELPERS = {
+  scope:
+    "Automatic follows the commutes whose Route sensor is listed below, or all your areas and commutes if nothing is listed.",
+  nearby:
+    "Shows every Ontario 511 entity with a location inside the area or the commute's corridor, whichever area or commute it was added for.",
   entities:
-    "A commute's Route sensor draws its route, with the other routes its items come from faded. Other entities with a location, such as nearest events, are shown as markers.",
+    "Always shown. A commute's Route sensor draws its route, with the other routes its items come from faded. Other entities with a location are markers.",
 };
 
 class Ontario511MapCardEditor extends HTMLElement {
@@ -417,22 +611,30 @@ class Ontario511MapCardEditor extends HTMLElement {
     }
     if (!this._form) {
       this._form = document.createElement("ha-form");
-      this._form.schema = SCHEMA;
-      this._form.computeLabel = (schema) => LABELS[schema.name];
-      this._form.computeHelper = (schema) => HELPERS[schema.name];
+      this._form.schema = schema([]);
+      this._form.computeLabel = (field) => LABELS[field.name];
+      this._form.computeHelper = (field) => HELPERS[field.name];
       this._form.addEventListener("value-changed", (ev) => this._changed(ev));
       this.appendChild(this._form);
+      this._hass
+        .callWS?.({ type: "ontario_511/map_scopes" })
+        .then(({ scopes }) => {
+          this._form.schema = schema(scopes);
+        })
+        .catch(() => {});
     }
     this._form.hass = this._hass;
     this._form.data = {
       title: this._config.title ?? "",
+      scope: this._config.scope ?? ALL_SCOPES,
+      nearby: this._config.nearby ?? true,
       entities: (this._config.entities ?? []).map(entityId),
     };
   }
 
   _changed(ev) {
     ev.stopPropagation();
-    const { title, entities } = ev.detail.value;
+    const { title, entities, scope, nearby } = ev.detail.value;
     // Keep per-entity options (such as a colour) for entities still listed.
     const previous = new Map(
       (this._config.entities ?? []).map((entry) => [entityId(entry), entry])
@@ -445,6 +647,16 @@ class Ontario511MapCardEditor extends HTMLElement {
       config.title = title;
     } else {
       delete config.title;
+    }
+    if (scope && scope !== ALL_SCOPES) {
+      config.scope = scope;
+    } else {
+      delete config.scope;
+    }
+    if (nearby === false) {
+      config.nearby = false;
+    } else {
+      delete config.nearby;
     }
     this._config = config;
     this.dispatchEvent(

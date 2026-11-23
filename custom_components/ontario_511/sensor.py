@@ -17,9 +17,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
+from . import Ontario511ConfigEntry, shared_items, subentry_feeds
 from .api import Resource
-from .commute import alternative_pieces, route_pieces
+from .commute import alternative_pieces, route_pieces, stored_pins
 from .conditions import RoadCondition
 from .const import (
     CONF_ROUTING,
@@ -32,6 +32,7 @@ from .coordinator import ResourceCoordinator
 from .entity import (
     LOCATION_ATTRIBUTES,
     ItemEntity,
+    SharedItem,
     SummaryEntity,
     alert_details,
     event_details,
@@ -354,32 +355,29 @@ async def async_setup_entry(
     """Set up Ontario 511 sensors."""
     coordinators = entry.runtime_data.coordinators
     road = coordinators.get(Resource.ROAD_CONDITIONS)
+    items: list[SensorEntity] = []
+    for resource, shared_by_id in shared_items(entry).items():
+        if (coordinator := coordinators.get(resource)) is None:
+            continue
+        for shared in shared_by_id.values():
+            items.extend(
+                ItemSensor(coordinator, shared, d)
+                for d in ITEM_SENSORS
+                if d.resource is resource
+            )
+            if resource is Resource.ROAD_CONDITIONS:
+                for feed in (Resource.EVENTS, Resource.CONSTRUCTION):
+                    if feed_coordinator := coordinators.get(feed):
+                        items.append(
+                            SegmentFeedSensor(coordinator, feed_coordinator, shared)
+                        )
+    async_add_entities(items)
     for subentry in entry.subentries.values():
-        entities: list[SensorEntity] = []
-        for resource, items in subentry_items(subentry).items():
-            if (coordinator := coordinators.get(resource)) is None:
-                continue
-            for item_id, name in items.items():
-                entities.extend(
-                    ItemSensor(coordinator, subentry.subentry_id, item_id, name, d)
-                    for d in ITEM_SENSORS
-                    if d.resource is resource
-                )
-                if resource is Resource.ROAD_CONDITIONS:
-                    for feed in (Resource.EVENTS, Resource.CONSTRUCTION):
-                        if feed_coordinator := coordinators.get(feed):
-                            entities.append(
-                                SegmentFeedSensor(
-                                    coordinator,
-                                    feed_coordinator,
-                                    subentry.subentry_id,
-                                    item_id,
-                                    name,
-                                )
-                            )
         if subentry.subentry_type != SUBENTRY_ITEM:
-            entities.extend(_summary_sensors(entry, subentry.subentry_id, road))
-        async_add_entities(entities, config_subentry_id=subentry.subentry_id)
+            async_add_entities(
+                _summary_sensors(entry, subentry.subentry_id, road),
+                config_subentry_id=subentry.subentry_id,
+            )
 
 
 def _summary_sensors(
@@ -415,13 +413,11 @@ class ItemSensor(ItemEntity, SensorEntity):
     def __init__(
         self,
         coordinator: ResourceCoordinator,
-        subentry_id: str,
-        item_id: str,
-        item_name: str,
+        shared: SharedItem,
         description: ItemSensorDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, subentry_id, item_id, item_name, description.key)
+        super().__init__(coordinator, shared, description.key)
         self.entity_description = description
 
     @property
@@ -455,9 +451,7 @@ class SegmentFeedSensor(ItemEntity, SensorEntity):
         self,
         road: ResourceCoordinator,
         feed: ResourceCoordinator,
-        subentry_id: str,
-        item_id: str,
-        item_name: str,
+        shared: SharedItem,
     ) -> None:
         """Initialize the sensor on the segment's device."""
         key = (
@@ -465,14 +459,14 @@ class SegmentFeedSensor(ItemEntity, SensorEntity):
             if feed.resource is Resource.EVENTS
             else "segment_construction"
         )
-        super().__init__(road, subentry_id, item_id, item_name, key)
+        super().__init__(road, shared, key)
         self.extra_coordinators = (feed,)
         self._feed = feed.resource
 
     def _items(self) -> list[TrafficEvent]:
         events, construction = (
             self.coordinator.config_entry.runtime_data.feeds.on_segment(
-                self.item_id, self.subentry_id
+                self.item_id, self.subentry_ids
             )
         )
         return events if self._feed is Resource.EVENTS else construction
@@ -635,7 +629,7 @@ class RouteSensor(SummaryEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.DISTANCE
     _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
     _attr_suggested_display_precision = 0
-    _unrecorded_attributes = frozenset({"route", "alternatives", "local"})
+    _unrecorded_attributes = frozenset({"route", "alternatives", "local", "pins"})
 
     def __init__(
         self,
@@ -660,6 +654,8 @@ class RouteSensor(SummaryEntity, SensorEntity):
             ],
             "local": [_rounded(line) for sid, line in main if not sid and straight],
         }
+        if pins := stored_pins(data):
+            self._attr_extra_state_attributes["pins"] = _rounded(pins)
 
 
 def _rounded(line: Iterable[Point]) -> list[list[float]]:
