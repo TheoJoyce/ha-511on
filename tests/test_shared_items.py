@@ -18,12 +18,16 @@ from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     load_json_array_fixture,
 )
+from pytest_homeassistant_custom_component.test_util.aiohttp import (
+    AiohttpClientMocker,
+)
 
 from custom_components.ontario_511 import async_remove_config_entry_device
 from custom_components.ontario_511.api import Resource
 from custom_components.ontario_511.const import (
     CONF_ITEM_ID,
     CONF_ITEMS,
+    CONF_PENDING,
     CONF_RESOURCE,
     CONF_SHARE_ITEMS,
     DOMAIN,
@@ -235,6 +239,177 @@ async def test_migration_leaves_places_that_do_not_cover_an_item(
     assert set(entry.subentries[OTHER_ID].data[CONF_ITEMS]["cameras"]) == {"456"}
 
 
+@pytest.mark.usefixtures("mock_api")
+async def test_migration_handles_an_emptied_type(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """A type whose last item was deleted doesn't block generation."""
+    area = _area(NEAR_ID, "Near", SPOT, {"455": NAME_455})
+    entry = _old_entry(
+        [
+            ConfigSubentryDataWithId(
+                subentry_id=NEAR_ID,
+                subentry_type=SUBENTRY_AREA,
+                title="Near",
+                unique_id=None,
+                data={
+                    **area["data"],
+                    CONF_ITEMS: {"cameras": {"455": NAME_455}, "roundabouts": {}},
+                },
+            ),
+            ConfigSubentryDataWithId(
+                subentry_id=OTHER_ID,
+                subentry_type=SUBENTRY_AREA,
+                title="New",
+                unique_id=None,
+                data=area_data(
+                    location=SPOT,
+                    radius_km=10.0,
+                    feeds=[Resource.ALERTS.value],
+                    pending=["cameras"],
+                ),
+            ),
+        ]
+    )
+    entry.add_to_hass(hass)
+    _old_device(device_registry, entity_registry, entry, NEAR_ID, "455", "near")
+
+    await _setup(hass, entry)
+
+    assert CONF_SHARE_ITEMS not in entry.subentries[NEAR_ID].data
+    new = entry.subentries[OTHER_ID].data
+    assert new[CONF_PENDING] == []
+    assert set(new[CONF_ITEMS]["cameras"]) == {"455", "456"}
+
+
+@pytest.mark.usefixtures("mock_api")
+async def test_migration_leaves_other_integrations_entities_alone(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """A helper linked to an item's device keeps its own unique ID."""
+    entry = _old_entry([_area(NEAR_ID, "Near", SPOT, {"455": NAME_455})])
+    entry.add_to_hass(hass)
+    device, _ = _old_device(
+        device_registry, entity_registry, entry, NEAR_ID, "455", "near"
+    )
+    helper_entry = MockConfigEntry(domain="template")
+    helper_entry.add_to_hass(hass)
+    helper = entity_registry.async_get_or_create(
+        Platform.SENSOR,
+        "template",
+        "my_helper",
+        config_entry=helper_entry,
+        device_id=device.id,
+    )
+
+    await _setup(hass, entry)
+
+    moved = entity_registry.async_get(helper.entity_id)
+    assert moved is not None
+    assert moved.unique_id == "my_helper"
+    assert moved.device_id == device.id
+
+
+@pytest.mark.usefixtures("mock_api")
+async def test_migration_keeps_the_enabled_duplicate(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """A disabled copy never wins over the one in use."""
+    entry = _old_entry([_area(NEAR_ID, "Near", SPOT, {"455": NAME_455}), SINGLE_ITEM])
+    entry.add_to_hass(hass)
+    disabled, _ = _old_device(
+        device_registry, entity_registry, entry, NEAR_ID, "455", "from_area"
+    )
+    device_registry.async_update_device(
+        disabled.id,
+        name_by_user="Disabled",
+        disabled_by=dr.DeviceEntryDisabler.USER,
+    )
+    used, entity = _old_device(
+        device_registry, entity_registry, entry, ITEM_ID, "455", "from_item"
+    )
+
+    await _setup(hass, entry)
+
+    kept = _item_device(device_registry, "455")
+    assert kept is not None
+    assert kept.id == used.id
+    assert entity_registry.async_get(entity.entity_id) is not None
+
+
+@pytest.mark.usefixtures("mock_api")
+async def test_migration_keeps_the_duplicate_with_a_renamed_entity(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """A renamed entity counts as a customisation."""
+    entry = _old_entry([_area(NEAR_ID, "Near", SPOT, {"455": NAME_455}), SINGLE_ITEM])
+    entry.add_to_hass(hass)
+    _old_device(device_registry, entity_registry, entry, NEAR_ID, "455", "first")
+    used, entity = _old_device(
+        device_registry, entity_registry, entry, ITEM_ID, "455", "second"
+    )
+    entity_registry.async_update_entity(
+        entity.entity_id, new_entity_id="sensor.used_in_automation"
+    )
+
+    await _setup(hass, entry)
+
+    kept = _item_device(device_registry, "455")
+    assert kept is not None
+    assert kept.id == used.id
+    assert entity_registry.async_get("sensor.used_in_automation") is not None
+
+
+@pytest.mark.usefixtures("mock_api")
+async def test_migration_moves_an_entity_without_a_device(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """An item entity that lost its device link still gets the new unique ID."""
+    entry = _old_entry([_area(NEAR_ID, "Near", SPOT, {"455": NAME_455})])
+    entry.add_to_hass(hass)
+    orphan = entity_registry.async_get_or_create(
+        Platform.SENSOR,
+        DOMAIN,
+        f"{NEAR_ID}:cameras:455:camera_road",
+        config_entry=entry,
+        config_subentry_id=NEAR_ID,
+        suggested_object_id="orphan",
+    )
+
+    await _setup(hass, entry)
+
+    moved = entity_registry.async_get(orphan.entity_id)
+    assert moved is not None
+    assert moved.unique_id == f"{ENTRY_ID}:cameras:455:camera_road"
+
+
+@pytest.mark.usefixtures("mock_api")
+async def test_migration_fetches_each_resource_once(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Listing shared items waits for the first refresh instead of repeating it."""
+    entry = _old_entry([_area(NEAR_ID, "Near", SPOT, {"455": NAME_455})])
+    entry.add_to_hass(hass)
+    _old_device(device_registry, entity_registry, entry, NEAR_ID, "455", "near")
+
+    await _setup(hass, entry)
+
+    urls = [str(call[1]).split("?")[0] for call in aioclient_mock.mock_calls]
+    assert len(urls) == len(set(urls))
+
+
 SHARED = [
     _area(NEAR_ID, "Near", SPOT, {"455": NAME_455, "456": NAME_456}),
     _area(OTHER_ID, "Other", SPOT, {"455": NAME_455}),
@@ -279,6 +454,25 @@ async def test_deleting_a_device_removes_it_everywhere(
         "455" not in init_integration.subentries[OTHER_ID].data[CONF_ITEMS]["cameras"]
     )
     assert ITEM_ID not in init_integration.subentries
+
+
+@pytest.mark.parametrize("subentries", [[*SHARED, SINGLE_ITEM]])
+async def test_deleting_a_shared_device_reloads_once(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Dropping an item from three places is one reload."""
+    device = _item_device(device_registry, "455")
+    assert device is not None
+    with patch.object(
+        hass.config_entries,
+        "async_schedule_reload",
+        wraps=hass.config_entries.async_schedule_reload,
+    ) as reload:
+        assert await async_remove_config_entry_device(hass, init_integration, device)
+        await hass.async_block_till_done(wait_background_tasks=True)
+    reload.assert_called_once_with(init_integration.entry_id)
 
 
 def _event(event_id: str) -> TrafficEvent:

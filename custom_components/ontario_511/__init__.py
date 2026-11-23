@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -9,7 +10,11 @@ import logging
 from types import MappingProxyType
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry, ConfigSubentry
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigEntryState,
+    ConfigSubentry,
+)
 from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
@@ -20,6 +25,7 @@ from homeassistant.helpers import (
     issue_registry as ir,
 )
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.util import slugify
 
 from .api import Ontario511Client, Resource
 from .card import async_register_card
@@ -175,19 +181,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: Ontario511ConfigEntry) -
     if missing:
         first = min(missing, key=lambda c: c.resource is not VALIDATION_RESOURCE)
         await first.async_config_entry_first_refresh()
-    for coordinator in coordinators.values():
-        if coordinator.data is None:
-            entry.async_create_background_task(
-                hass,
-                coordinator.async_refresh(),
-                f"{DOMAIN} first refresh {coordinator.resource.value}",
-            )
+    first_refreshes = {
+        coordinator.resource: entry.async_create_background_task(
+            hass,
+            coordinator.async_refresh(),
+            f"{DOMAIN} first refresh {coordinator.resource.value}",
+        )
+        for coordinator in coordinators.values()
+        if coordinator.data is None
+    }
     if any(
         s.data.get(CONF_PENDING) or s.data.get(CONF_SHARE_ITEMS)
         for s in entry.subentries.values()
     ):
         entry.async_create_background_task(
-            hass, _async_generate(hass, entry), f"{DOMAIN} generate items"
+            hass,
+            _async_generate(hass, entry, first_refreshes),
+            f"{DOMAIN} generate items",
         )
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
@@ -271,7 +281,11 @@ async def _async_update_listener(
         hass.config_entries.async_schedule_reload(entry.entry_id)
 
 
-async def _async_generate(hass: HomeAssistant, entry: Ontario511ConfigEntry) -> None:
+async def _async_generate(
+    hass: HomeAssistant,
+    entry: Ontario511ConfigEntry,
+    first_refreshes: Mapping[Resource, asyncio.Task[None]],
+) -> None:
     """Generate items for subentries that asked for it at creation.
 
     Each area and commute lists everything of its types inside it, so an item
@@ -288,13 +302,13 @@ async def _async_generate(hass: HomeAssistant, entry: Ontario511ConfigEntry) -> 
     needed = {Resource(r) for s in pending for r in s.data.get(CONF_PENDING, [])}
     for subentry in pending:
         if subentry.data.get(CONF_SHARE_ITEMS):
-            needed.update(subentry_items(subentry))
+            needed.update(r for r, i in subentry_items(subentry).items() if i)
     if any(s.subentry_type == SUBENTRY_COMMUTE for s in pending):
         needed.add(Resource.ROAD_CONDITIONS)
+    # Waiting for the first refresh instead of starting another saves a call.
     for resource in sorted(needed):
-        coordinator = runtime.coordinators[resource]
-        if coordinator.data is None:
-            await coordinator.async_refresh()
+        if (refresh := first_refreshes.get(resource)) is not None:
+            await refresh
 
     listed = {
         resource: {shared.item_id: shared.name for shared in items.values()}
@@ -384,6 +398,8 @@ def _list_shared_items(
     """
     complete = True
     for resource, own in chosen.items():
+        if not own:
+            continue
         if (items := data.get(resource)) is None:
             complete = False
             continue
@@ -486,8 +502,9 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Move item devices from their subentries to the entry.
 
     Entity IDs, device IDs and user settings stay. If the same item had two
-    devices, the customised (or else oldest) one stays; the other's entity
-    IDs can't be merged into it, so a repair lists them.
+    devices, an enabled one stays over a disabled one, then a customised one,
+    then the oldest; the other's entity IDs can't be merged into it, so a
+    repair lists them.
     """
     devices = dr.async_get(hass)
     entities = er.async_get(hass)
@@ -499,28 +516,34 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
             if domain == DOMAIN and item_id and subentry_id in entry.subentries:
                 new = f"{entry.entry_id}:{resource}:{item_id}"
                 groups.setdefault(new, []).append((device, identifier))
+
+    def own_entities(device: dr.DeviceEntry) -> list[er.RegistryEntry]:
+        # A device can also carry other integrations' entities, such as helpers.
+        return [
+            e
+            for e in er.async_entries_for_device(
+                entities, device.id, include_disabled_entities=True
+            )
+            if e.config_entry_id == entry.entry_id
+        ]
+
     lost: list[str] = []
     for new, group in groups.items():
         keep = min(
             group,
             key=lambda pair: (
-                not (pair[0].name_by_user or pair[0].area_id or pair[0].labels)
+                pair[0].disabled_by is not None,
+                not _is_customised(pair[0], own_entities(pair[0])),
+                pair[0].created_at,
             ),
         )
         for device, _ in group:
             if device.id != keep[0].id:
-                lost.extend(
-                    e.entity_id
-                    for e in er.async_entries_for_device(
-                        entities, device.id, include_disabled_entities=True
-                    )
-                )
+                lost.extend(e.entity_id for e in own_entities(device))
                 devices.async_remove_device(device.id)
         device, old = keep
         # Entities first: moving the device first would delete them.
-        for entity in er.async_entries_for_device(
-            entities, device.id, include_disabled_entities=True
-        ):
+        for entity in own_entities(device):
             entities.async_update_entity(
                 entity.entity_id,
                 config_subentry_id=None,
@@ -531,6 +554,20 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
             new_config_subentry_id=None,
             new_identifiers={(DOMAIN, new)},
         )
+    resources = {resource.value for resource in Resource}
+    for entity in er.async_entries_for_config_entry(entities, entry.entry_id):
+        subentry_id, _, rest = entity.unique_id.partition(":")
+        if (
+            entity.device_id is None
+            and subentry_id in entry.subentries
+            and rest.partition(":")[0] in resources
+            and not entities.async_get_entity_id(
+                entity.domain, DOMAIN, new_id := f"{entry.entry_id}:{rest}"
+            )
+        ):
+            entities.async_update_entity(
+                entity.entity_id, config_subentry_id=None, new_unique_id=new_id
+            )
     for subentry in entry.subentries.values():
         if subentry.subentry_type != SUBENTRY_ITEM:
             hass.config_entries.async_update_subentry(
@@ -549,6 +586,19 @@ def _async_share_item_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
         )
 
 
+def _is_customised(device: dr.DeviceEntry, entities: list[er.RegistryEntry]) -> bool:
+    """Return whether the user changed a device or one of its entities."""
+    if device.name_by_user or device.area_id or device.labels:
+        return True
+    for entity in entities:
+        if entity.name or entity.icon or entity.area_id or entity.labels:
+            return True
+        default = slugify(f"{device.name or ''} {entity.original_name or ''}")
+        if not entity.entity_id.partition(".")[2].startswith(default):
+            return True
+    return False
+
+
 async def async_remove_config_entry_device(
     hass: HomeAssistant, entry: Ontario511ConfigEntry, device: dr.DeviceEntry
 ) -> bool:
@@ -561,28 +611,43 @@ async def async_remove_config_entry_device(
         if domain != DOMAIN or not identifier.startswith(prefix):
             continue
         resource_value, _, item_id = identifier[len(prefix) :].partition(":")
-        for subentry in list(entry.subentries.values()):
-            if subentry.subentry_type == SUBENTRY_ITEM:
-                if (
-                    subentry.data[CONF_RESOURCE] == resource_value
-                    and subentry.data[CONF_ITEM_ID] == item_id
-                ):
-                    hass.config_entries.async_remove_subentry(
-                        entry, subentry.subentry_id
-                    )
-                continue
-            stored = subentry.data.get(CONF_ITEMS, {})
-            if item_id not in stored.get(resource_value, {}):
-                continue
-            items = {
-                r: {
-                    i: n
-                    for i, n in names.items()
-                    if not (r == resource_value and i == item_id)
-                }
-                for r, names in stored.items()
-            }
-            hass.config_entries.async_update_subentry(
-                entry, subentry, data={**subentry.data, CONF_ITEMS: items}
-            )
+        loaded = entry.state is ConfigEntryState.LOADED
+        # One reload for the whole change, not one per subentry.
+        if loaded:
+            entry.runtime_data.generating = True
+        try:
+            _async_drop_item(hass, entry, resource_value, item_id)
+        finally:
+            if loaded:
+                entry.runtime_data.generating = False
+        if loaded:
+            hass.config_entries.async_schedule_reload(entry.entry_id)
     return True
+
+
+def _async_drop_item(
+    hass: HomeAssistant, entry: ConfigEntry, resource_value: str, item_id: str
+) -> None:
+    """Remove an item from every subentry that lists it."""
+    for subentry in list(entry.subentries.values()):
+        if subentry.subentry_type == SUBENTRY_ITEM:
+            if (
+                subentry.data[CONF_RESOURCE] == resource_value
+                and subentry.data[CONF_ITEM_ID] == item_id
+            ):
+                hass.config_entries.async_remove_subentry(entry, subentry.subentry_id)
+            continue
+        stored = subentry.data.get(CONF_ITEMS, {})
+        if item_id not in stored.get(resource_value, {}):
+            continue
+        items = {
+            r: {
+                i: n
+                for i, n in names.items()
+                if not (r == resource_value and i == item_id)
+            }
+            for r, names in stored.items()
+        }
+        hass.config_entries.async_update_subentry(
+            entry, subentry, data={**subentry.data, CONF_ITEMS: items}
+        )

@@ -28,10 +28,10 @@ _GOOGLE_HOST = re.compile(r"^(?:www\.|maps\.)?google(?:\.[a-z]{2,3}){1,2}$")
 _APPLE_HOST = "maps.apple.com"
 _COORDINATES = re.compile(r"^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$")
 _GOOGLE_DATA_POINT = re.compile(r"!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)")
-_GPX_POINT = re.compile(r"<(?:[\w.-]+:)?(trkpt|rtept|wpt)\b([^>]*)>", re.IGNORECASE)
+_GPX_POINT = re.compile(r"<(?:[\w.-]+:)?(trkpt|rtept|wpt)\b([^<>]*)>", re.IGNORECASE)
 _GPX_LAT = re.compile(r"""\blat\s*=\s*["'](-?\d+(?:\.\d+)?)["']""")
 _GPX_LON = re.compile(r"""\blon\s*=\s*["'](-?\d+(?:\.\d+)?)["']""")
-_APPLE_STOP_SEPARATOR = re.compile(r"\s*\+?to:\s*")
+_APPLE_STOP_SEPARATOR = re.compile(r"\+?to:")
 
 
 class RouteImportError(Exception):
@@ -195,6 +195,10 @@ def _distinct(points: Sequence[Point]) -> Iterator[Point]:
             last = point
 
 
+def _trip_km(start: Point, stops: Sequence[Point], end: Point) -> float:
+    return sum(distance_km(a, b) for a, b in pairwise((start, *stops, end)))
+
+
 def pins_from_route(
     points: Sequence[Point], start: Point, end: Point, limit: int = MAX_PINS
 ) -> list[Point]:
@@ -202,6 +206,7 @@ def pins_from_route(
 
     The commute's start and end stay its areas' centres. A long track is
     reduced to evenly spaced pins, which is enough to hold the route to it.
+    A route recorded the other way round is followed from this start.
     """
     between = [
         point
@@ -211,6 +216,8 @@ def pins_from_route(
     ]
     if not between:
         raise NoStops
+    if _trip_km(start, between[::-1], end) < _trip_km(start, between, end):
+        between.reverse()
     return between if len(between) <= limit else _spaced(between, limit)
 
 

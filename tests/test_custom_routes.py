@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
 
 from homeassistant.config_entries import (
@@ -190,6 +191,33 @@ def test_long_track_is_reduced_to_spaced_pins() -> None:
     assert pins == sorted(pins)
     assert pins[0] > track[0]
     assert pins[-1] < track[-1]
+
+
+def test_route_recorded_the_other_way_is_followed_from_the_start() -> None:
+    """A Work to Home track on a Home to Work commute doesn't double back."""
+    near_start, near_end = (43.72, -79.55), (43.76, -79.30)
+    assert pins_from_route([END, near_end, near_start, START], START, END) == [
+        near_start,
+        near_end,
+    ]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("<wpt " * 400_000, id="unclosed_gpx_tags"),
+        pytest.param(
+            "https://maps.apple.com/?saddr=43.7,-79.4&daddr=" + "+" * 1_900_000,
+            id="apple_separator_run",
+        ),
+    ],
+)
+def test_hostile_text_is_refused_quickly(text: str) -> None:
+    """The longest allowed paste can't tie up a worker thread."""
+    started = time.perf_counter()
+    with pytest.raises(RouteImportError):
+        parse_route(text)
+    assert time.perf_counter() - started < 2
 
 
 def test_pins_go_where_they_fit_along_the_trip() -> None:

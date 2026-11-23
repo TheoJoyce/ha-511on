@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigSubentryDataWithId
+from homeassistant.config_entries import (
+    ConfigEntryDisabler,
+    ConfigSubentryDataWithId,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 import pytest
@@ -111,13 +114,30 @@ async def test_map_scopes(
 
 
 @pytest.mark.parametrize("subentries", [SCOPED])
-async def test_map_scopes_skip_unloaded_entries(
+async def test_map_scopes_survive_a_reload(
     hass: HomeAssistant,
     hass_ws_client: WebSocketGenerator,
     init_integration: MockConfigEntry,
 ) -> None:
-    """An unloaded entry has nothing on the map."""
+    """A card asking while the entry reloads still gets its scopes."""
     await hass.config_entries.async_unload(init_integration.entry_id)
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": f"{DOMAIN}/map_scopes"})
+    response = await client.receive_json()
+    assert len(response["result"]["scopes"]) == 3
+
+
+@pytest.mark.parametrize("subentries", [SCOPED])
+async def test_map_scopes_skip_disabled_entries(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    init_integration: MockConfigEntry,
+) -> None:
+    """A disabled entry has nothing on the map."""
+    await hass.config_entries.async_set_disabled_by(
+        init_integration.entry_id, ConfigEntryDisabler.USER
+    )
+    await hass.async_block_till_done()
     client = await hass_ws_client(hass)
     await client.send_json_auto_id({"type": f"{DOMAIN}/map_scopes"})
     response = await client.receive_json()

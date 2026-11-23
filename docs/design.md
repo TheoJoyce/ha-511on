@@ -97,7 +97,7 @@ How it works:
 - Setup removes item devices no subentry lists, since Home Assistant only removes devices with the subentry that owns them.
 - Deleting an item's device drops it from every subentry listing it, so it doesn't come back.
 - A road segment counts events inside any area or corridor listing it. Listed as a single item, it counts its whole length.
-- **Migration from version 2:** entities are moved first, then their device, because moving the device first deletes them. Entity IDs, device IDs and user settings survive. If one item has two devices, the customised (or else oldest) stays, and a repair lists the entity IDs that couldn't be merged. Each area and commute then lists other subentries' existing items inside it, for types it already has. That never recreates an item a user deleted.
+- **Migration from version 2:** entities are moved first, then their device, because moving the device first deletes them. Entity IDs, device IDs and user settings survive. If one item has two devices, an enabled one stays over a disabled one, then a customised one, then the oldest, and a repair lists the entity IDs that couldn't be merged. Each area and commute then lists other subentries' existing items inside it, for types it already has. That never recreates an item a user deleted.
 
 ### Map
 
