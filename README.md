@@ -7,10 +7,10 @@
 [![Release](https://img.shields.io/github/v/release/TheoJoyce/ha-511on?include_prereleases&sort=semver&display_name=tag&style=flat-square&logo=github&label=release)](https://github.com/TheoJoyce/ha-511on/releases)
 [![Tests](https://img.shields.io/github/actions/workflow/status/TheoJoyce/ha-511on/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=tests)](https://github.com/TheoJoyce/ha-511on/actions/workflows/ci.yml)
 [![hassfest](https://img.shields.io/github/actions/workflow/status/TheoJoyce/ha-511on/hassfest.yml?branch=main&style=flat-square&logo=homeassistant&logoColor=white&label=hassfest)](https://github.com/TheoJoyce/ha-511on/actions/workflows/hassfest.yml)
-[![HACS validation](https://img.shields.io/github/actions/workflow/status/TheoJoyce/ha-511on/hacs.yml?branch=main&style=flat-square&logo=homeassistantcommunitystore&logoColor=white&label=HACS%20validation)](https://github.com/TheoJoyce/ha-511on/actions/workflows/hacs.yml)
+[![Marketplace validation](https://img.shields.io/github/actions/workflow/status/TheoJoyce/ha-511on/hacs.yml?branch=main&style=flat-square&logo=homeassistant&logoColor=white&label=Marketplace%20validation)](https://github.com/TheoJoyce/ha-511on/actions/workflows/hacs.yml)
 [![Last commit](https://img.shields.io/github/last-commit/TheoJoyce/ha-511on/main?style=flat-square&label=last%20commit)](https://github.com/TheoJoyce/ha-511on/commits/main)
 
-[![HACS](https://img.shields.io/badge/HACS-custom-41BDF5?style=flat-square&logo=homeassistantcommunitystore&logoColor=white)](https://hacs.xyz/docs/faq/custom_repositories/)
+[![Marketplace](https://img.shields.io/badge/Marketplace-custom-41BDF5?style=flat-square&logo=homeassistant&logoColor=white)](https://www.home-assistant.io/integrations/marketplace/)
 [![Home Assistant](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FTheoJoyce%2Fha-511on%2Fmain%2Fhacs.json&query=%24.homeassistant&prefix=%E2%89%A5%20&label=Home%20Assistant&style=flat-square&logo=homeassistant&logoColor=white&color=18BCF2)](https://www.home-assistant.io/)
 [![Licence](https://img.shields.io/github/license/TheoJoyce/ha-511on?style=flat-square&label=licence)](LICENSE)
 [![Data: OGL-Ontario](https://img.shields.io/badge/data-OGL%E2%80%93Ontario-2E7D32?style=flat-square)](https://www.ontario.ca/page/open-government-licence-ontario)
@@ -81,20 +81,21 @@ Your use of the key is governed by Ontario 511's [Developer's Access Agreement](
 
 ## Installation
 
-### HACS (recommended)
+### Marketplace (recommended)
 
-[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=TheoJoyce&repository=ha-511on&category=integration)
+Marketplace is built into Home Assistant 2026.11 and later. On 2026.10, use the [manual steps](#manual).
+
+[![Open your Home Assistant instance and open this repository in Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=TheoJoyce&repository=ha-511on&category=integration)
 
 Or add it by hand:
 
-1. In Home Assistant, open **HACS**.
-2. Open the menu (⋮) in the top right and select **Custom repositories**.
-3. Enter `https://github.com/TheoJoyce/ha-511on`, choose the type **Integration**, and select **Add**.
-4. Search for **Ontario 511** in HACS, open it, and select **Download**. Until a stable version is out, every release is a pre-release: expand **Need a different version?**, choose the newest version (marked *pre-release*), then select **Download**.
-5. Restart Home Assistant.
-6. Turn on pre-releases, so HACS offers the next ones as updates: go to **Settings** → **Devices & services** → **HACS**, open the **Ontario 511** device, enable its **Pre-release** switch (it's disabled by default), and turn it on.
+1. Go to **Settings** → **Marketplace**.
+2. Select **Add from link**, enter `https://github.com/TheoJoyce/ha-511on`, and select **Add**. If asked, choose the type **Integration**. Adding a repository by link needs a GitHub connection, and Marketplace walks you through it the first time.
+3. Open **Ontario 511**. Until a stable version is out, every release is a pre-release: open the menu (⋮), select **Install another version**, choose the newest version, and select **Install**.
+4. If Home Assistant asks you to restart, restart it.
+5. Turn on pre-releases, so Marketplace offers the next ones as updates: go to **Settings** → **Devices & services** → **Marketplace**, open the **Ontario 511** device, enable its **Pre-release** entity (it's disabled by default), and turn the switch on.
 
-Without the **Pre-release** switch, HACS can't see pre-releases. Until a stable version is out, it then offers the latest commit instead, shown as a code such as `ad00b1d` rather than a version number, and its release link doesn't open.
+Without the **Pre-release** switch, Marketplace can't offer pre-releases as updates. Until a stable version is out, it then offers the latest commit instead, shown as a code such as `ad00b1d` rather than a version number.
 
 ### Manual
 
@@ -197,7 +198,7 @@ Ontario 511 allows 10 requests every 60 seconds. The integration enforces this i
 
 1. Go to **Settings** → **Devices & services** and select **Ontario 511**.
 2. Open the menu (⋮) on the entry and select **Delete**.
-3. If you installed through HACS, remove the integration in HACS too, then restart Home Assistant.
+3. If you installed through Marketplace, open **Ontario 511** in **Settings** → **Marketplace**, open the menu (⋮), and select **Uninstall**. Restart Home Assistant if a repair asks you to.
 
 ## Troubleshooting
 

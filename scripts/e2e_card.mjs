@@ -344,6 +344,29 @@ const checkCard = async (tokens) => {
     );
     await page.screenshot({ path: join(OUT, "map-card.png") });
 
+    const editor = await page.evaluate(`(async () => {
+      const card = ${FIND_CARD};
+      await window.loadCardHelpers?.();
+      const element = document.createElement("ontario-511-map-card-editor");
+      document.body.appendChild(element);
+      element.setConfig(card._config);
+      element.hass = card._hass;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const form = element.querySelector("ha-form");
+      const field = form.schema.find((f) => f.name === "scope");
+      const result = {
+        options: field.selector.select.options.length,
+        rendered: Boolean(form.shadowRoot?.childElementCount),
+      };
+      element.remove();
+      return result;
+    })()`);
+    check(
+      "The card editor offers areas and commutes",
+      editor.rendered && editor.options > 1,
+      `${editor.options} choices`
+    );
+
     await page.evaluate(`${FIND_CARD}.shadowRoot.querySelector(".marker").click()`);
     const opened = await page
       .waitForFunction(

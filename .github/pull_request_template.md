@@ -16,7 +16,7 @@
 
 - [ ] Version set in `manifest.json` and `pyproject.toml`
 - [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` and `uv run pytest` pass
-- [ ] hassfest and HACS validation pass
+- [ ] hassfest and Marketplace validation pass
 - [ ] Polling stays within the budget in `tests/test_rate_limits.py`, and every API call goes through the rate limiter
 - [ ] No API key in code, fixtures, logs or diagnostics
 - [ ] Every entity has the OGL–Ontario attribution

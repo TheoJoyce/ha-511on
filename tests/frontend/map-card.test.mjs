@@ -205,6 +205,16 @@ test("an entity's colour can be set", async () => {
   assert.equal(map.markers[0].getElement().style.background, "orange");
 });
 
+test("a marker uses Home Assistant's entity name when it has the helper", async () => {
+  const hass = makeHass([EVENT_STATE]);
+  hass.formatEntityName = (stateObj) => `Home to Work ${stateObj.state}`;
+  const { map } = await createCard({ entities: [EVENT] }, hass);
+  assert.equal(
+    map.markers[0].getElement().title,
+    "Home to Work Collision: Collision (formatted)"
+  );
+});
+
 test("the title is text, not HTML", async () => {
   const { card } = await createCard(
     { title: "<img src=x onerror=alert(1)>", entities: [] },
