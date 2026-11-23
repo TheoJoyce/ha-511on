@@ -322,17 +322,20 @@ async def _async_generate(
     # Commute corridors compare many points; keep that off the event loop.
     updates = await hass.async_add_executor_job(_plan_generation, pending, data, listed)
 
-    changed = False
+    items_changed = False
     runtime.generating = True
     try:
         for subentry_id, new_data in updates.items():
-            changed |= hass.config_entries.async_update_subentry(
-                entry, entry.subentries[subentry_id], data=new_data
-            )
+            subentry = entry.subentries[subentry_id]
+            before = {r: i for r, i in subentry_items(subentry).items() if i}
+            hass.config_entries.async_update_subentry(entry, subentry, data=new_data)
+            items_changed |= subentry_items(entry.subentries[subentry_id]) != before
     finally:
         runtime.generating = False
-    # Without a change, reloading would only retry a failing resource at once.
-    if changed:
+    # New items need entities. Without any, a reload would only retry a failing
+    # resource at once. Reloading cancels refreshes, which would repeat their calls.
+    if items_changed:
+        await asyncio.gather(*first_refreshes.values())
         hass.config_entries.async_schedule_reload(entry.entry_id)
 
 

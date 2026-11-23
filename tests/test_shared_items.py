@@ -399,13 +399,20 @@ async def test_migration_fetches_each_resource_once(
     entity_registry: er.EntityRegistry,
     aioclient_mock: AiohttpClientMocker,
 ) -> None:
-    """Listing shared items waits for the first refresh instead of repeating it."""
-    entry = _old_entry([_area(NEAR_ID, "Near", SPOT, {"455": NAME_455})])
+    """Sharing items reloads the entry without repeating a fetch."""
+    entry = _old_entry(
+        [
+            _area(NEAR_ID, "Near", SPOT, {"455": NAME_455}),
+            _area(OTHER_ID, "Other", SPOT, {"456": NAME_456}),
+        ]
+    )
     entry.add_to_hass(hass)
     _old_device(device_registry, entity_registry, entry, NEAR_ID, "455", "near")
+    _old_device(device_registry, entity_registry, entry, OTHER_ID, "456", "other")
 
     await _setup(hass, entry)
 
+    assert set(entry.subentries[NEAR_ID].data[CONF_ITEMS]["cameras"]) == {"455", "456"}
     urls = [str(call[1]).split("?")[0] for call in aioclient_mock.mock_calls]
     assert len(urls) == len(set(urls))
 

@@ -108,7 +108,8 @@ async def test_limiter_is_shared_across_entries(
         domain=DOMAIN,
         data={CONF_API_KEY: other_key},
         unique_id=hashlib.sha256(other_key.encode()).hexdigest(),
-        version=2,
+        version=3,
+        minor_version=1,
         subentries_data=[
             ConfigSubentryData(
                 subentry_type=SUBENTRY_AREA,
