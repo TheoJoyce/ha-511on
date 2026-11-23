@@ -348,7 +348,8 @@ const checkCard = async (tokens) => {
       const card = ${FIND_CARD};
       await window.loadCardHelpers?.();
       const element = document.createElement("ontario-511-map-card-editor");
-      document.body.appendChild(element);
+      // Inside the dashboard: its pickers read the frontend's context.
+      card.parentNode.appendChild(element);
       element.setConfig(card._config);
       element.hass = card._hass;
       await new Promise((resolve) => setTimeout(resolve, 1500));
