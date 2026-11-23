@@ -4,7 +4,7 @@
 
 **Ontario's roads in Home Assistant: live events, closures, construction, cameras and road conditions, plus ferries, rest areas, service centres, carpool lots and more.**
 
-[![Release](https://img.shields.io/github/v/release/TheoJoyce/ha-511on?include_prereleases&sort=semver&display_name=tag&style=flat-square&logo=github&label=release)](https://github.com/TheoJoyce/ha-511on/releases)
+[![Release](https://img.shields.io/github/v/release/TheoJoyce/ha-511on?sort=semver&display_name=tag&style=flat-square&logo=github&label=release)](https://github.com/TheoJoyce/ha-511on/releases)
 [![Tests](https://img.shields.io/github/actions/workflow/status/TheoJoyce/ha-511on/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=tests)](https://github.com/TheoJoyce/ha-511on/actions/workflows/ci.yml)
 [![hassfest](https://img.shields.io/github/actions/workflow/status/TheoJoyce/ha-511on/hassfest.yml?branch=main&style=flat-square&logo=homeassistant&logoColor=white&label=hassfest)](https://github.com/TheoJoyce/ha-511on/actions/workflows/hassfest.yml)
 [![Marketplace validation](https://img.shields.io/github/actions/workflow/status/TheoJoyce/ha-511on/hacs.yml?branch=main&style=flat-square&logo=homeassistant&logoColor=white&label=Marketplace%20validation)](https://github.com/TheoJoyce/ha-511on/actions/workflows/hacs.yml)
@@ -19,9 +19,6 @@
 
 > [!IMPORTANT]
 > This is a community-maintained integration. It is not affiliated with, endorsed by, or supported by Ontario 511, the Ministry of Transportation, or the Government of Ontario. It uses the open data that [Ontario 511](https://511on.ca) publishes.
-
-> [!WARNING]
-> This integration is in alpha. Features are incomplete, and entities and options may change between releases. Check the [release notes](https://github.com/TheoJoyce/ha-511on/releases) before updating.
 
 ## Features
 
@@ -91,11 +88,10 @@ Or add it by hand:
 
 1. Go to **Settings** → **Marketplace**.
 2. Select **Add from link**, enter `https://github.com/TheoJoyce/ha-511on`, and select **Add**. If asked, choose the type **Integration**. Adding a repository by link needs a GitHub connection, and Marketplace walks you through it the first time.
-3. Open **Ontario 511**. Until a stable version is out, every release is a pre-release: open the menu (⋮), select **Install another version**, choose the newest version, and select **Install**.
+3. Open **Ontario 511**, select **Install**, check the version, and select **Install** again.
 4. If Home Assistant asks you to restart, restart it.
-5. Turn on pre-releases, so Marketplace offers the next ones as updates: in **Settings** → **Marketplace**, open **Ontario 511**, open the menu (⋮), select **Include pre-releases**, and confirm.
 
-Without **Include pre-releases**, Marketplace can't offer pre-releases as updates. Until a stable version is out, it then offers the latest commit instead, shown as a code such as `ad00b1d` rather than a version number.
+To test upcoming versions, open **Ontario 511** in Marketplace, open the menu (⋮), and select **Include pre-releases**.
 
 ### Manual
 
