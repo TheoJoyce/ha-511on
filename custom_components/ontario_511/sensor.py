@@ -19,7 +19,7 @@ from homeassistant.helpers.typing import StateType
 
 from . import Ontario511ConfigEntry, subentry_feeds, subentry_items
 from .api import Resource
-from .commute import alternative_pieces, route_pieces
+from .commute import alternative_pieces, route_pieces, stored_pins
 from .conditions import RoadCondition
 from .const import (
     CONF_ROUTING,
@@ -635,7 +635,7 @@ class RouteSensor(SummaryEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.DISTANCE
     _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
     _attr_suggested_display_precision = 0
-    _unrecorded_attributes = frozenset({"route", "alternatives", "local"})
+    _unrecorded_attributes = frozenset({"route", "alternatives", "local", "pins"})
 
     def __init__(
         self,
@@ -660,6 +660,8 @@ class RouteSensor(SummaryEntity, SensorEntity):
             ],
             "local": [_rounded(line) for sid, line in main if not sid and straight],
         }
+        if pins := stored_pins(data):
+            self._attr_extra_state_attributes["pins"] = _rounded(pins)
 
 
 def _rounded(line: Iterable[Point]) -> list[list[float]]:

@@ -33,6 +33,7 @@ from .const import (
     CONF_ITEMS,
     CONF_LOCATION,
     CONF_PENDING,
+    CONF_PINS,
     CONF_ROUTE,
     CONF_ROUTING,
     CONF_SEGMENTS,
@@ -230,13 +231,18 @@ async def async_plan_commute(
     segments: Sequence[RoadSegment],
     start: Point,
     end: Point,
+    pins: Sequence[Point] = (),
 ) -> dict[str, Any]:
     """Return a commute's routes along roads.
 
     One request for the fastest route and the service's alternatives, then at
-    most two more for highway routes it missed. Raises RoutingError if the
+    most two more for highway routes it missed. With pins, one request for the
+    route through them, which has no alternatives. Raises RoutingError if the
     first request fails.
     """
+    if pins:
+        roads = (await router.async_routes([start, *pins, end]))[:1]
+        return await hass.async_add_executor_job(plan_road_commute, segments, roads)
     roads = list(await router.async_routes([start, end], alternatives=True))
     if len(roads) < MAX_ROUTES:
         for via in await hass.async_add_executor_job(via_points, segments, start, end):
@@ -327,21 +333,34 @@ def commute_endpoints(
     return (start["latitude"], start["longitude"]), (end["latitude"], end["longitude"])
 
 
+def stored_pins(data: Mapping[str, Any]) -> list[Point]:
+    """Return the pins a commute's route goes through, in order."""
+    return [(pin["latitude"], pin["longitude"]) for pin in data.get(CONF_PINS, [])]
+
+
 def replanned(
-    data: Mapping[str, Any], plan: Mapping[str, Any], start: Point, end: Point
+    data: Mapping[str, Any],
+    plan: Mapping[str, Any],
+    start: Point,
+    end: Point,
+    pins: Sequence[Point] = (),
 ) -> dict[str, Any]:
     """Return a commute's data with new routes.
 
     The types it has items of are generated again, which adds items along the
     new routes; existing items stay.
     """
-    return {
+    new_data = {
         **data,
         **plan,
         CONF_START: {"latitude": start[0], "longitude": start[1]},
         CONF_END: {"latitude": end[0], "longitude": end[1]},
         CONF_PENDING: sorted({*data.get(CONF_PENDING, []), *data.get(CONF_ITEMS, {})}),
     }
+    new_data.pop(CONF_PINS, None)
+    if pins:
+        new_data[CONF_PINS] = [{"latitude": lat, "longitude": lon} for lat, lon in pins]
+    return new_data
 
 
 async def async_replan(
@@ -350,17 +369,21 @@ async def async_replan(
     commute: ConfigSubentry,
     segments: Sequence[RoadSegment],
     data: Mapping[str, Any] | None = None,
+    pins: Sequence[Point] | None = None,
 ) -> dict[str, Any]:
     """Plan a commute's routes along roads again, from its areas' centres.
 
-    ``data`` is the commute's data to update, if not its stored data. Raises
-    RoutingError if routing isn't available.
+    ``data`` is the commute's data to update, if not its stored data. ``pins``
+    replaces its pins; by default it keeps them. Raises RoutingError if routing
+    isn't available.
     """
     start, end = commute_endpoints(entry, commute)
+    current = commute.data if data is None else data
+    route_pins = stored_pins(current) if pins is None else pins
     plan = await async_plan_commute(
-        hass, await async_get_router(hass), segments, start, end
+        hass, await async_get_router(hass), segments, start, end, route_pins
     )
-    return replanned(commute.data if data is None else data, plan, start, end)
+    return replanned(current, plan, start, end, route_pins)
 
 
 def new_area_key() -> str:

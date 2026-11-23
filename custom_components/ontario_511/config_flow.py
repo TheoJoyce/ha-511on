@@ -66,14 +66,17 @@ from .commute import (
     async_plan_commute,
     async_replan,
     change_segments,
+    commute_endpoints,
     new_area_key,
     plan_highway_commute,
     route_lines,
+    stored_pins,
 )
 from .const import (
     CONF_ADDRESS,
     CONF_CORRIDOR_KM,
     CONF_CREATE_ZONE,
+    CONF_EDIT_ROUTE,
     CONF_END,
     CONF_FEEDS,
     CONF_FROM_AREA,
@@ -82,9 +85,12 @@ from .const import (
     CONF_ITEMS,
     CONF_LOCATION,
     CONF_PENDING,
+    CONF_PIN,
+    CONF_PINS,
     CONF_RADIUS_KM,
     CONF_REPLAN,
     CONF_RESOURCE,
+    CONF_ROUTE_TEXT,
     CONF_SEGMENTS,
     CONF_START,
     CONF_TO_AREA,
@@ -107,8 +113,19 @@ from .const import (
     VALIDATION_RESOURCE,
 )
 from .coordinator import async_fetch_resource
+from .custom_routes import (
+    MAX_PINS,
+    NamedStops,
+    NoStops,
+    RouteImportError,
+    ShortLink,
+    StopsOutsideOntario,
+    insert_pin,
+    parse_route,
+    pins_from_route,
+)
 from .directions import RoutingFailed, RoutingUnavailable, async_get_router
-from .geo import distance_km
+from .geo import Point, distance_km
 from .geocode import (
     AddressNotFound,
     Geocoder,
@@ -117,7 +134,7 @@ from .geocode import (
     OutsideOntario,
     get_geocoder,
 )
-from .models import RoadSegment
+from .models import RoadSegment, in_ontario
 from .scope import segments_within_corridor
 
 _LOGGER = logging.getLogger(__name__)
@@ -715,6 +732,17 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
                 new_data[CONF_CORRIDOR_KM] = round(
                     float(user_input[CONF_CORRIDOR_KM]), 1
                 )
+                if user_input.get(CONF_EDIT_ROUTE):
+                    new_data.update(
+                        change_segments(
+                            subentry.data, user_input[CONF_SEGMENTS], segments
+                        )
+                    )
+                    return await self._async_edit_route(
+                        new_data,
+                        user_input[CONF_NAME].strip() or subentry.title,
+                        list(segments.values()),
+                    )
                 if user_input.get(CONF_REPLAN):
                     try:
                         new_data = await async_replan(
@@ -771,6 +799,9 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
                 )
             )
             fields[probatio.Optional(CONF_REPLAN, default=False)] = BooleanSelector()
+            fields[probatio.Optional(CONF_EDIT_ROUTE, default=False)] = (
+                BooleanSelector()
+            )
         return self.async_show_form(
             step_id="reconfigure_commute" if is_commute else "reconfigure",
             data_schema=probatio.Schema(fields),
@@ -795,6 +826,11 @@ class _EntrySubentryFlow(ConfigSubentryFlow):
     ) -> SubentryFlowResult:
         """Handle the commute version of the reconfigure form."""
         return await self.async_step_reconfigure(user_input)
+
+    async def _async_edit_route(
+        self, data: dict[str, Any], title: str, segments: list[RoadSegment]
+    ) -> SubentryFlowResult:
+        raise NotImplementedError
 
 
 class AreaSubentryFlow(_EntrySubentryFlow, _SetupSteps):
@@ -925,6 +961,180 @@ class CommuteSubentryFlow(_EntrySubentryFlow, _SetupSteps):
         self, data: dict[str, Any], title: str
     ) -> SubentryFlowResult:
         return self.async_create_entry(title=title, data=data)
+
+    async def _async_edit_route(
+        self, data: dict[str, Any], title: str, segments: list[RoadSegment]
+    ) -> SubentryFlowResult:
+        """Change the route with pins or a pasted route, then save it once."""
+        self._route_data = data
+        self._route_title = title
+        self._route_segments = segments
+        self._pins = stored_pins(data)
+        return await self.async_step_route_pins()
+
+    def _route_ends(self) -> tuple[Point, Point]:
+        return commute_endpoints(self._get_entry(), self._get_reconfigure_subentry())
+
+    async def async_step_route_pins(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Show the route's pins and what can be done with them."""
+        options = ["route_pin_add", "route_import"]
+        if self._pins:
+            options.append("route_pin_remove")
+        options.extend(["route_save", "route_keep"])
+        return self.async_show_menu(
+            step_id="route_pins",
+            menu_options=options,
+            description_placeholders={
+                "count": str(len(self._pins)),
+                "max": str(MAX_PINS),
+            },
+        )
+
+    async def async_step_route_pin_add(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Place a pin the route should go through."""
+        errors: dict[str, str] = {}
+        start, end = self._route_ends()
+        if user_input is not None:
+            pin = _point(user_input[CONF_PIN])
+            if len(self._pins) >= MAX_PINS:
+                errors[CONF_PIN] = "too_many_pins"
+            elif not in_ontario(*pin):
+                errors[CONF_PIN] = "pin_outside_ontario"
+            else:
+                self._pins = insert_pin(self._pins, pin, start, end)
+                return await self.async_step_route_pins()
+        latitude, longitude = (
+            self._pins[-1]
+            if self._pins
+            else ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
+        )
+        schema = probatio.Schema(
+            {
+                probatio.Required(
+                    CONF_PIN, default={"latitude": latitude, "longitude": longitude}
+                ): LocationSelector(LocationSelectorConfig(radius=False)),
+            }
+        )
+        return self.async_show_form(
+            step_id="route_pin_add",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={"max": str(MAX_PINS)},
+        )
+
+    async def async_step_route_pin_remove(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Remove pins from the route."""
+        if user_input is not None:
+            remove = {int(index) for index in user_input[CONF_PINS]}
+            self._pins = [p for i, p in enumerate(self._pins) if i not in remove]
+            return await self.async_step_route_pins()
+        schema = probatio.Schema(
+            {
+                probatio.Required(CONF_PINS, default=[]): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            SelectOptionDict(
+                                value=str(index),
+                                label=f"{index + 1}: {lat:.5f}, {lon:.5f}",
+                            )
+                            for index, (lat, lon) in enumerate(self._pins)
+                        ],
+                        multiple=True,
+                        mode=SelectSelectorMode.LIST,
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="route_pin_remove", data_schema=schema)
+
+    async def async_step_route_import(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Read pins from a pasted directions link or GPX file."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            start, end = self._route_ends()
+            try:
+                points = await self.hass.async_add_executor_job(
+                    parse_route, user_input[CONF_ROUTE_TEXT]
+                )
+                self._pins = pins_from_route(points, start, end)
+            except ShortLink:
+                errors[CONF_ROUTE_TEXT] = "import_short_link"
+            except NamedStops:
+                errors[CONF_ROUTE_TEXT] = "import_named_stops"
+            except StopsOutsideOntario:
+                errors[CONF_ROUTE_TEXT] = "import_outside_ontario"
+            except NoStops:
+                errors[CONF_ROUTE_TEXT] = "import_no_stops"
+            except RouteImportError:
+                errors[CONF_ROUTE_TEXT] = "import_unsupported"
+            else:
+                return await self.async_step_route_pins()
+        schema = probatio.Schema(
+            {
+                probatio.Required(CONF_ROUTE_TEXT): TextSelector(
+                    TextSelectorConfig(multiline=True)
+                )
+            }
+        )
+        return self.async_show_form(
+            step_id="route_import",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={"max": str(MAX_PINS)},
+        )
+
+    async def async_step_route_save(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Plan the route through the pins, with one routing request."""
+        subentry = self._get_reconfigure_subentry()
+        try:
+            data = await async_replan(
+                self.hass,
+                self._get_entry(),
+                subentry,
+                self._route_segments,
+                self._route_data,
+                self._pins,
+            )
+        except RoutingUnavailable, RoutingFailed:
+            return await self.async_step_route_failed()
+        return self._save_route(data)
+
+    async def async_step_route_failed(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Offer to try again, or keep the current route."""
+        return self.async_show_menu(
+            step_id="route_failed",
+            menu_options=["route_save", "route_pins", "route_keep"],
+        )
+
+    async def async_step_route_keep(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Save the other settings and leave the route as it was."""
+        return self._save_route(self._route_data)
+
+    def _save_route(self, data: dict[str, Any]) -> SubentryFlowResult:
+        subentry = self._get_reconfigure_subentry()
+        self._move_devices_if_changed(subentry, data)
+        return self.async_update_and_abort(
+            self._get_entry(), subentry, title=self._route_title, data=data
+        )
+
+    _route_data: dict[str, Any]
+    _route_title: str
+    _route_segments: list[RoadSegment]
+    _pins: list[Point]
 
 
 class ItemSubentryFlow(_EntrySubentryFlow):
